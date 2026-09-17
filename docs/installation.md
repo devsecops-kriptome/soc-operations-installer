@@ -45,20 +45,73 @@ El resultado debe contener `release-0.1.98` con exactamente 19 archivos.
 
 En Linux puede usarse `scripts/decrypt-and-verify.sh`.
 
-## 4. Preparar Wazuh
+## 4. Preparar un Ubuntu limpio e instalar Wazuh
 
-Antes de SOC Operations, instale Wazuh all-in-one 4.14 y compruebe:
+Conéctese por SSH y obtenga un shell de `root`:
 
 ```bash
-dpkg-query -W wazuh-manager wazuh-indexer wazuh-dashboard filebeat
-systemctl is-active wazuh-manager wazuh-indexer wazuh-dashboard filebeat
+sudo -i
+cat /etc/os-release
 ip -brief address
+dpkg-query -W wazuh-manager wazuh-indexer wazuh-dashboard filebeat 2>&1 || true
+systemctl is-active wazuh-manager wazuh-indexer wazuh-dashboard filebeat 2>/dev/null || true
 ```
 
-Los tres paquetes Wazuh deben mostrar `4.14.7-1`, los cuatro servicios deben estar activos y el
-servidor debe tener `10.0.0.10`.
+El host debe ejecutar Ubuntu 24.04, tener la dirección interna `10.0.0.10` y no contener una
+instalación parcial de Wazuh. Si alguna de esas condiciones no se cumple, no continúe.
 
-Conserve fuera de GitHub la contraseña de `admin` y `/root/wazuh-install-files.tar`.
+Prepare la cuenta técnica y descargue el asistente oficial fijado a la rama 4.14:
+
+```bash
+set -euo pipefail
+apt-get update
+apt-get install -y curl ca-certificates
+
+id codex-lab >/dev/null 2>&1 || \
+  adduser --disabled-password --gecos '' codex-lab
+usermod --shell /bin/bash codex-lab
+passwd --lock codex-lab
+install -d -o codex-lab -g codex-lab -m 0750 /home/codex-lab/staging
+
+curl --fail --location --proto '=https' --tlsv1.2 \
+  --output /home/codex-lab/staging/wazuh-install.sh \
+  https://packages.wazuh.com/4.14/wazuh-install.sh
+
+chown root:root /home/codex-lab/staging/wazuh-install.sh
+chmod 0755 /home/codex-lab/staging/wazuh-install.sh
+bash -n /home/codex-lab/staging/wazuh-install.sh
+head -n 1 /home/codex-lab/staging/wazuh-install.sh
+sha256sum /home/codex-lab/staging/wazuh-install.sh
+```
+
+`bash -n` debe terminar sin errores y el primer renglón debe ser un shebang de Bash. Registre la
+huella obtenida y ejecute la instalación all-in-one:
+
+```bash
+cd /root
+bash /home/codex-lab/staging/wazuh-install.sh -a
+chmod 0600 /root/wazuh-install-files.tar
+```
+
+Guarde en un gestor seguro la contraseña de `admin` que muestra el asistente. No publique esa
+contraseña ni `/root/wazuh-install-files.tar` en GitHub, chats, tickets o registros.
+
+Compruebe la instalación:
+
+```bash
+dpkg-query -W -f='${Package}\t${Version}\n' \
+  wazuh-manager wazuh-indexer wazuh-dashboard filebeat
+systemctl is-active wazuh-manager wazuh-indexer wazuh-dashboard filebeat
+ip -brief address
+ss -lntH | grep -E ':(443|1514|1515|9200|55000)[[:space:]]'
+```
+
+Los paquetes `wazuh-manager`, `wazuh-indexer` y `wazuh-dashboard` deben mostrar `4.14.7-1`; los
+cuatro servicios deben estar activos y el servidor debe conservar `10.0.0.10`. Los listeners
+esperados son `443`, `1514`, `1515`, `9200` y `55000`.
+
+No habilite UFW todavía. Las reglas de red se aplican manualmente, después de preservar primero
+el acceso por el puerto SSH administrativo.
 
 ## 5. Copiar el release al servidor
 

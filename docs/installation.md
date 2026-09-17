@@ -53,6 +53,7 @@ soc-operations-0.1.98.tar.gz.age: OK
 
 Instale `age` y coloque temporalmente en el servidor la identidad privada obtenida por el canal
 autorizado. La identidad nunca debe descargarse desde GitHub:
+Asegurarse de tener $HOME/soc-operations-installer-key.txt el password se encuentra en el vault "SocOperation Installer Key"
 
 ```bash
 sudo apt-get update

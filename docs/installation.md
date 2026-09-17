@@ -23,6 +23,63 @@ soc-operations-0.1.98.tar.gz.age
 
 No descargue instaladores desde comentarios, forks no autorizados o enlaces externos.
 
+### Descarga directa desde Ubuntu
+
+El instalador no se distribuye como ZIP. El asset oficial es un `tar.gz` cifrado con `age`.
+Descárguelo junto con su archivo de hashes:
+
+```bash
+mkdir -p "$HOME/soc-installer"
+cd "$HOME/soc-installer"
+
+curl --fail --location --remote-name \
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.98/soc-operations-0.1.98.tar.gz.age
+
+curl --fail --location --remote-name \
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.98/SHA256SUMS
+```
+
+Verifique el asset cifrado antes de usarlo:
+
+```bash
+grep 'soc-operations-0.1.98.tar.gz.age$' SHA256SUMS | sha256sum --check
+```
+
+El resultado debe ser:
+
+```text
+soc-operations-0.1.98.tar.gz.age: OK
+```
+
+Instale `age` y coloque temporalmente en el servidor la identidad privada obtenida por el canal
+autorizado. La identidad nunca debe descargarse desde GitHub:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y age
+chmod 600 "$HOME/soc-operations-installer-key.txt"
+
+age --decrypt \
+  --identity "$HOME/soc-operations-installer-key.txt" \
+  --output soc-operations-0.1.98.tar.gz \
+  soc-operations-0.1.98.tar.gz.age
+
+sha256sum --check SHA256SUMS
+tar -xzf soc-operations-0.1.98.tar.gz
+find release-0.1.98 -maxdepth 1 -type f | wc -l
+```
+
+La verificación debe mostrar ambos archivos como `OK` y el conteo final debe ser `19`. Cuando la
+política de custodia no permita conservar la identidad en el servidor, elimine su copia temporal
+después de confirmar la extracción:
+
+```bash
+rm -f "$HOME/soc-operations-installer-key.txt"
+```
+
+El ZIP automático del repositorio contiene solamente documentación y scripts; no contiene el
+instalador.
+
 ## 3. Descifrar y verificar en Windows
 
 Instale `age`:

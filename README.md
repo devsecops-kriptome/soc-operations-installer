@@ -8,8 +8,8 @@ separado.
 
 ## Versión vigente
 
-- Release: `v0.1.98`
-- Instalador: `0.1.98`
+- Release: `v0.1.99`
+- Instalador: `0.1.99`
 - API, worker y agente: `0.1.80`
 - Plugin: `socOperations@0.1.64`
 - Wazuh requerido: `4.14.7-1`
@@ -17,7 +17,7 @@ separado.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.98.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.99.tar.gz.age` desde Releases.
 2. Obtener la clave privada `age` por el canal autorizado. Nunca se publica en este repositorio.
 3. Seguir [Descarga, descifrado e instalación](docs/installation.md).
 4. Aplicar manualmente la política de red descrita en [Referencia de firewall](docs/firewall-reference.md).
@@ -34,4 +34,3 @@ antes de extraerlo.
 - La clave privada de distribución y los secretos del servidor permanecen fuera de GitHub.
 
 Consulte [SECURITY.md](SECURITY.md) antes de reportar una vulnerabilidad.
-

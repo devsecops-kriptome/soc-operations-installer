@@ -15,10 +15,10 @@ El instalador no adapta automáticamente estas versiones o direcciones.
 
 ## 2. Descargar el asset cifrado
 
-Descargue desde el Release `v0.1.98`:
+Descargue desde el Release `v0.1.99`:
 
 ```text
-soc-operations-0.1.98.tar.gz.age
+soc-operations-0.1.99.tar.gz.age
 ```
 
 No descargue instaladores desde comentarios, forks no autorizados o enlaces externos.
@@ -38,22 +38,22 @@ mkdir -p /root/soc-installer
 cd /root/soc-installer
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.98/soc-operations-0.1.98.tar.gz.age
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.99/soc-operations-0.1.99.tar.gz.age
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.98/SHA256SUMS
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.99/SHA256SUMS
 ```
 
 Verifique el asset cifrado antes de usarlo:
 
 ```bash
-grep 'soc-operations-0.1.98.tar.gz.age$' SHA256SUMS | sha256sum --check
+grep 'soc-operations-0.1.99.tar.gz.age$' SHA256SUMS | sha256sum --check
 ```
 
 El resultado debe ser:
 
 ```text
-soc-operations-0.1.98.tar.gz.age: OK
+soc-operations-0.1.99.tar.gz.age: OK
 ```
 
 Obtenga la identidad privada desde el vault **SocOperation Installer Key** y colóquela
@@ -65,12 +65,12 @@ chmod 600 /root/soc-operations-installer-key.txt
 
 age --decrypt \
   --identity /root/soc-operations-installer-key.txt \
-  --output soc-operations-0.1.98.tar.gz \
-  soc-operations-0.1.98.tar.gz.age
+  --output soc-operations-0.1.99.tar.gz \
+  soc-operations-0.1.99.tar.gz.age
 
 sha256sum --check SHA256SUMS
-tar -xzf soc-operations-0.1.98.tar.gz
-find release-0.1.98 -maxdepth 1 -type f | wc -l
+tar -xzf soc-operations-0.1.99.tar.gz
+find release-0.1.99 -maxdepth 1 -type f | wc -l
 ```
 
 La verificación debe mostrar ambos archivos como `OK` y el conteo final debe ser `19`. Cuando la
@@ -183,14 +183,14 @@ El último comando no debe mostrar archivos antes de copiar el release. La desca
 directa de la sección 2 creó este directorio:
 
 ```text
-/root/soc-installer/release-0.1.98
+/root/soc-installer/release-0.1.99
 ```
 
 Copie su contenido a `staging`:
 
 ```bash
-test -d /root/soc-installer/release-0.1.98
-cp -a /root/soc-installer/release-0.1.98/. /home/codex-lab/staging/
+test -d /root/soc-installer/release-0.1.99
+cp -a /root/soc-installer/release-0.1.99/. /home/codex-lab/staging/
 ```
 
 Normalice la propiedad y valide el contenido:
@@ -216,7 +216,7 @@ sha256sum /usr/local/sbin/soc-operations-install
 Hash esperado:
 
 ```text
-7be46ce005bbf45db86eeb9d78da44f2b0fbe46f92284d095e2e6355035aedd4
+54a2e1c6949219fc22ce23f561b237e7a49d55f88555e03c0e2a4d2be537a44a
 ```
 
 Después: Reemplazar "INGENIERO@EMPRESA.COM" y "Primer ingeniero SOC"
@@ -231,8 +231,8 @@ Después: Reemplazar "INGENIERO@EMPRESA.COM" y "Primer ingeniero SOC"
 
 `apply` debe terminar en `phase=waiting_for_openbao_custody`.
 
-El instalador no modifica el firewall. Antes de `resume`, aplique manualmente las reglas aprobadas,
-incluida la comunicación del bridge Docker hacia `172.19.0.1:8443/TCP`.
+El instalador no modifica el firewall. Antes de `resume`, valide subnet, gateway e interfaz y
+aplique manualmente las reglas aprobadas descritas en [Referencia de firewall](firewall-reference.md).
 
 ## 6. OpenBao y primer usuario
 

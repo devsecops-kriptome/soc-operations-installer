@@ -26,11 +26,16 @@ No descargue instaladores desde comentarios, forks no autorizados o enlaces exte
 ### Descarga directa desde Ubuntu
 
 El asset oficial es un `tar.gz` cifrado con `age`.
-Descárguelo junto con su archivo de hashes:
+Los siguientes pasos presuponen que la sesión SSH actual ya tiene un shell de `root`. Compruébelo
+y descargue el asset junto con su archivo de hashes:
 
 ```bash
-mkdir -p "$HOME/soc-installer"
-cd "$HOME/soc-installer"
+test "$(id -u)" -eq 0
+apt-get update
+apt-get install -y curl ca-certificates age
+
+mkdir -p /root/soc-installer
+cd /root/soc-installer
 
 curl --fail --location --remote-name \
   https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.98/soc-operations-0.1.98.tar.gz.age
@@ -51,17 +56,15 @@ El resultado debe ser:
 soc-operations-0.1.98.tar.gz.age: OK
 ```
 
-Instale `age` y coloque temporalmente en el servidor la identidad privada obtenida por el canal
-autorizado. La identidad nunca debe descargarse desde GitHub:
-Asegurarse de tener $HOME/soc-operations-installer-key.txt el password se encuentra en el vault "SocOperation Installer Key"
+Obtenga la identidad privada desde el vault **SocOperation Installer Key** y colóquela
+temporalmente en `/root/soc-operations-installer-key.txt`. La identidad nunca debe descargarse
+desde GitHub:
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y age
-chmod 600 "$HOME/soc-operations-installer-key.txt"
+chmod 600 /root/soc-operations-installer-key.txt
 
 age --decrypt \
-  --identity "$HOME/soc-operations-installer-key.txt" \
+  --identity /root/soc-operations-installer-key.txt \
   --output soc-operations-0.1.98.tar.gz \
   soc-operations-0.1.98.tar.gz.age
 
@@ -75,35 +78,10 @@ política de custodia no permita conservar la identidad en el servidor, elimine 
 después de confirmar la extracción:
 
 ```bash
-rm -f "$HOME/soc-operations-installer-key.txt"
+rm -f /root/soc-operations-installer-key.txt
 ```
 
-El ZIP automático del repositorio contiene solamente documentación y scripts; no contiene el
-instalador.
-
-## 3. Descifrar y verificar en Windows
-
-Instale `age`:
-
-```powershell
-winget install --id FiloSottile.age --exact
-```
-
-Abra una nueva terminal después de instalar `age`. Desde la raíz de este repositorio ejecute:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File ".\scripts\decrypt-and-verify.ps1" `
-  -Asset "$HOME\Downloads\soc-operations-0.1.98.tar.gz.age" `
-  -Identity "$HOME\.config\age\soc-operations-installer-key.txt" `
-  -OutputDirectory "$HOME\Downloads\soc-operations-0.1.98"
-```
-
-El resultado debe contener `release-0.1.98` con exactamente 19 archivos.
-
-En Linux puede usarse `scripts/decrypt-and-verify.sh`.
-
-## 4. Preparar un Ubuntu limpio e instalar Wazuh
+## 3. Preparar un Ubuntu limpio e instalar Wazuh
 
 Conéctese por SSH y obtenga un shell de `root`:
 
@@ -121,9 +99,6 @@ Prepare la cuenta técnica y descargue el asistente oficial fijado a la rama 4.1
 
 ```bash
 set -euo pipefail
-apt-get update
-apt-get install -y curl ca-certificates
-
 id codex-lab >/dev/null 2>&1 || \
   adduser --disabled-password --gecos '' codex-lab
 usermod --shell /bin/bash codex-lab
@@ -160,9 +135,15 @@ if [ -f /home/codex-lab/staging/wazuh-install-files.tar ]; then
   mv /home/codex-lab/staging/wazuh-install-files.tar /root/wazuh-install-files.tar
 fi
 
+if [ -f /home/codex-lab/staging/wazuh-install.sh ]; then
+  mv /home/codex-lab/staging/wazuh-install.sh /root/wazuh-install.sh
+fi
+
 test -f /root/wazuh-install-files.tar
 chown root:root /root/wazuh-install-files.tar
 chmod 0600 /root/wazuh-install-files.tar
+chown root:root /root/wazuh-install.sh
+chmod 0755 /root/wazuh-install.sh
 ls -l /root/wazuh-install-files.tar
 ```
 
@@ -187,45 +168,45 @@ esperados son `443`, `1514`, `1515`, `9200` y `55000`.
 No habilite UFW todavía. Las reglas de red se aplican manualmente, después de preservar primero
 el acceso por el puerto SSH administrativo.
 
-## 5. Copiar el release al servidor
+## 4. Colocar el release en staging
 
-Cree la cuenta técnica y el staging:
-
-```bash
-sudo adduser --disabled-password --gecos '' codex-lab
-sudo usermod --shell /bin/bash codex-lab
-sudo passwd --lock codex-lab
-sudo install -d -o codex-lab -g codex-lab -m 0750 /home/codex-lab/staging
-```
-
-En el servidor cree primero el directorio de carga:
+La cuenta `codex-lab` ya fue creada en la sección anterior. Compruebe que existe y que `staging`
+no contiene el asistente ni el archivo privado de Wazuh:
 
 ```bash
-mkdir -p "$HOME/soc-release-upload"
-chmod 700 "$HOME/soc-release-upload"
+id codex-lab
+install -d -o codex-lab -g codex-lab -m 0750 /home/codex-lab/staging
+find /home/codex-lab/staging -mindepth 1 -maxdepth 1 -print
 ```
 
-Desde Windows, ajuste usuario, dirección, puerto y clave. Copie el directorio completo:
+El último comando no debe mostrar archivos antes de copiar el release. La descarga y extracción
+directa de la sección 2 creó este directorio:
 
-```powershell
-scp -P PUERTO_SSH -i "$HOME\.ssh\CLAVE_PRIVADA" -r `
-  "$HOME\Downloads\soc-operations-0.1.98\release-0.1.98" `
-  USUARIO_SSH@IP_DEL_SERVIDOR:~/soc-release-upload/
+```text
+/root/soc-installer/release-0.1.98
 ```
 
-En el servidor:
+Copie su contenido a `staging`:
 
 ```bash
-sudo cp -a "$HOME/soc-release-upload/release-0.1.98/." /home/codex-lab/staging/
-find /home/codex-lab/staging -maxdepth 1 -type f | wc -l
+test -d /root/soc-installer/release-0.1.98
+cp -a /root/soc-installer/release-0.1.98/. /home/codex-lab/staging/
 ```
 
-El staging del release debe contener los 19 archivos sin renombrarlos.
-
-## 6. Ejecutar el instalador
+Normalice la propiedad y valide el contenido:
 
 ```bash
-sudo install -o root -g root -m 0755 \
+chown -R root:root /home/codex-lab/staging
+find /home/codex-lab/staging -maxdepth 1 -type f | sort
+test "$(find /home/codex-lab/staging -maxdepth 1 -type f | wc -l)" -eq 19
+```
+
+El staging debe contener exactamente los 19 archivos del release, sin renombrarlos.
+
+## 5. Ejecutar el instalador
+
+```bash
+install -o root -g root -m 0755 \
   /home/codex-lab/staging/soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
@@ -241,9 +222,9 @@ Hash esperado:
 Después:
 
 ```bash
-sudo /usr/local/sbin/soc-operations-install preflight
+/usr/local/sbin/soc-operations-install preflight
 
-sudo /usr/local/sbin/soc-operations-install apply \
+/usr/local/sbin/soc-operations-install apply \
   --email INGENIERO@EMPRESA.COM \
   --display-name "Primer ingeniero SOC"
 ```
@@ -253,12 +234,12 @@ sudo /usr/local/sbin/soc-operations-install apply \
 El instalador no modifica el firewall. Antes de `resume`, aplique manualmente las reglas aprobadas,
 incluida la comunicación del bridge Docker hacia `172.19.0.1:8443/TCP`.
 
-## 7. OpenBao y primer usuario
+## 6. OpenBao y primer usuario
 
 ```bash
-sudo /usr/local/sbin/soc-operations-install openbao-init
-sudo /usr/local/sbin/soc-operations-install status
-sudo /usr/local/sbin/soc-operations-install resume
+/usr/local/sbin/soc-operations-install openbao-init
+/usr/local/sbin/soc-operations-install status
+/usr/local/sbin/soc-operations-install resume
 ```
 
 Durante `resume` se solicitarán de forma oculta:

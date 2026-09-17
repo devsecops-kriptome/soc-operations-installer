@@ -147,11 +147,28 @@ huella obtenida y ejecute la instalación all-in-one:
 ```bash
 cd /root
 bash /home/codex-lab/staging/wazuh-install.sh -a
-chmod 0600 /root/wazuh-install-files.tar
 ```
 
 Guarde en un gestor seguro la contraseña de `admin` que muestra el asistente. No publique esa
-contraseña ni `/root/wazuh-install-files.tar` en GitHub, chats, tickets o registros.
+contraseña ni `wazuh-install-files.tar` en GitHub, chats, tickets o registros.
+
+El asistente puede crear `wazuh-install-files.tar` en `/root` o junto al script en `staging`.
+Localícelo, consérvelo en `/root` y restrinja sus permisos:
+
+```bash
+if [ -f /home/codex-lab/staging/wazuh-install-files.tar ]; then
+  mv /home/codex-lab/staging/wazuh-install-files.tar /root/wazuh-install-files.tar
+fi
+
+test -f /root/wazuh-install-files.tar
+chown root:root /root/wazuh-install-files.tar
+chmod 0600 /root/wazuh-install-files.tar
+ls -l /root/wazuh-install-files.tar
+```
+
+El resultado debe mostrar propietario `root:root` y permisos `-rw-------`. No vuelva a ejecutar el
+instalador de Wazuh solamente para cambiar la ubicación del archivo. Retirarlo de `staging` evita
+mezclarlo con los 19 archivos del release de SOC Operations.
 
 Compruebe la instalación:
 

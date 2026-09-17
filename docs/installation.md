@@ -108,7 +108,6 @@ En Linux puede usarse `scripts/decrypt-and-verify.sh`.
 Conéctese por SSH y obtenga un shell de `root`:
 
 ```bash
-sudo -i
 cat /etc/os-release
 ip -brief address
 dpkg-query -W wazuh-manager wazuh-indexer wazuh-dashboard filebeat 2>&1 || true

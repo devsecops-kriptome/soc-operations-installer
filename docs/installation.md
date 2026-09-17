@@ -25,7 +25,7 @@ No descargue instaladores desde comentarios, forks no autorizados o enlaces exte
 
 ### Descarga directa desde Ubuntu
 
-El instalador no se distribuye como ZIP. El asset oficial es un `tar.gz` cifrado con `age`.
+El asset oficial es un `tar.gz` cifrado con `age`.
 Descárguelo junto con su archivo de hashes:
 
 ```bash

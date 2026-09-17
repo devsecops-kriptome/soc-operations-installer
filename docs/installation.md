@@ -276,3 +276,98 @@ openbao_sealed=false
 
 Inicie sesión directamente con el correo indicado en `apply`. Después configure SMTP desde
 **Administración → Integraciones** para habilitar las invitaciones de usuarios posteriores.
+
+## 7. Puertos y ejemplo UFW
+
+El instalador no habilita UFW ni modifica el firewall. La matriz de entrada recomendada para
+WA001 es:
+
+| Puerto destino | Origen recomendado | Uso |
+| --- | --- | --- |
+| `PUERTO_SSH/TCP` | Red o estaciones administrativas | SSH |
+| `10.0.0.10:443/TCP` | HAProxy `192.168.4.50/32` y VPN autorizada | Wazuh Dashboard |
+| `10.0.0.10:9443/TCP` | Solo HAProxy `192.168.4.50/32` | API externa de solo lectura |
+| `10.0.0.10:1514/TCP` | HAProxy de agentes o redes de endpoints | Eventos Wazuh |
+| `10.0.0.10:1515/TCP` | HAProxy de agentes o redes de endpoints | Enrolamiento Wazuh |
+| `172.19.0.1:8443/TCP` | Solo bridge Docker `172.19.0.0/16` | Agente mTLS interno |
+
+No publique `8080`, `8091`, `8200`, `9000`, `9200`, `5432` ni `55000`. Si se requiere exponer la
+API administrativa Wazuh de `55000`, trátelo como una excepción independiente con autenticación,
+TLS y allowlist aprobados; no forma parte de este despliegue estándar.
+
+Antes de aplicar el ejemplo, ajuste interfaz, puerto SSH y redes. Mantenga abierta la sesión SSH
+actual y valide una segunda conexión antes de habilitar UFW. Siempre que sea posible, reduzca
+`RED_ADMIN` a la IP exacta de administración con máscara `/32`:
+
+```bash
+INTERFAZ_SERVICIO=ens19
+PUERTO_SSH=11050
+RED_ADMIN=192.168.4.0/24
+IP_HAPROXY=192.168.4.50
+RED_ENDPOINTS=10.0.0.0/24
+RED_VPN=10.81.0.0/16
+IP_WA001=10.0.0.10
+
+ufw allow in on "$INTERFAZ_SERVICIO" \
+  from "$RED_ADMIN" to "$IP_WA001" port "$PUERTO_SSH" proto tcp \
+  comment 'SSH administration'
+
+ufw allow in on "$INTERFAZ_SERVICIO" \
+  from "$IP_HAPROXY" to "$IP_WA001" port 443 proto tcp \
+  comment 'Wazuh Dashboard from HAProxy'
+
+ufw allow in on "$INTERFAZ_SERVICIO" \
+  from "$IP_HAPROXY" to "$IP_WA001" port 9443 proto tcp \
+  comment 'SOC external API from HAProxy'
+
+ufw allow in on "$INTERFAZ_SERVICIO" \
+  from "$RED_VPN" to "$IP_WA001" port 443 proto tcp \
+  comment 'Wazuh Dashboard from VPN'
+```
+
+Para agentes publicados exclusivamente mediante HAProxy, permita solo su dirección de origen:
+
+```bash
+ufw allow in on "$INTERFAZ_SERVICIO" \
+  from "$IP_HAPROXY" to "$IP_WA001" port 1514 proto tcp \
+  comment 'Wazuh events from HAProxy'
+
+ufw allow in on "$INTERFAZ_SERVICIO" \
+  from "$IP_HAPROXY" to "$IP_WA001" port 1515 proto tcp \
+  comment 'Wazuh enrollment from HAProxy'
+```
+
+Si los endpoints llegan directamente a WA001, use en su lugar las redes aprobadas; no aplique
+ambas modalidades sin necesidad:
+
+```bash
+for RED_AGENTES in "$RED_ENDPOINTS" "$RED_VPN"; do
+  ufw allow in on "$INTERFAZ_SERVICIO" \
+    from "$RED_AGENTES" to "$IP_WA001" port 1514 proto tcp \
+    comment 'Wazuh direct agent events'
+
+  ufw allow in on "$INTERFAZ_SERVICIO" \
+    from "$RED_AGENTES" to "$IP_WA001" port 1515 proto tcp \
+    comment 'Wazuh direct agent enrollment'
+done
+```
+
+La regla interna `172.19.0.0/16 → 172.19.0.1:8443` debe crearse con el bloque de validación
+dinámica de [Referencia de firewall](firewall-reference.md); no copie manualmente un nombre
+`br-*` de otro servidor.
+
+Revise las reglas antes de habilitar el firewall:
+
+```bash
+ufw show added
+ufw status verbose
+```
+
+Solo después de validar las reglas y una segunda sesión SSH, si la política del servidor requiere
+UFW activo, habilítelo explícitamente y vuelva a comprobar acceso y servicios:
+
+```bash
+ufw enable
+ufw status numbered
+ss -lntH | grep -E ':(443|9443|1514|1515|8443)[[:space:]]'
+```

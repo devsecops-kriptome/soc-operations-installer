@@ -18,6 +18,9 @@ El release `v0.1.100` fija la red `frontend` a `172.19.0.0/16` con gateway `172.
 Después de `apply`, obtenga y valide los valores efectivos antes de crear la regla:
 
 ```bash
+(
+set -Eeuo pipefail
+
 SOC_NETWORK=soc-operations-wa001_frontend
 SOC_SUBNET=$(docker network inspect "$SOC_NETWORK" \
   --format '{{(index .IPAM.Config 0).Subnet}}')
@@ -37,13 +40,76 @@ test "$SOC_SUBNET" = "172.19.0.0/16"
 test "$SOC_GATEWAY" = "172.19.0.1"
 ip -4 address show dev "$SOC_BRIDGE" | grep -Fq '172.19.0.1/16'
 
+ufw status verbose
 ufw allow in on "$SOC_BRIDGE" \
   from "$SOC_SUBNET" to "$SOC_GATEWAY" port 8443 proto tcp \
   comment 'SOC Operations bridge to deploy agent'
+ufw status numbered
+)
 ```
 
 Si cualquiera de las tres validaciones falla, no adapte la regla al valor encontrado: deténgase
 y revise solapamientos o una recreación incorrecta de la red Docker.
 
-Antes de habilitar UFW, autorice el puerto SSH correcto y valide otra sesión para evitar perder el
-acceso. Registre las reglas aplicadas como un cambio de red independiente del instalador.
+Este bloque no habilita UFW. No ejecute `ufw enable` como parte de esta instalación. Si la política
+del servidor requiere habilitarlo, autorice primero el puerto SSH real y valide otra sesión para
+evitar perder el acceso.
+
+## Validar mTLS desde el contenedor API
+
+Cuando `resume` haya instalado `deployment-agent`, el host debe escuchar en `8443`:
+
+```bash
+systemctl is-active soc-deploy-agent nginx
+ss -lntp | grep ':8443'
+```
+
+Compruebe después el mismo camino que utiliza la API, incluido certificado cliente, CA, DNS interno
+y firewall del bridge:
+
+```bash
+docker exec -i soc-operations-wa001-api-1 \
+  /usr/local/bin/python - <<'PY'
+import ssl
+import urllib.request
+
+context = ssl.create_default_context(
+    cafile="/run/soc-operations/deploy-ca.crt"
+)
+context.load_cert_chain(
+    certfile="/run/soc-operations/deploy-client.crt",
+    keyfile="/run/soc-operations/deploy-client.key",
+)
+
+opener = urllib.request.build_opener(
+    urllib.request.ProxyHandler({}),
+    urllib.request.HTTPSHandler(context=context),
+)
+
+with opener.open(
+    "https://soc-deploy-agent-wa001:8443/health/live",
+    timeout=10,
+) as response:
+    print("HTTP", response.status)
+    print(response.read().decode())
+PY
+```
+
+El resultado esperado es `HTTP 200`. Si falla, no continúe con `resume`; conserve la salida para
+diagnosticar listener, DNS, certificados o firewall.
+
+## Recuperar `identity_agent: unavailable`
+
+Si `resume` completó `openbao-configuration` y `deployment-agent`, pero readiness mostró
+`identity_agent: unavailable`, la activación restauró automáticamente el entorno anterior. No
+ejecute `apply`, `openbao-init` ni rollback. Corrija la regla, confirme `HTTP 200` con la prueba
+anterior y reanude:
+
+```bash
+/usr/local/sbin/soc-operations-install status
+/usr/local/sbin/soc-operations-install resume
+```
+
+El instalador omitirá los pasos completados y volverá a intentar desde `identity-agent`.
+
+Registre las reglas aplicadas como un cambio de red independiente del instalador.

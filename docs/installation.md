@@ -249,6 +249,11 @@ aplique manualmente las reglas aprobadas descritas en [Referencia de firewall](f
 /usr/local/sbin/soc-operations-install resume
 ```
 
+Antes de `resume` debe existir la regla interna del bridge descrita en
+[Referencia de firewall](firewall-reference.md). Si el proceso se detiene con
+`identity_agent: unavailable`, siga allí la prueba mTLS desde el contenedor y el procedimiento de
+recuperación. No repita `apply`, `openbao-init` ni ejecute rollback para ese caso.
+
 Durante `resume` se solicitarán de forma oculta:
 
 1. el token raíz inicial de OpenBao;

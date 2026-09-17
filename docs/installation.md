@@ -219,7 +219,7 @@ Hash esperado:
 7be46ce005bbf45db86eeb9d78da44f2b0fbe46f92284d095e2e6355035aedd4
 ```
 
-Después:
+Después: Reemplazar "INGENIERO@EMPRESA.COM" y "Primer ingeniero SOC"
 
 ```bash
 /usr/local/sbin/soc-operations-install preflight

@@ -1,0 +1,7 @@
+*.tar
+*.tar.gz
+*.tar.gz.age
+*.key
+*key*.txt
+decrypted/
+

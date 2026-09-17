@@ -14,7 +14,7 @@ sugerencia para el perfil WA001 y debe adaptarse a la política aprobada.
 
 No publique `8080`, `8091`, `8200`, `9000`, `9200`, `5432` ni `55000`.
 
-El release `v0.1.99` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
+El release `v0.1.100` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
 Después de `apply`, obtenga y valide los valores efectivos antes de crear la regla:
 
 ```bash

@@ -15,10 +15,10 @@ El instalador no adapta automáticamente estas versiones o direcciones.
 
 ## 2. Descargar el asset cifrado
 
-Descargue desde el Release `v0.1.99`:
+Descargue desde el Release `v0.1.100`:
 
 ```text
-soc-operations-0.1.99.tar.gz.age
+soc-operations-0.1.100.tar.gz.age
 ```
 
 No descargue instaladores desde comentarios, forks no autorizados o enlaces externos.
@@ -38,22 +38,22 @@ mkdir -p /root/soc-installer
 cd /root/soc-installer
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.99/soc-operations-0.1.99.tar.gz.age
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.100/soc-operations-0.1.100.tar.gz.age
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.99/SHA256SUMS
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.100/SHA256SUMS
 ```
 
 Verifique el asset cifrado antes de usarlo:
 
 ```bash
-grep 'soc-operations-0.1.99.tar.gz.age$' SHA256SUMS | sha256sum --check
+grep 'soc-operations-0.1.100.tar.gz.age$' SHA256SUMS | sha256sum --check
 ```
 
 El resultado debe ser:
 
 ```text
-soc-operations-0.1.99.tar.gz.age: OK
+soc-operations-0.1.100.tar.gz.age: OK
 ```
 
 Obtenga la identidad privada desde el vault **SocOperation Installer Key** y colóquela
@@ -65,12 +65,12 @@ chmod 600 /root/soc-operations-installer-key.txt
 
 age --decrypt \
   --identity /root/soc-operations-installer-key.txt \
-  --output soc-operations-0.1.99.tar.gz \
-  soc-operations-0.1.99.tar.gz.age
+  --output soc-operations-0.1.100.tar.gz \
+  soc-operations-0.1.100.tar.gz.age
 
 sha256sum --check SHA256SUMS
-tar -xzf soc-operations-0.1.99.tar.gz
-find release-0.1.99 -maxdepth 1 -type f | wc -l
+tar -xzf soc-operations-0.1.100.tar.gz
+find release-0.1.100 -maxdepth 1 -type f | wc -l
 ```
 
 La verificación debe mostrar ambos archivos como `OK` y el conteo final debe ser `19`. Cuando la
@@ -183,14 +183,14 @@ El último comando no debe mostrar archivos antes de copiar el release. La desca
 directa de la sección 2 creó este directorio:
 
 ```text
-/root/soc-installer/release-0.1.99
+/root/soc-installer/release-0.1.100
 ```
 
 Copie su contenido a `staging`:
 
 ```bash
-test -d /root/soc-installer/release-0.1.99
-cp -a /root/soc-installer/release-0.1.99/. /home/codex-lab/staging/
+test -d /root/soc-installer/release-0.1.100
+cp -a /root/soc-installer/release-0.1.100/. /home/codex-lab/staging/
 ```
 
 Normalice la propiedad y valide el contenido:
@@ -216,8 +216,15 @@ sha256sum /usr/local/sbin/soc-operations-install
 Hash esperado:
 
 ```text
-54a2e1c6949219fc22ce23f561b237e7a49d55f88555e03c0e2a4d2be537a44a
+4b21b31e3f27f99fa510003af946396f8566144b96182498d01924a112e6a765
 ```
+
+### Reanudar una instalación detenida en `v0.1.99`
+
+`v0.1.99` podía detenerse en el paso `runtime` con `compose checksum mismatch`. No ejecute
+rollback ni reinstale Wazuh. Descargue `v0.1.100`, reemplace los 19 archivos de `staging`, vuelva
+a instalar el orquestador y repita `apply` con exactamente el mismo correo y nombre. Los pasos ya
+completados se omiten de forma segura.
 
 Después: Reemplazar "INGENIERO@EMPRESA.COM" y "Primer ingeniero SOC"
 

@@ -8,8 +8,8 @@ separado.
 
 ## Versión vigente
 
-- Release: `v0.1.99`
-- Instalador: `0.1.99`
+- Release: `v0.1.100`
+- Instalador: `0.1.100`
 - API, worker y agente: `0.1.80`
 - Plugin: `socOperations@0.1.64`
 - Wazuh requerido: `4.14.7-1`
@@ -17,7 +17,7 @@ separado.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.99.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.100.tar.gz.age` desde Releases.
 2. Obtener la clave privada `age` por el canal autorizado. Nunca se publica en este repositorio.
 3. Seguir [Descarga, descifrado e instalación](docs/installation.md).
 4. Aplicar manualmente la política de red descrita en [Referencia de firewall](docs/firewall-reference.md).

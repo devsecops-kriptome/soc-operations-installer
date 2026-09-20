@@ -19,6 +19,11 @@ Descargue, verifique, descifre y extraiga el release siguiendo la sección 3 de 
 [guía AIO](installation.md). El resultado debe ser `/root/soc-installer/release-0.1.145` con 38
 archivos y `SHA256SUMS` válido.
 
+La identidad privada `age` requerida en ese paso se recupera únicamente desde el gestor de
+secretos autorizado, entrada `SOC Operations Installer Descifrado`. No copie su valor al archivo
+de topología ni a los servidores Manager o Indexer; transfiera a esos nodos solo los artefactos
+extraídos que correspondan.
+
 Desde el Dashboard deben ser accesibles:
 
 - `9200/tcp` del endpoint estable o balanceador Indexer;

@@ -13,7 +13,8 @@ instalación parcial o una versión distinta de la indicada.
 - salida HTTPS hacia GitHub y los repositorios oficiales de Ubuntu/Wazuh;
 - FQDN HTTPS definitivo de Wazuh Dashboard;
 - dirección IPv4 interna del AIO y, si existe, CIDR del reverse proxy/HAProxy;
-- identidad privada `age` entregada por un canal protegido.
+- acceso autorizado a la identidad privada `age` almacenada en el gestor de secretos bajo
+  `SOC Operations Installer Descifrado`.
 
 El release `0.1.145` no es compatible con Wazuh 4.12. El `preflight` lo rechaza antes de instalar
 componentes. No modifique esa comprobación; consulte [Compatibilidad](compatibility.md).
@@ -90,8 +91,10 @@ El resultado debe ser:
 soc-operations-0.1.145.tar.gz.age: OK
 ```
 
-Obtenga la identidad privada desde el almacén autorizado y colóquela temporalmente en
-`/root/soc-operations-installer-key.txt`. Nunca la descargue desde GitHub:
+Recupere la identidad privada desde el gestor de secretos autorizado, usando exactamente la
+entrada `SOC Operations Installer Descifrado`, y colóquela temporalmente en
+`/root/soc-operations-installer-key.txt`. Nunca la descargue desde GitHub ni copie su valor en
+chats, tickets, documentación o historial de comandos:
 
 ```bash
 chmod 0600 /root/soc-operations-installer-key.txt
@@ -116,6 +119,9 @@ temporal después del descifrado:
 ```bash
 rm -f /root/soc-operations-installer-key.txt
 ```
+
+Esta identidad descifra exclusivamente el paquete de instalación. No la reutilice como clave de
+OpenBao, `auto-unseal.key` ni como clave de cifrado de los respaldos de SOC Operations.
 
 ## 4. Ejecutar el preflight
 

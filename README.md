@@ -4,8 +4,8 @@ Repositorio público de distribución del instalador SOC Operations para Wazuh 4
 AIO o distribuido con un único Dashboard.
 
 El código fuente y el paquete sin cifrar no se publican aquí. Cada versión se distribuye como un
-asset cifrado de GitHub Releases y requiere una identidad privada `age` entregada por un canal
-separado.
+asset cifrado de GitHub Releases y requiere una identidad privada `age`. La identidad se recupera
+únicamente desde el gestor de secretos autorizado, entrada `SOC Operations Installer Descifrado`.
 
 ## Versión vigente
 
@@ -19,7 +19,8 @@ separado.
 ## Uso
 
 1. Descargar `soc-operations-0.1.145.tar.gz.age` desde Releases.
-2. Obtener la clave privada `age` por el canal autorizado. Nunca se publica en este repositorio.
+2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
+   `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o
    [instalación distribuida](docs/distributed-installation.md).
 4. Aplicar manualmente la política de red descrita en [Referencia de firewall](docs/firewall-reference.md).
@@ -38,7 +39,8 @@ antes de extraerlo.
 - No se genera un correo de activación inicial.
 - SMTP se configura después desde la interfaz para los usuarios posteriores.
 - El instalador no abre puertos ni modifica UFW, nftables o iptables.
-- La clave privada de distribución y los secretos del servidor permanecen fuera de GitHub.
+- La clave privada de distribución se custodia bajo `SOC Operations Installer Descifrado` en el
+  gestor de secretos autorizado; su valor y los secretos del servidor permanecen fuera de GitHub.
 - Wazuh 4.12 no es compatible con este paquete; consulte la
   [matriz de compatibilidad](docs/compatibility.md).
 

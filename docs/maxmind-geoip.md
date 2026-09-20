@@ -11,6 +11,11 @@ La integración MaxMind es opcional y todavía no se configura desde la pantalla
 SOC Operations. En `0.1.145` se administra con archivos `root-only` y servicios systemd. No guarde
 la cuenta o la licencia en Git, variables de shell persistentes, historial o PostgreSQL.
 
+Si utiliza esta guía como documento independiente, el release debe haberse verificado y
+descifrado previamente con la identidad `age` del gestor de secretos autorizado, entrada
+`SOC Operations Installer Descifrado`, siguiendo la [instalación AIO](installation.md). Esa
+identidad no es la licencia MaxMind y nunca debe distribuirse a los Indexer.
+
 El Manager principal descarga una sola vez:
 
 ```text

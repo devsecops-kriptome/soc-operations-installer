@@ -1,4 +1,4 @@
-# Instalación limpia de SOC Operations 0.1.142
+# Instalación limpia AIO de SOC Operations 0.1.143
 
 Esta guía instala SOC Operations sobre un servidor all-in-one de Wazuh ya operativo. El
 instalador no instala ni actualiza Wazuh, no modifica el firewall y no está soportado sobre una
@@ -15,7 +15,7 @@ instalación parcial o una versión distinta de la indicada.
 - dirección IPv4 interna del AIO y, si existe, CIDR del reverse proxy/HAProxy;
 - identidad privada `age` entregada por un canal protegido.
 
-El release `0.1.142` no es compatible con Wazuh 4.12. El `preflight` lo rechaza antes de instalar
+El release `0.1.143` no es compatible con Wazuh 4.12. El `preflight` lo rechaza antes de instalar
 componentes. No modifique esa comprobación; consulte [Compatibilidad](compatibility.md).
 
 La instalación limpia supone un host nuevo o restaurado. Si existen datos anteriores de SOC
@@ -77,17 +77,17 @@ install -d -o root -g root -m 0700 /root/soc-installer
 cd /root/soc-installer
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.142/soc-operations-0.1.142.tar.gz.age
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.143/soc-operations-0.1.143.tar.gz.age
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.142/SHA256SUMS
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.143/SHA256SUMS
 
-grep 'soc-operations-0.1.142.tar.gz.age$' SHA256SUMS | sha256sum --check
+grep 'soc-operations-0.1.143.tar.gz.age$' SHA256SUMS | sha256sum --check
 ```
 
 El resultado debe ser:
 
 ```text
-soc-operations-0.1.142.tar.gz.age: OK
+soc-operations-0.1.143.tar.gz.age: OK
 ```
 
 Obtenga la identidad privada desde el almacén autorizado y colóquela temporalmente en
@@ -97,18 +97,18 @@ Obtenga la identidad privada desde el almacén autorizado y colóquela temporalm
 chmod 0600 /root/soc-operations-installer-key.txt
 age --decrypt \
   --identity /root/soc-operations-installer-key.txt \
-  --output soc-operations-0.1.142.tar.gz \
-  soc-operations-0.1.142.tar.gz.age
+  --output soc-operations-0.1.143.tar.gz \
+  soc-operations-0.1.143.tar.gz.age
 
 sha256sum --check SHA256SUMS
-tar -xzf soc-operations-0.1.142.tar.gz
-cd release-0.1.142
+tar -xzf soc-operations-0.1.143.tar.gz
+cd release-0.1.143
 sha256sum --check SHA256SUMS
-test "$(find . -maxdepth 1 -type f | wc -l)" -eq 25
+test "$(find . -maxdepth 1 -type f | wc -l)" -eq 27
 ```
 
-La primera verificación valida el asset cifrado y el TAR; la segunda valida los 24 artefactos del
-release. El directorio contiene 25 archivos en total porque incluye su propio `SHA256SUMS`.
+La primera verificación valida el asset cifrado y el TAR; la segunda valida los 26 artefactos del
+release. El directorio contiene 27 archivos en total porque incluye su propio `SHA256SUMS`.
 
 Si la política no permite conservar la identidad en el servidor, elimine únicamente su copia
 temporal después del descifrado:
@@ -119,7 +119,7 @@ rm -f /root/soc-operations-installer-key.txt
 
 ## 4. Ejecutar el preflight
 
-Desde `/root/soc-installer/release-0.1.142` instale solo el orquestador:
+Desde `/root/soc-installer/release-0.1.143` instale solo el orquestador:
 
 ```bash
 install -o root -g root -m 0755 \
@@ -132,14 +132,14 @@ sha256sum /usr/local/sbin/soc-operations-install
 La huella esperada es:
 
 ```text
-e041686aea8099a64a6d3d44338691e3b31e5243fe0924f074d9f493ead920bc
+a35a6b71686f6b86a7945b366d306b9ad49f8c263c2a32242128ed0f897c98e9
 ```
 
 Ejecute la validación sin cambios persistentes:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install preflight \
-  --staging-root /root/soc-installer/release-0.1.142
+  --staging-root /root/soc-installer/release-0.1.143
 ```
 
 En un host con varias interfaces, añada `--service-address IP_INTERNA`. No continúe si falla una
@@ -151,7 +151,7 @@ Reemplace los valores de ejemplo:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install apply \
-  --staging-root /root/soc-installer/release-0.1.142 \
+  --staging-root /root/soc-installer/release-0.1.143 \
   --service-address IP_INTERNA_AIO \
   --external-proxy-cidr IP_O_CIDR_DEL_PROXY \
   --email INGENIERO@EMPRESA.COM \
@@ -234,7 +234,7 @@ sudo /usr/local/sbin/soc-operations-install status
 La salida final debe incluir:
 
 ```text
-installer_version=0.1.142
+installer_version=0.1.143
 phase=complete
 dashboard=302
 soc_api_liveness=200

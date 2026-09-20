@@ -15,6 +15,22 @@ cluster.
 
 No publique `8080`, `8091`, `8200`, `9000`, `9200`, `5432` ni `55000`.
 
+## Perfil distribuido
+
+En distribuido, mantenga el mismo acceso externo a `443` del Dashboard y agregue únicamente flujos
+internos explícitos:
+
+| Origen | Destino | Puerto | Finalidad |
+| --- | --- | --- | --- |
+| Dashboard SOC | Endpoint/Balanceador Indexer | `9200/TCP` | Seguridad, identidades y búsquedas |
+| Dashboard SOC | Endpoint API Manager | `55000/TCP` | RBAC Wazuh y validación del clúster |
+| Dashboard SOC | Manager master | `8443/TCP` | Agente privilegiado mTLS |
+| Manager master | Endpoint/Balanceador Indexer | `9200/TCP` | Inventario, DLS y gateway de vulnerabilidades |
+
+No aplique la regla de bridge hacia `172.19.0.1:8443` en distribuido: los contenedores salen por
+ruteo normal al FQDN del manager master. La API externa `9443` todavía no está soportada en este
+perfil y debe permanecer cerrada.
+
 ## Tráfico externo
 
 Mantenga abierta la sesión SSH actual, autorice primero el puerto SSH real y pruebe una segunda
@@ -70,7 +86,7 @@ done
 
 ## Bridge interno de SOC Operations
 
-El release `v0.1.142` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
+El release `v0.1.143` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
 Después de `apply`, obtenga y valide los valores efectivos antes de crear la regla:
 
 ```bash

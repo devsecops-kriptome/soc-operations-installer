@@ -1,6 +1,6 @@
 # Respaldo y recuperación AIO
 
-El release `0.1.142` incorpora la primera versión del flujo de continuidad para un servidor
+El release `0.1.143` conserva la primera versión del flujo de continuidad para un servidor
 all-in-one. Su objetivo es reconstruir SOC Operations sin volver a crear manualmente tenants,
 usuarios, casos, incidentes, SLA, playbooks, reportes y configuración operativa.
 
@@ -89,5 +89,5 @@ PostgreSQL, una hora para índices activos y RTO de cuatro horas.
 
 Este flujo es para un único AIO y no elimina el dominio único de fallo. Producción crítica debe
 usar almacenamiento externo, PostgreSQL administrado y OpenBao HA con auto-unseal basado en
-KMS/HSM/Transit. No promueva `0.1.142` a producción hasta completar la instalación limpia y el
+KMS/HSM/Transit. No promueva `0.1.143` a producción hasta completar la instalación limpia y el
 simulacro de restauración.

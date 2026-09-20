@@ -1,6 +1,7 @@
 # SOC Operations Installer
 
-Repositorio público de distribución del instalador SOC Operations para el perfil WA001.
+Repositorio público de distribución del instalador SOC Operations para Wazuh 4.14.7, en perfil
+AIO o distribuido con un único Dashboard.
 
 El código fuente y el paquete sin cifrar no se publican aquí. Cada versión se distribuye como un
 asset cifrado de GitHub Releases y requiere una identidad privada `age` entregada por un canal
@@ -8,8 +9,8 @@ separado.
 
 ## Versión vigente
 
-- Release: `v0.1.142`
-- Instalador: `0.1.142`
+- Release: `v0.1.143`
+- Instalador: `0.1.143`
 - API, worker y agente: `0.1.111`
 - Plugin: `socOperations@0.1.93`
 - Wazuh requerido: `4.14.7-1`
@@ -17,12 +18,13 @@ separado.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.142.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.143.tar.gz.age` desde Releases.
 2. Obtener la clave privada `age` por el canal autorizado. Nunca se publica en este repositorio.
-3. Seguir [Descarga, descifrado e instalación](docs/installation.md).
+3. Seguir [Instalación AIO](docs/installation.md) o
+   [instalación distribuida](docs/distributed-installation.md).
 4. Aplicar manualmente la política de red descrita en [Referencia de firewall](docs/firewall-reference.md).
-5. Configurar y probar el [respaldo y recuperación AIO](docs/backup-and-restore.md) antes de promover
-   el servidor a producción.
+5. En AIO, configurar y probar el [respaldo y recuperación](docs/backup-and-restore.md). En
+   distribuido, usar respaldos separados de SOC Operations, Wazuh Manager e Indexer.
 
 Los scripts en `scripts/` verifican primero SHA-256, descifran el asset y vuelven a validar el TAR
 antes de extraerlo.

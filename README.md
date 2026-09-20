@@ -8,19 +8,21 @@ separado.
 
 ## Versión vigente
 
-- Release: `v0.1.100`
-- Instalador: `0.1.100`
-- API, worker y agente: `0.1.80`
-- Plugin: `socOperations@0.1.64`
+- Release: `v0.1.142`
+- Instalador: `0.1.142`
+- API, worker y agente: `0.1.111`
+- Plugin: `socOperations@0.1.93`
 - Wazuh requerido: `4.14.7-1`
 - OpenSearch Dashboards requerido: `2.19.5`
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.100.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.142.tar.gz.age` desde Releases.
 2. Obtener la clave privada `age` por el canal autorizado. Nunca se publica en este repositorio.
 3. Seguir [Descarga, descifrado e instalación](docs/installation.md).
 4. Aplicar manualmente la política de red descrita en [Referencia de firewall](docs/firewall-reference.md).
+5. Configurar y probar el [respaldo y recuperación AIO](docs/backup-and-restore.md) antes de promover
+   el servidor a producción.
 
 Los scripts en `scripts/` verifican primero SHA-256, descifran el asset y vuelven a validar el TAR
 antes de extraerlo.
@@ -32,5 +34,7 @@ antes de extraerlo.
 - SMTP se configura después desde la interfaz para los usuarios posteriores.
 - El instalador no abre puertos ni modifica UFW, nftables o iptables.
 - La clave privada de distribución y los secretos del servidor permanecen fuera de GitHub.
+- Wazuh 4.12 no es compatible con este paquete; consulte la
+  [matriz de compatibilidad](docs/compatibility.md).
 
 Consulte [SECURITY.md](SECURITY.md) antes de reportar una vulnerabilidad.

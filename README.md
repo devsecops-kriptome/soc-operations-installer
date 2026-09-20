@@ -9,8 +9,8 @@ separado.
 
 ## Versión vigente
 
-- Release: `v0.1.143`
-- Instalador: `0.1.143`
+- Release: `v0.1.144`
+- Instalador: `0.1.144`
 - API, worker y agente: `0.1.111`
 - Plugin: `socOperations@0.1.93`
 - Wazuh requerido: `4.14.7-1`
@@ -18,13 +18,13 @@ separado.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.143.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.144.tar.gz.age` desde Releases.
 2. Obtener la clave privada `age` por el canal autorizado. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o
    [instalación distribuida](docs/distributed-installation.md).
 4. Aplicar manualmente la política de red descrita en [Referencia de firewall](docs/firewall-reference.md).
-5. En AIO, configurar y probar el [respaldo y recuperación](docs/backup-and-restore.md). En
-   distribuido, usar respaldos separados de SOC Operations, Wazuh Manager e Indexer.
+5. En AIO o distribuido, configurar y probar el
+   [respaldo y recuperación](docs/backup-and-restore.md).
 
 Los scripts en `scripts/` verifican primero SHA-256, descifran el asset y vuelven a validar el TAR
 antes de extraerlo.

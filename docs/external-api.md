@@ -9,6 +9,9 @@ es `127.0.0.1:8091`; la API interna del Dashboard continúa en `127.0.0.1:8080`.
 y `/api/v2/cases` no están registradas en el proceso interno, por lo que no pueden consultarse por
 el puerto `8080`.
 
+Desde `0.1.144`, el gateway `9443` se instala en el único Dashboard tanto en AIO como en
+distribuido. Manager e Indexer pueden ser remotos y no publican esta API.
+
 ## Arquitectura y puertos
 
 El consumidor siempre utiliza HTTPS estándar por `443`. El puerto alterno existe únicamente en el
@@ -139,11 +142,13 @@ backend backend_soc_operations_api
     option httpchk GET /health/live
     http-check expect status 200
     server soc-operations-api 10.0.0.10:9443 ssl verify required \
+        verifyhost soc-external-api-wa001 \
         ca-file /etc/haproxy/ca/soc-operations-wa001-service-ca.pem \
-        sni str(soc-deploy-agent-wa001) check check-sni soc-deploy-agent-wa001
+        sni str(soc-external-api-wa001) check check-sni soc-external-api-wa001
 ```
 
-La CA se obtiene de WA001 en `/etc/soc-deploy-agent/tls/service-ca.crt`. Validar HAProxy antes de
+La CA se obtiene del Dashboard en `/etc/soc-operations-lab/external-api-tls/ca.crt`. El nombre TLS
+es `soc-external-api-DEPLOYMENT_ID`; validar HAProxy antes de
 recargar. La interfaz administrativa `/api/v1/admin/external-api-keys` no se publica por este
 hostname.
 

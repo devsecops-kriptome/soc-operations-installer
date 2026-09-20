@@ -1,4 +1,4 @@
-# Instalación distribuida de SOC Operations 0.1.143
+# Instalación distribuida de SOC Operations 0.1.144
 
 ## Topología admitida
 
@@ -10,14 +10,13 @@ SOC Operations se instala únicamente en el Dashboard. El manager master recibe 
 privilegiado mTLS. No se admiten varios Dashboard ni varios clústeres Wazuh independientes en una
 misma instancia.
 
-La API externa de solo lectura `9443` y el backup integrado `soc-aio-continuity` todavía son solo
-AIO. El resto de la interfaz, tenants, usuarios, casos, reportes, automatización y análisis de
-vulnerabilidades utiliza el agente remoto.
+La API externa de solo lectura `9443`, PostgreSQL, OpenBao y la continuidad integrada permanecen
+en el Dashboard. El Manager master ejecuta únicamente el agente privilegiado mTLS.
 
 ## Preparación
 
 Descargue, verifique, descifre y extraiga el release siguiendo la sección 3 de la
-[guía AIO](installation.md). El resultado debe ser `/root/soc-installer/release-0.1.143` con 27
+[guía AIO](installation.md). El resultado debe ser `/root/soc-installer/release-0.1.144` con 27
 archivos y `SHA256SUMS` válido.
 
 Desde el Dashboard deben ser accesibles:
@@ -25,6 +24,7 @@ Desde el Dashboard deben ser accesibles:
 - `9200/tcp` del endpoint estable o balanceador Indexer;
 - `55000/tcp` del endpoint API del clúster Manager;
 - `8443/tcp` del manager master.
+- entrada `9443/tcp` al Dashboard únicamente desde HAProxy/reverse proxy.
 
 Instale en el Dashboard el certificado administrativo/clave/CA de Indexer y la CA de la API
 Wazuh. Configure `wazuh.yml` con un único endpoint lógico HTTPS/55000, usuario `wazuh-wui` y
@@ -43,7 +43,7 @@ Los archivos `deployment_*` todavía no existen: se generarán en la etapa del m
 ## Etapa 1: Dashboard
 
 ```bash
-cd /root/soc-installer/release-0.1.143
+cd /root/soc-installer/release-0.1.144
 install -o root -g root -m 0755 ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
@@ -56,6 +56,7 @@ sudo /usr/local/sbin/soc-operations-install apply \
   --email INGENIERO@EMPRESA.COM \
   --display-name "Primer ingeniero SOC" \
   --public-url https://dashboard.example.com \
+  --external-proxy-cidr IP_HAPROXY/32 \
   --staging-root "$PWD"
 
 sudo /usr/local/sbin/soc-operations-install openbao-init
@@ -77,7 +78,7 @@ Copie al manager el release, las dos claves públicas, las credenciales administ
 Indexer, la CA de API Wazuh y una copia `0600` root-only de `wazuh.yml`.
 
 ```bash
-cd /root/soc-installer/release-0.1.143
+cd /root/soc-installer/release-0.1.144
 install -o root -g root -m 0755 ./soc-lab-tenant-provisioner \
   /usr/local/sbin/soc-lab-tenant-provisioner
 install -d -o root -g root -m 0755 /etc/soc-deploy-agent
@@ -114,8 +115,25 @@ sudo /usr/local/sbin/soc-operations-install resume
 sudo /usr/local/sbin/soc-operations-install status
 ```
 
-La salida debe incluir `installer_version=0.1.143`, `topology=distributed`, el `deployment_id`
-esperado, `phase=complete` y las sondas HTTP `200` de la API.
+La salida debe incluir `installer_version=0.1.144`, `topology=distributed`, el `deployment_id`
+esperado, `phase=complete`, `external_api_gateway=200` y las sondas HTTP `200` de la API.
+
+## API externa en el Dashboard
+
+El instalador crea un gateway Nginx dedicado en `IP_DASHBOARD:9443`; el contenedor permanece en
+`127.0.0.1:8091`. La CA pública para HAProxy queda en
+`/etc/soc-operations-lab/external-api-tls/ca.crt` y el nombre verificable es
+`soc-external-api-DEPLOYMENT_ID`. Las claves privadas no deben salir del Dashboard. La activación
+funcional y creación de credenciales se describen en [API externa](external-api.md).
+
+## Continuidad
+
+El comando `soc-aio-continuity` conserva su nombre por compatibilidad, pero en `0.1.144` lee
+`topology.env`, valida el número de nodos y solicita el snapshot al endpoint Indexer remoto. El
+repositorio de snapshots debe existir en todos los Indexer y apuntar a S3 durable. Durante una
+recuperación distribuida, restaure primero Wazuh/Indexer y su snapshot; luego restaure SOC
+Operations. La seguridad base Wazuh se conserva y los roles, tenants y usuarios SOC se regeneran
+desde la base restaurada.
 
 Antes de producción pruebe pérdida de un nodo, conmutación del manager master, aislamiento entre
 dos tenants, casos, reportes, vulnerabilidades y restauración separada de SOC Operations, Manager

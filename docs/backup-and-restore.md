@@ -1,7 +1,7 @@
-# Respaldo y recuperación AIO
+# Respaldo y recuperación AIO o distribuida
 
-El release `0.1.143` conserva la primera versión del flujo de continuidad para un servidor
-all-in-one. Su objetivo es reconstruir SOC Operations sin volver a crear manualmente tenants,
+El release `0.1.144` ejecuta el flujo de continuidad desde el único Dashboard, ya sea AIO o
+distribuido. Su objetivo es reconstruir SOC Operations sin volver a crear manualmente tenants,
 usuarios, casos, incidentes, SLA, playbooks, reportes y configuración operativa.
 
 ## Qué protege
@@ -15,7 +15,7 @@ usuarios, casos, incidentes, SLA, playbooks, reportes y configuración operativa
   Dashboard;
 - réplica opcional de evidencias al almacenamiento S3.
 
-El bundle se cifra localmente antes de enviarse a S3. El bucket debe ser externo al AIO, tener
+El bundle se cifra localmente antes de enviarse a S3. El bucket debe ser externo al Dashboard, tener
 cifrado, versionado y, para producción, Object Lock.
 
 ## Qué nunca incluye
@@ -69,7 +69,7 @@ systemctl list-timers soc-aio-continuity.timer
 
 La recuperación se prueba en una red aislada y sigue este orden:
 
-1. instalar Wazuh `4.14.7-1` y SOC Operations en un AIO nuevo;
+1. instalar la misma topología Wazuh `4.14.7-1` y SOC Operations en el Dashboard nuevo;
 2. configurar acceso temporal de lectura al repositorio S3/OpenSearch;
 3. recuperar por el canal independiente la `auto-unseal.key` original;
 4. montar temporalmente la clave privada de descifrado;
@@ -87,7 +87,7 @@ PostgreSQL, una hora para índices activos y RTO de cuatro horas.
 
 ## Alcance de esta versión
 
-Este flujo es para un único AIO y no elimina el dominio único de fallo. Producción crítica debe
-usar almacenamiento externo, PostgreSQL administrado y OpenBao HA con auto-unseal basado en
-KMS/HSM/Transit. No promueva `0.1.143` a producción hasta completar la instalación limpia y el
+Este flujo admite un único Dashboard y no elimina ese dominio único de fallo. Producción crítica
+debe usar almacenamiento externo y evaluar PostgreSQL administrado y OpenBao HA con auto-unseal
+basado en KMS/HSM/Transit. No promueva `0.1.144` a producción hasta completar la instalación limpia y el
 simulacro de restauración.

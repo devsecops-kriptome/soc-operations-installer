@@ -1,6 +1,6 @@
 # Compatibilidad
 
-## Perfiles soportados por 0.1.143
+## Perfiles soportados por 0.1.144
 
 | Componente | Versión requerida |
 | --- | --- |
@@ -17,11 +17,12 @@ Dashboard y admite uno o varios Manager de un mismo clúster y uno o varios Inde
 clúster. SOC Operations vive en el Dashboard; el manager master ejecuta solo el agente mTLS.
 
 El instalador verifica versiones, servicios, cantidades de nodos, endpoints TLS y SHA-256 de los
-24 artefactos ejecutables. La API externa `9443` y `soc-aio-continuity` siguen siendo solo AIO.
+24 artefactos ejecutables. La API externa `9443` y `soc-aio-continuity` funcionan en AIO y
+distribuido desde el único Dashboard.
 
 ## Wazuh 4.12
 
-El release `0.1.143` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
+El release `0.1.144` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
 Dashboards `2.19.1`, mientras que el plugin entregado fue compilado específicamente para `2.19.5`.
 El instalador también fija paquetes y contratos a `4.14.7-1`.
 

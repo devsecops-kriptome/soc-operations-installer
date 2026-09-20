@@ -86,7 +86,7 @@ done
 
 ## Bridge interno de SOC Operations
 
-El release `v0.1.143` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
+El release `v0.1.144` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
 Después de `apply`, obtenga y valide los valores efectivos antes de crear la regla:
 
 ```bash

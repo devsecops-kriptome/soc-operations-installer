@@ -285,3 +285,16 @@ sudo journalctl --no-pager -u wazuh-dashboard -u wazuh-manager -n 120
 
 No comparta `runtime.env`, tokens, recovery shares, claves privadas, el pepper,
 `auto-unseal.key`, credenciales Wazuh ni `wazuh-install-files.tar`.
+
+## 10. Activar MaxMind GeoIP en el AIO (opcional)
+
+Complete primero la instalación y la aceptación mínima de SOC Operations. Después configure la
+integración centralizada siguiendo [Despliegue completo de MaxMind GeoIP](maxmind-geoip.md). En
+un AIO, el Manager y el único Indexer residen en el mismo servidor, pero se mantienen separados
+los dos componentes: `soc-geoip-manager` publica las bases y `soc-geoip-indexer` las sincroniza.
+
+Las credenciales MaxMind se guardan exclusivamente como `root` en
+`/etc/soc-geoip-manager/GeoIP.conf`; no se introducen en la interfaz web ni se copian al worker.
+Antes de activar GeoIP, conserve la línea base y el respaldo indicados en la guía, ejecute
+`_simulate` y compruebe la salud del Indexer. En AIO puede habilitar la activación automática solo
+después de completar esas pruebas.

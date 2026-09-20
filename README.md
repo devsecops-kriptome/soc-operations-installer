@@ -26,7 +26,8 @@ separado.
 5. En AIO o distribuido, configurar y probar el
    [respaldo y recuperación](docs/backup-and-restore.md).
 6. Si se usa MaxMind, seguir la
-   [distribución centralizada de GeoLite2](docs/maxmind-geoip.md).
+   [guía completa de distribución centralizada de GeoLite2](docs/maxmind-geoip.md), incluida la
+   instalación en Manager e Indexer, activación canaria, desactivación y rollback.
 
 Los scripts en `scripts/` verifican primero SHA-256, descifran el asset y vuelven a validar el TAR
 antes de extraerlo.

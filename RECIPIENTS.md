@@ -1,6 +1,6 @@
 # age recipients
 
-Release `v0.1.144` was encrypted for:
+Release `v0.1.145` was encrypted for:
 
 ```text
 age1qc42zadj6ghsd0v2k6u0wfddnl2jm93l3u724cq5jzav3wa8ppuq5fhhax

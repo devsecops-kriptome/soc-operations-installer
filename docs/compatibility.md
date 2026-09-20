@@ -1,6 +1,6 @@
 # Compatibilidad
 
-## Perfiles soportados por 0.1.144
+## Perfiles soportados por 0.1.145
 
 | Componente | Versión requerida |
 | --- | --- |
@@ -16,13 +16,14 @@ El perfil `aio` instala sobre un solo servidor. El perfil `distributed` exige ex
 Dashboard y admite uno o varios Manager de un mismo clúster y uno o varios Indexer de un mismo
 clúster. SOC Operations vive en el Dashboard; el manager master ejecuta solo el agente mTLS.
 
-El instalador verifica versiones, servicios, cantidades de nodos, endpoints TLS y SHA-256 de los
-24 artefactos ejecutables. La API externa `9443` y `soc-aio-continuity` funcionan en AIO y
-distribuido desde el único Dashboard.
+El instalador verifica versiones, servicios, cantidades de nodos, endpoints TLS y la cadena
+SHA-256 del release. La API externa `9443` y `soc-aio-continuity` funcionan en AIO y distribuido
+desde el único Dashboard. La distribución MaxMind es opcional y admite uno o varios Indexer con
+rol `ingest`; requiere un piloto canario real antes de producción.
 
 ## Wazuh 4.12
 
-El release `0.1.144` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
+El release `0.1.145` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
 Dashboards `2.19.1`, mientras que el plugin entregado fue compilado específicamente para `2.19.5`.
 El instalador también fija paquetes y contratos a `4.14.7-1`.
 

@@ -26,10 +26,12 @@ internos explícitos:
 | Dashboard SOC | Endpoint API Manager | `55000/TCP` | RBAC Wazuh y validación del clúster |
 | Dashboard SOC | Manager master | `8443/TCP` | Agente privilegiado mTLS |
 | Manager master | Endpoint/Balanceador Indexer | `9200/TCP` | Inventario, DLS y gateway de vulnerabilidades |
+| Indexer con rol `ingest` | Manager master | `8444/TCP` | Descarga mTLS opcional de bases GeoLite2 |
 
 No aplique la regla de bridge hacia `172.19.0.1:8443` en distribuido: los contenedores salen por
-ruteo normal al FQDN del manager master. La API externa `9443` todavía no está soportada en este
-perfil y debe permanecer cerrada.
+ruteo normal al FQDN del manager master. La API externa `9443` se publica en el único Dashboard y
+solo debe aceptar el reverse proxy declarado. El puerto `8444` no se publica a usuarios ni a
+Internet.
 
 ## Tráfico externo
 
@@ -86,7 +88,7 @@ done
 
 ## Bridge interno de SOC Operations
 
-El release `v0.1.144` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
+El release `v0.1.145` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
 Después de `apply`, obtenga y valide los valores efectivos antes de crear la regla:
 
 ```bash

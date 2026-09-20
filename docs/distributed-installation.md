@@ -1,4 +1,4 @@
-# Instalación distribuida de SOC Operations 0.1.144
+# Instalación distribuida de SOC Operations 0.1.145
 
 ## Topología admitida
 
@@ -16,7 +16,7 @@ en el Dashboard. El Manager master ejecuta únicamente el agente privilegiado mT
 ## Preparación
 
 Descargue, verifique, descifre y extraiga el release siguiendo la sección 3 de la
-[guía AIO](installation.md). El resultado debe ser `/root/soc-installer/release-0.1.144` con 27
+[guía AIO](installation.md). El resultado debe ser `/root/soc-installer/release-0.1.145` con 38
 archivos y `SHA256SUMS` válido.
 
 Desde el Dashboard deben ser accesibles:
@@ -43,7 +43,7 @@ Los archivos `deployment_*` todavía no existen: se generarán en la etapa del m
 ## Etapa 1: Dashboard
 
 ```bash
-cd /root/soc-installer/release-0.1.144
+cd /root/soc-installer/release-0.1.145
 install -o root -g root -m 0755 ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
@@ -78,7 +78,7 @@ Copie al manager el release, las dos claves públicas, las credenciales administ
 Indexer, la CA de API Wazuh y una copia `0600` root-only de `wazuh.yml`.
 
 ```bash
-cd /root/soc-installer/release-0.1.144
+cd /root/soc-installer/release-0.1.145
 install -o root -g root -m 0755 ./soc-lab-tenant-provisioner \
   /usr/local/sbin/soc-lab-tenant-provisioner
 install -d -o root -g root -m 0755 /etc/soc-deploy-agent
@@ -115,7 +115,7 @@ sudo /usr/local/sbin/soc-operations-install resume
 sudo /usr/local/sbin/soc-operations-install status
 ```
 
-La salida debe incluir `installer_version=0.1.144`, `topology=distributed`, el `deployment_id`
+La salida debe incluir `installer_version=0.1.145`, `topology=distributed`, el `deployment_id`
 esperado, `phase=complete`, `external_api_gateway=200` y las sondas HTTP `200` de la API.
 
 ## API externa en el Dashboard
@@ -128,12 +128,23 @@ funcional y creación de credenciales se describen en [API externa](external-api
 
 ## Continuidad
 
-El comando `soc-aio-continuity` conserva su nombre por compatibilidad, pero en `0.1.144` lee
+El comando `soc-aio-continuity` conserva su nombre por compatibilidad, pero desde `0.1.144` lee
 `topology.env`, valida el número de nodos y solicita el snapshot al endpoint Indexer remoto. El
 repositorio de snapshots debe existir en todos los Indexer y apuntar a S3 durable. Durante una
 recuperación distribuida, restaure primero Wazuh/Indexer y su snapshot; luego restaure SOC
 Operations. La seguridad base Wazuh se conserva y los roles, tenants y usuarios SOC se regeneran
 desde la base restaurada.
+
+## MaxMind centralizado
+
+El release incluye los artefactos opcionales `soc-geoip-manager` y `soc-geoip-indexer`. La cuenta
+y licencia MaxMind se materializan solo en el Manager principal; los Indexer `ingest` descargan
+City, Country y ASN mediante mTLS individual, sin recibir la licencia. Autorice `8444/tcp` al
+Manager solo desde esos nodos.
+
+La sincronización es automática, pero en un clúster de varios nodos la activación es manual y
+rolling porque requiere reiniciar cada Wazuh Indexer. Consulte
+[MaxMind GeoIP centralizado](maxmind-geoip.md) antes de instalar los workers.
 
 Antes de producción pruebe pérdida de un nodo, conmutación del manager master, aislamiento entre
 dos tenants, casos, reportes, vulnerabilidades y restauración separada de SOC Operations, Manager

@@ -315,9 +315,7 @@ Para el release `0.1.145` publicado, ambas huellas deben ser:
 eb12c9fa64e55b94f68f657940d8beabf302eb45708d600d81755ab342140d67
 ```
 
-La comparación contra el `SHA256SUMS` interno es la validación autoritativa. No reutilice una
-huella copiada de otro release: el valor `a35a6b...` correspondía al instalador `0.1.143`, no al
-paquete `0.1.145`.
+La comparación contra el `SHA256SUMS` interno es la validación autoritativa.
 
 Ejecute la validación sin cambios persistentes:
 

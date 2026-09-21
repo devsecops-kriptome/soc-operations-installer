@@ -9,21 +9,22 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.151`
-- Instalador: `0.1.151`
-- API, worker y agente: `0.1.111`
+- Release: `v0.1.152`
+- Instalador: `0.1.152`
+- API, worker y agente: `0.1.112`
 - Plugin: `socOperations@0.1.93`
 - Wazuh requerido: `4.14.7-1`
 - OpenSearch Dashboards requerido: `2.19.5`
 
-`0.1.151` valida el soporte real de `venv`/`ensurepip` del Python efectivo, instala tanto el
-paquete genérico como el versionado y reconstruye entornos parciales de forma segura. Conserva la
-evidencia verificable y recuperación auditada de la contraseña inicial, además de la corrección de
-propiedad de los puertos `8443`/`9443`.
+`0.1.152` corrige la creación transaccional del primer ingeniero y de los playbooks MITRE globales
+bajo las políticas RLS de PostgreSQL. El permiso nuevo se limita a insertar el catálogo inicial:
+el servicio de bootstrap no puede modificarlo ni eliminarlo. También conserva la validación de
+`venv`/`ensurepip`, la recuperación auditada de contraseña y la separación de los puertos
+`8443`/`9443`.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.151.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.152.tar.gz.age` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

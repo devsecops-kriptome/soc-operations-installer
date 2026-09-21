@@ -9,16 +9,19 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.145`
-- Instalador: `0.1.145`
+- Release: `v0.1.146`
+- Instalador: `0.1.146`
 - API, worker y agente: `0.1.111`
 - Plugin: `socOperations@0.1.93`
 - Wazuh requerido: `4.14.7-1`
 - OpenSearch Dashboards requerido: `2.19.5`
 
+`0.1.146` corrige la preparación de `/opt/soc-operations-lab` durante una instalación limpia y
+puede reanudar una ejecución detenida antes de las fases técnicas.
+
 ## Uso
 
-1. Descargar `soc-operations-0.1.145.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.146.tar.gz.age` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

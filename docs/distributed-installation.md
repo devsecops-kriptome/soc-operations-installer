@@ -43,7 +43,10 @@ apt-mark showhold | grep -E '^(wazuh-manager|wazuh-indexer|wazuh-dashboard|fileb
 En cada Indexer aplique desde el inicio `vm.max_map_count=262144` y `vm.swappiness=1`; después de
 instalarlo configure `Xms=Xmx`, como máximo la mitad de la RAM y nunca más de `31g`, junto con
 `bootstrap.memory_lock: true` y `LimitMEMLOCK=infinity`. Reserve el resto para la caché y el
-sistema operativo.
+sistema operativo. Use las rutas, backups y validaciones de
+[Baseline de memoria y shards](installation.md#21-baseline-de-memoria-y-shards) en cada nodo,
+ajustando el heap a su RAM y función. Reinicie un solo Indexer por vez y espere que el clúster
+vuelva a `green` antes de continuar con el siguiente.
 
 El número de réplicas depende de los data nodes, no del total de miembros del clúster:
 

@@ -126,6 +126,70 @@ Configure `Xms` y `Xmx` con el mismo valor, sin superar la mitad de la RAM ni `3
 memoria para Manager, Dashboard, Filebeat, Docker, OpenBao, PostgreSQL y caché del sistema; no
 asigne automáticamente la mitad de toda la RAM al Indexer sin calcular esos consumos.
 
+Estas son las tres ubicaciones concretas:
+
+| Ajuste | Archivo |
+| --- | --- |
+| `Xms` y `Xmx` | `/etc/wazuh-indexer/jvm.options` |
+| `bootstrap.memory_lock` | `/etc/wazuh-indexer/opensearch.yml` |
+| `LimitMEMLOCK` | `/etc/systemd/system/wazuh-indexer.service.d/memory-lock.conf` |
+
+Ejecute después de instalar Wazuh y antes de instalar SOC Operations. Defina primero el heap
+aprobado; `8` es solo un ejemplo para un AIO de 32 GB cuyo consumo completo ya fue calculado:
+
+```bash
+INDEXER_HEAP_GB=8
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+
+sudo cp -a /etc/wazuh-indexer/jvm.options \
+  "/etc/wazuh-indexer/jvm.options.pre-tuning-${STAMP}"
+sudo cp -a /etc/wazuh-indexer/opensearch.yml \
+  "/etc/wazuh-indexer/opensearch.yml.pre-tuning-${STAMP}"
+
+sudo sed -ri \
+  "s/^-Xms[0-9]+[gGmM]/-Xms${INDEXER_HEAP_GB}g/; \
+   s/^-Xmx[0-9]+[gGmM]/-Xmx${INDEXER_HEAP_GB}g/" \
+  /etc/wazuh-indexer/jvm.options
+
+if sudo grep -qE '^[[:space:]]*bootstrap\.memory_lock:' \
+  /etc/wazuh-indexer/opensearch.yml; then
+  sudo sed -ri \
+    's/^[[:space:]]*bootstrap\.memory_lock:.*/bootstrap.memory_lock: true/' \
+    /etc/wazuh-indexer/opensearch.yml
+else
+  printf '\nbootstrap.memory_lock: true\n' |
+    sudo tee -a /etc/wazuh-indexer/opensearch.yml >/dev/null
+fi
+
+sudo install -d -o root -g root -m 0755 \
+  /etc/systemd/system/wazuh-indexer.service.d
+printf '%s\n' '[Service]' 'LimitMEMLOCK=infinity' |
+  sudo tee /etc/systemd/system/wazuh-indexer.service.d/memory-lock.conf >/dev/null
+
+sudo systemctl daemon-reload
+sudo systemctl restart wazuh-indexer
+sudo systemctl --no-pager --full status wazuh-indexer
+```
+
+Valide los archivos y el valor efectivo:
+
+```bash
+sudo grep -nE '^-Xm[sx]' /etc/wazuh-indexer/jvm.options
+sudo grep -nE '^bootstrap\.memory_lock:' /etc/wazuh-indexer/opensearch.yml
+sudo systemctl show wazuh-indexer -p LimitMEMLOCK
+sudo sysctl vm.max_map_count vm.swappiness
+```
+
+En Dev Tools, confirme que el proceso bloqueó la memoria y que el heap coincide con lo aprobado:
+
+```http
+GET /_nodes?filter_path=**.mlockall,**.jvm.mem.heap_max_in_bytes&pretty
+```
+
+No continúe si `mlockall` es `false`, el servicio no inicia o el heap no coincide. Revise
+`journalctl -u wazuh-indexer -b --no-pager` y restaure los backups `pre-tuning` si necesita
+rollback. El reinicio del único Indexer interrumpe brevemente la búsqueda e indexación.
+
 Un AIO de un solo Indexer debe comenzar con `1` primary y `0` réplicas para cada patrón gestionado.
 Configurar una réplica en un único nodo dejaría el clúster permanentemente amarillo. Aumente
 primarios únicamente cuando el volumen calculado supere aproximadamente `20–40 GB` por primary;

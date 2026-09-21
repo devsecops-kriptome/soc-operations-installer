@@ -341,6 +341,9 @@ sudo /usr/local/sbin/soc-operations-install apply \
   --public-url https://dashboard.example.com
 ```
 
+Antes de `resume`, aplique y pruebe las reglas aprobadas de
+[firewall](firewall-reference.md), incluida la ruta del bridge Docker hacia el agente mTLS.
+
 `--service-address` puede omitirse si la ruta predeterminada identifica la IP correcta.
 `--external-proxy-cidr` puede omitirse si la API externa debe permanecer accesible solo desde
 loopback. `--public-url` debe ser un origen HTTPS sin ruta, consulta ni fragmento.
@@ -365,61 +368,6 @@ Antes de crear el entorno del agente, el instalador resuelve la versión efectiv
 `/usr/bin/python3`, instala `python3-venv` y su paquete versionado —por ejemplo,
 `python3.12-venv` en Ubuntu 24.04— y crea un `venv` temporal para comprobar `ensurepip`. Si una
 ejecución anterior dejó un entorno parcial, lo reconstruye con `python3 -m venv --clear`.
-
-Si una versión anterior se detuvo indicando que `ensurepip` no estaba disponible, puede
-desbloquearla sin borrar estado:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y python3-venv python3.12-venv
-sudo /usr/local/sbin/soc-operations-install resume
-```
-
-En otra versión de Ubuntu, sustituya `python3.12-venv` por la versión mostrada por el propio error.
-
-Si una instalación `0.1.148` quedó detenida después de configurar OpenBao con el mensaje
-`port 9443 is already owned outside this installer`, descargue y verifique `0.1.151`, instale el
-orquestador, repita `apply` con los mismos parámetros para actualizar los helpers y el staging
-persistido, y reanude:
-
-```bash
-cd "$HOME/soc-installer/release-0.1.151"
-sudo install -o root -g root -m 0755 \
-  ./soc-operations-install \
-  /usr/local/sbin/soc-operations-install
-sudo /usr/local/sbin/soc-operations-install apply \
-  --staging-root "$HOME/soc-installer/release-0.1.151" \
-  --service-address IP_INTERNA_AIO \
-  --external-proxy-cidr IP_O_CIDR_DEL_PROXY \
-  --email INGENIERO@EMPRESA.COM \
-  --display-name "Primer ingeniero SOC" \
-  --public-url https://dashboard.example.com
-sudo /usr/local/sbin/soc-operations-install resume
-```
-
-No vuelva a ejecutar `openbao-init`, no borre `/var/lib/soc-operations-installer` y no cambie el
-token raíz. `apply` conserva los pasos completados y el paso `openbao-configuration` se omite de
-forma idempotente durante `resume`.
-
-Si `0.1.149` terminó sin solicitar la contraseña porque conservaba un marcador antiguo de
-`first-engineer`, aplique `0.1.151` con los mismos parámetros y ejecute `resume`. El instalador
-retira el marcador sin evidencia, muestra los prompts `Initial password` y `Confirm initial
-password`, actualiza la identidad existente mediante mTLS y registra el cambio sin guardar la
-contraseña.
-
-Después de completar la instalación, `root` puede iniciar una recuperación local y auditada sin
-correo ni token de activación:
-
-```bash
-sudo /usr/local/sbin/soc-lab-api-runtime \
-  recover-engineer-password INGENIERO@EMPRESA.COM
-```
-
-Este comando solo acepta al primer usuario activo con rol `soc_engineering`, exige una terminal
-privada y aplica la misma política de complejidad del alta inicial.
-
-Antes de `resume`, aplique y pruebe las reglas aprobadas de
-[firewall](firewall-reference.md), incluida la ruta del bridge Docker hacia el agente mTLS.
 
 ## 6. Inicializar OpenBao y custodiar las credenciales
 
@@ -494,6 +442,17 @@ openbao_sealed=false
 Después del primer acceso configure SMTP y los demás canales desde **SOC Operations →
 Administración → Integraciones**. Las invitaciones y restablecimientos posteriores dependen de una
 integración de correo funcional.
+
+Después de completar la instalación, `root` puede iniciar una recuperación local y auditada sin
+correo ni token de activación:
+
+```bash
+sudo /usr/local/sbin/soc-lab-api-runtime \
+  recover-engineer-password INGENIERO@EMPRESA.COM
+```
+
+Este comando solo acepta al primer usuario activo con rol `soc_engineering`, exige una terminal
+privada y aplica la misma política de complejidad del alta inicial.
 
 ## 8. Reinicio y aceptación mínima
 

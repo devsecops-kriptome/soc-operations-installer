@@ -48,16 +48,16 @@ RED_ENDPOINTS=10.20.0.0/16
 RED_VPN=10.81.0.0/16
 IP_AIO=10.0.0.10
 
-ufw allow in on "$INTERFAZ_SERVICIO" \
+sudo ufw allow in on "$INTERFAZ_SERVICIO" \
   from "$RED_ADMIN" to "$IP_AIO" port "$PUERTO_SSH" proto tcp \
   comment 'SSH administration'
-ufw allow in on "$INTERFAZ_SERVICIO" \
+sudo ufw allow in on "$INTERFAZ_SERVICIO" \
   from "$IP_PROXY" to "$IP_AIO" port 443 proto tcp \
   comment 'Wazuh Dashboard from reverse proxy'
-ufw allow in on "$INTERFAZ_SERVICIO" \
+sudo ufw allow in on "$INTERFAZ_SERVICIO" \
   from "$IP_PROXY" to "$IP_AIO" port 9443 proto tcp \
   comment 'SOC external API from reverse proxy'
-ufw allow in on "$INTERFAZ_SERVICIO" \
+sudo ufw allow in on "$INTERFAZ_SERVICIO" \
   from "$RED_VPN" to "$IP_AIO" port 443 proto tcp \
   comment 'Wazuh Dashboard from VPN'
 ```
@@ -67,10 +67,10 @@ retirarse. En AIO, `9200` tampoco requiere entrada externa. Revise primero los n
 solo las reglas amplias identificadas:
 
 ```bash
-ufw status numbered
-ufw delete allow 9443/tcp
-ufw delete allow 9200/tcp
-ufw status numbered
+sudo ufw status numbered
+sudo ufw delete allow 9443/tcp
+sudo ufw delete allow 9200/tcp
+sudo ufw status numbered
 ```
 
 Después confirme que `9443` aparece únicamente para `IP_PROXY` y que no queda una regla IPv4 o
@@ -83,19 +83,19 @@ modalidades sin necesidad:
 
 ```bash
 # Modalidad mediante proxy
-ufw allow in on "$INTERFAZ_SERVICIO" \
+sudo ufw allow in on "$INTERFAZ_SERVICIO" \
   from "$IP_PROXY" to "$IP_AIO" port 1514 proto tcp \
   comment 'Wazuh events from proxy'
-ufw allow in on "$INTERFAZ_SERVICIO" \
+sudo ufw allow in on "$INTERFAZ_SERVICIO" \
   from "$IP_PROXY" to "$IP_AIO" port 1515 proto tcp \
   comment 'Wazuh enrollment from proxy'
 
 # Modalidad directa; úsela en lugar del bloque anterior
 for RED_AGENTES in "$RED_ENDPOINTS" "$RED_VPN"; do
-  ufw allow in on "$INTERFAZ_SERVICIO" \
+  sudo ufw allow in on "$INTERFAZ_SERVICIO" \
     from "$RED_AGENTES" to "$IP_AIO" port 1514 proto tcp \
     comment 'Wazuh direct agent events'
-  ufw allow in on "$INTERFAZ_SERVICIO" \
+  sudo ufw allow in on "$INTERFAZ_SERVICIO" \
     from "$RED_AGENTES" to "$IP_AIO" port 1515 proto tcp \
     comment 'Wazuh direct agent enrollment'
 done
@@ -111,14 +111,14 @@ Después de `apply`, obtenga y valide los valores efectivos antes de crear la re
 set -Eeuo pipefail
 
 SOC_NETWORK=soc-operations-wa001_frontend
-SOC_SUBNET=$(docker network inspect "$SOC_NETWORK" \
+SOC_SUBNET=$(sudo docker network inspect "$SOC_NETWORK" \
   --format '{{(index .IPAM.Config 0).Subnet}}')
-SOC_GATEWAY=$(docker network inspect "$SOC_NETWORK" \
+SOC_GATEWAY=$(sudo docker network inspect "$SOC_NETWORK" \
   --format '{{(index .IPAM.Config 0).Gateway}}')
-SOC_BRIDGE=$(docker network inspect "$SOC_NETWORK" \
+SOC_BRIDGE=$(sudo docker network inspect "$SOC_NETWORK" \
   --format '{{index .Options "com.docker.network.bridge.name"}}')
 if [ -z "$SOC_BRIDGE" ]; then
-  SOC_NETWORK_ID=$(docker network inspect "$SOC_NETWORK" --format '{{.Id}}')
+  SOC_NETWORK_ID=$(sudo docker network inspect "$SOC_NETWORK" --format '{{.Id}}')
   SOC_BRIDGE="br-${SOC_NETWORK_ID:0:12}"
 fi
 
@@ -127,12 +127,12 @@ printf 'Subnet: %s\nGateway: %s\nBridge: %s\n' \
 
 test "$SOC_SUBNET" = "172.19.0.0/16"
 test "$SOC_GATEWAY" = "172.19.0.1"
-ip -4 address show dev "$SOC_BRIDGE" | grep -Fq '172.19.0.1/16'
+sudo ip -4 address show dev "$SOC_BRIDGE" | grep -Fq '172.19.0.1/16'
 
-ufw allow in on "$SOC_BRIDGE" \
+sudo ufw allow in on "$SOC_BRIDGE" \
   from "$SOC_SUBNET" to "$SOC_GATEWAY" port 8443 proto tcp \
   comment 'SOC Operations bridge to deploy agent'
-ufw status numbered
+sudo ufw status numbered
 )
 ```
 
@@ -147,14 +147,14 @@ el firewall únicamente si la política del servidor lo requiere.
 Cuando `resume` haya instalado el agente de despliegue, el host debe escuchar en `8443`:
 
 ```bash
-systemctl is-active soc-deploy-agent nginx
-ss -lntp | grep ':8443'
+sudo systemctl is-active soc-deploy-agent nginx
+sudo ss -lntp | grep ':8443'
 ```
 
 Pruebe el mismo camino que utiliza la API:
 
 ```bash
-docker exec -i soc-operations-wa001-api-1 \
+sudo docker exec -i soc-operations-wa001-api-1 \
   /usr/local/bin/python - <<'PY'
 import ssl
 import urllib.request

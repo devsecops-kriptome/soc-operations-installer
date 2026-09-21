@@ -1,6 +1,6 @@
 # Respaldo y recuperación AIO o distribuida
 
-El release `0.1.150` ejecuta el flujo de continuidad desde el único Dashboard, ya sea AIO o
+El release `0.1.151` ejecuta el flujo de continuidad desde el único Dashboard, ya sea AIO o
 distribuido. Su objetivo es reconstruir SOC Operations sin volver a crear manualmente tenants,
 usuarios, casos, incidentes, SLA, playbooks, reportes y configuración operativa.
 
@@ -89,5 +89,5 @@ PostgreSQL, una hora para índices activos y RTO de cuatro horas.
 
 Este flujo admite un único Dashboard y no elimina ese dominio único de fallo. Producción crítica
 debe usar almacenamiento externo y evaluar PostgreSQL administrado y OpenBao HA con auto-unseal
-basado en KMS/HSM/Transit. No promueva `0.1.150` a producción hasta completar la instalación limpia y el
+basado en KMS/HSM/Transit. No promueva `0.1.151` a producción hasta completar la instalación limpia y el
 simulacro de restauración.

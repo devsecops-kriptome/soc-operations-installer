@@ -62,6 +62,21 @@ ufw allow in on "$INTERFAZ_SERVICIO" \
   comment 'Wazuh Dashboard from VPN'
 ```
 
+Una regla anterior como `9443/tcp ALLOW Anywhere` prevalece sobre la restricción por IP y debe
+retirarse. En AIO, `9200` tampoco requiere entrada externa. Revise primero los números y elimine
+solo las reglas amplias identificadas:
+
+```bash
+ufw status numbered
+ufw delete allow 9443/tcp
+ufw delete allow 9200/tcp
+ufw status numbered
+```
+
+Después confirme que `9443` aparece únicamente para `IP_PROXY` y que no queda una regla IPv4 o
+IPv6 universal. Si el Indexer es remoto o existe un consumidor explícitamente aprobado de `9200`,
+reemplace la regla universal por orígenes y destinos internos concretos en vez de cerrarla.
+
 Si 1514/1515 se publican únicamente mediante un proxy de agentes, autorice solo su IP. Si los
 endpoints llegan directamente, autorice en su lugar las redes aprobadas. No aplique ambas
 modalidades sin necesidad:
@@ -88,7 +103,7 @@ done
 
 ## Bridge interno de SOC Operations
 
-El release `v0.1.148` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
+El release `v0.1.149` fija la red `frontend` a `172.19.0.0/16` con gateway `172.19.0.1`.
 Después de `apply`, obtenga y valide los valores efectivos antes de crear la regla:
 
 ```bash

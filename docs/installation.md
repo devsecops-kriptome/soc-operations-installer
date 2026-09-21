@@ -295,14 +295,29 @@ sudo install -o root -g root -m 0755 \
   ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
-sha256sum /usr/local/sbin/soc-operations-install
+grep '  soc-operations-install$' SHA256SUMS | sha256sum --check
+
+EXPECTED_INSTALLER_SHA256="$(
+  awk '$2 == "soc-operations-install" {print $1}' SHA256SUMS
+)"
+INSTALLED_INSTALLER_SHA256="$(
+  sha256sum /usr/local/sbin/soc-operations-install | awk '{print $1}'
+)"
+
+printf 'Esperado:  %s\nInstalado: %s\n' \
+  "$EXPECTED_INSTALLER_SHA256" "$INSTALLED_INSTALLER_SHA256"
+test "$INSTALLED_INSTALLER_SHA256" = "$EXPECTED_INSTALLER_SHA256"
 ```
 
-La huella esperada es:
+Para el release `0.1.145` publicado, ambas huellas deben ser:
 
 ```text
-a35a6b71686f6b86a7945b366d306b9ad49f8c263c2a32242128ed0f897c98e9
+eb12c9fa64e55b94f68f657940d8beabf302eb45708d600d81755ab342140d67
 ```
+
+La comparación contra el `SHA256SUMS` interno es la validación autoritativa. No reutilice una
+huella copiada de otro release: el valor `a35a6b...` correspondía al instalador `0.1.143`, no al
+paquete `0.1.145`.
 
 Ejecute la validación sin cambios persistentes:
 

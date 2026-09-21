@@ -364,21 +364,27 @@ gateway Nginx de la API externa y debe existir antes de instalar el agente.
 
 Si una instalación `0.1.148` quedó detenida después de configurar OpenBao con el mensaje
 `port 9443 is already owned outside this installer`, descargue y verifique `0.1.149`, instale el
-orquestador y el helper corregido desde el nuevo directorio, y reanude:
+orquestador, repita `apply` con los mismos parámetros para actualizar los helpers y el staging
+persistido, y reanude:
 
 ```bash
 cd "$HOME/soc-installer/release-0.1.149"
 sudo install -o root -g root -m 0755 \
   ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
-sudo install -o root -g root -m 0755 \
-  ./soc-lab-tenant-provisioner \
-  /usr/local/sbin/soc-lab-tenant-provisioner
+sudo /usr/local/sbin/soc-operations-install apply \
+  --staging-root "$HOME/soc-installer/release-0.1.149" \
+  --service-address IP_INTERNA_AIO \
+  --external-proxy-cidr IP_O_CIDR_DEL_PROXY \
+  --email INGENIERO@EMPRESA.COM \
+  --display-name "Primer ingeniero SOC" \
+  --public-url https://dashboard.example.com
 sudo /usr/local/sbin/soc-operations-install resume
 ```
 
 No vuelva a ejecutar `openbao-init`, no borre `/var/lib/soc-operations-installer` y no cambie el
-token raíz. El paso `openbao-configuration` ya completado se omite de forma idempotente.
+token raíz. `apply` conserva los pasos completados y el paso `openbao-configuration` se omite de
+forma idempotente durante `resume`.
 
 Antes de `resume`, aplique y pruebe las reglas aprobadas de
 [firewall](firewall-reference.md), incluida la ruta del bridge Docker hacia el agente mTLS.

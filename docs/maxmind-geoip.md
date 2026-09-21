@@ -1,6 +1,6 @@
 # Despliegue completo de MaxMind GeoIP centralizado
 
-## 1. Alcance y estado en SOC Operations 0.1.149
+## 1. Alcance y estado en SOC Operations 0.1.150
 
 Este procedimiento comienza después de instalar Wazuh 4.14.7 y SOC Operations. Funciona en:
 
@@ -8,7 +8,7 @@ Este procedimiento comienza después de instalar Wazuh 4.14.7 y SOC Operations. 
 - distribuido: un Manager principal y uno o varios Wazuh Indexer del mismo clúster.
 
 La integración MaxMind es opcional y todavía no se configura desde la pantalla Administración de
-SOC Operations. En `0.1.149` se administra con archivos `root-only` y servicios systemd. No guarde
+SOC Operations. En `0.1.150` se administra con archivos `root-only` y servicios systemd. No guarde
 la cuenta o la licencia en Git, variables de shell persistentes, historial o PostgreSQL.
 
 Si utiliza esta guía como documento independiente, el release debe haberse verificado y
@@ -107,10 +107,10 @@ distribuidor se genera para la IP y el DNS declarados.
 
 ## 5. Preparar el Manager principal
 
-Entre al directorio extraído del release `0.1.149` e instale dependencias. En Ubuntu 24.04:
+Entre al directorio extraído del release `0.1.150` e instale dependencias. En Ubuntu 24.04:
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.149"
+cd "$HOME/soc-installer/release-0.1.150"
 sudo apt-get update
 sudo apt-get install -y geoipupdate libmaxminddb-bin nginx openssl util-linux
 ```
@@ -219,11 +219,11 @@ según el procedimiento seguro de su organización.
 
 ## 7. Preparar cada Indexer `ingest`
 
-Copie también el release `0.1.149` al Indexer. Suponga que el bundle individual quedó en
+Copie también el release `0.1.150` al Indexer. Suponga que el bundle individual quedó en
 `/root/geoip-client`:
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.149"
+cd "$HOME/soc-installer/release-0.1.150"
 sudo install -d -o root -g root -m 0700 /etc/soc-geoip-indexer
 sudo install -o root -g root -m 0444 /root/geoip-client/ca.crt \
   /etc/soc-geoip-indexer/ca.crt
@@ -399,7 +399,7 @@ uno.
 
 ## 11. Activar y desactivar la integración
 
-En `0.1.149` no existe todavía un interruptor en la interfaz web.
+En `0.1.150` no existe todavía un interruptor en la interfaz web.
 
 Para detener nuevas descargas y sincronizaciones sin borrar las bases activas:
 
@@ -463,7 +463,7 @@ Valide servicio, salud y `_simulate`. No avance a otro nodo hasta cerrar la caus
   copia robada.
 
 La futura interfaz Administración > Integraciones > MaxMind deberá guardar el secreto en OpenBao
-y controlar estos servicios, pero esa función no forma parte de `0.1.149`.
+y controlar estos servicios, pero esa función no forma parte de `0.1.150`.
 
 ## 14. Actualizaciones de Wazuh y límites
 

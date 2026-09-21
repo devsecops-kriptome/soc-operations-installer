@@ -1,6 +1,6 @@
 # Compatibilidad
 
-## Perfiles soportados por 0.1.149
+## Perfiles soportados por 0.1.150
 
 | Componente | Versión requerida |
 | --- | --- |
@@ -23,7 +23,7 @@ rol `ingest`; requiere un piloto canario real antes de producción.
 
 ## Wazuh 4.12
 
-El release `0.1.149` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
+El release `0.1.150` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
 Dashboards `2.19.1`, mientras que el plugin entregado fue compilado específicamente para `2.19.5`.
 El instalador también fija paquetes y contratos a `4.14.7-1`.
 

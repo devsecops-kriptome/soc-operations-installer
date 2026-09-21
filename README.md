@@ -22,7 +22,8 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o
-   [instalación distribuida](docs/distributed-installation.md).
+   [instalación distribuida](docs/distributed-installation.md). Ambas guías incluyen el bloqueo
+   previo de actualizaciones Wazuh, límites iniciales de memoria y baseline de shards/réplicas.
 4. Aplicar manualmente la política de red descrita en [Referencia de firewall](docs/firewall-reference.md).
 5. En AIO o distribuido, configurar y probar el
    [respaldo y recuperación](docs/backup-and-restore.md).

@@ -110,7 +110,7 @@ distribuidor se genera para la IP y el DNS declarados.
 Entre al directorio extraído del release `0.1.145` e instale dependencias. En Ubuntu 24.04:
 
 ```bash
-cd /root/soc-installer/release-0.1.145
+cd "$HOME/soc-installer/release-0.1.145"
 sudo apt-get update
 sudo apt-get install -y geoipupdate libmaxminddb-bin nginx openssl util-linux
 ```
@@ -223,7 +223,7 @@ Copie también el release `0.1.145` al Indexer. Suponga que el bundle individual
 `/root/geoip-client`:
 
 ```bash
-cd /root/soc-installer/release-0.1.145
+cd "$HOME/soc-installer/release-0.1.145"
 sudo install -d -o root -g root -m 0700 /etc/soc-geoip-indexer
 sudo install -o root -g root -m 0444 /root/geoip-client/ca.crt \
   /etc/soc-geoip-indexer/ca.crt

@@ -25,6 +25,35 @@ Operations, respáldelos y ejecute una restauración controlada; no borre manual
 
 ## 2. Instalar y validar Wazuh 4.14.7
 
+Trabaje con su cuenta administrativa y anteponga `sudo` solamente cuando sea necesario; no abra
+una shell root interactiva. Antes del primer `apt-get update` o `apt-get upgrade`, excluya los
+componentes Wazuh de las actualizaciones automáticas:
+
+```bash
+sudo tee /etc/apt/apt.conf.d/52unattended-upgrades-wazuh >/dev/null <<'EOF'
+Unattended-Upgrade::Package-Blacklist {
+  "wazuh-manager";
+  "wazuh-indexer";
+  "wazuh-dashboard";
+  "filebeat";
+};
+EOF
+
+for package in wazuh-manager wazuh-indexer wazuh-dashboard filebeat; do
+  if dpkg-query -W -f='${Status}\n' "$package" 2>/dev/null |
+    grep -qx 'install ok installed'; then
+    sudo apt-mark hold "$package"
+  fi
+done
+
+sudo apt-get update
+sudo apt-get upgrade -y
+```
+
+En una instalación limpia todavía no habrá paquetes Wazuh que retener. El blacklist queda activo
+antes de instalarlos; el `hold` se aplica nuevamente después de comprobar la versión. Si el
+sistema solicita reinicio, hágalo antes de ejecutar el instalador.
+
 Compruebe primero que no existe una instalación parcial:
 
 ```bash
@@ -38,18 +67,17 @@ En un Ubuntu limpio, descargue y revise el asistente oficial fijado a la rama 4.
 ejecutarlo:
 
 ```bash
-sudo -i
 set -euo pipefail
 
-install -d -o root -g root -m 0700 /root/wazuh-install
-cd /root/wazuh-install
+install -d -m 0700 "$HOME/wazuh-install"
+cd "$HOME/wazuh-install"
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output wazuh-install.sh \
   https://packages.wazuh.com/4.14/wazuh-install.sh
 chmod 0755 wazuh-install.sh
 bash -n wazuh-install.sh
 sha256sum wazuh-install.sh
-bash ./wazuh-install.sh -a
+sudo bash ./wazuh-install.sh -a
 ```
 
 Guarde en un gestor seguro la contraseña de `admin` y el archivo
@@ -67,15 +95,86 @@ ss -lntH | grep -E ':(443|1514|1515|9200|55000)[[:space:]]'
 
 Manager, Indexer y Dashboard deben mostrar `4.14.7-1`; los cuatro servicios deben estar activos.
 
-## 3. Descargar y verificar el release cifrado
-
-Ejecute como `root`:
+Retenga el stack completo y verifique la selección de APT:
 
 ```bash
-apt-get update
-apt-get install -y age ca-certificates curl
-install -d -o root -g root -m 0700 /root/soc-installer
-cd /root/soc-installer
+for package in wazuh-manager wazuh-indexer wazuh-dashboard filebeat; do
+  dpkg-query -W -f='${Status}\n' "$package" 2>/dev/null |
+    grep -qx 'install ok installed' && sudo apt-mark hold "$package"
+done
+apt-mark showhold | grep -E '^(wazuh-manager|wazuh-indexer|wazuh-dashboard|filebeat)$'
+```
+
+No libere ni actualice un componente de forma aislada. Wazuh Manager, Indexer, Dashboard y
+Filebeat se actualizan juntos durante una ventana controlada.
+
+### 2.1 Baseline de memoria y shards
+
+Antes de instalar SOC Operations, deje aplicados y verificados los límites del Indexer. Como base:
+
+```bash
+sudo tee /etc/sysctl.d/99-wazuh-indexer.conf >/dev/null <<'EOF'
+vm.max_map_count=262144
+vm.swappiness=1
+EOF
+sudo sysctl --system
+sudo sysctl vm.max_map_count vm.swappiness
+```
+
+Configure `Xms` y `Xmx` con el mismo valor, sin superar la mitad de la RAM ni `31g`, active
+`bootstrap.memory_lock: true` y establezca `LimitMEMLOCK=infinity` en el servicio. En AIO reserve
+memoria para Manager, Dashboard, Filebeat, Docker, OpenBao, PostgreSQL y caché del sistema; no
+asigne automáticamente la mitad de toda la RAM al Indexer sin calcular esos consumos.
+
+Un AIO de un solo Indexer debe comenzar con `1` primary y `0` réplicas para cada patrón gestionado.
+Configurar una réplica en un único nodo dejaría el clúster permanentemente amarillo. Aumente
+primarios únicamente cuando el volumen calculado supere aproximadamente `20–40 GB` por primary;
+no aumente globalmente los shards como sustituto de más disco o data nodes. Confirme estado
+`green` y ausencia de shards `UNASSIGNED` antes de continuar.
+
+En todos los templates Wazuh o por tenant administrados, conserve mappings y aliases y establezca
+explícitamente estos settings para los índices futuros:
+
+```json
+{
+  "index.number_of_shards": "1",
+  "index.number_of_replicas": "0",
+  "index.auto_expand_replicas": "false"
+}
+```
+
+No reemplace un template completo con ese fragmento. Para corregir los índices Wazuh existentes,
+después de confirmar que `number_of_data_nodes` es exactamente `1`, ejecute en Dev Tools:
+
+```http
+GET /_cluster/health?pretty
+GET /_cat/nodes?v&h=name,node.role
+
+PUT /wazuh-*/_settings?allow_no_indices=true&expand_wildcards=all
+{
+  "index": {
+    "number_of_replicas": 0,
+    "auto_expand_replicas": "false"
+  }
+}
+
+GET /_cat/indices/wazuh-*?v&h=health,status,index,pri,rep
+GET /_cat/shards/wazuh-*?v&h=index,shard,prirep,state,unassigned.reason
+```
+
+El resultado requerido es `green` y ningún shard réplica `UNASSIGNED`. Si posteriormente agrega
+otro data node, cambie los templates y los índices existentes a `number_of_replicas: 1`.
+
+## 3. Descargar y verificar el release cifrado
+
+Continúe con la cuenta administrativa; use `sudo` solo para instalar dependencias. Mantenga el
+release en el home de esa cuenta:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y age ca-certificates curl
+install -d -m 0700 "$HOME/soc-installer"
+cd "$HOME/soc-installer"
 
 curl --fail --location --remote-name \
   https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.145/soc-operations-0.1.145.tar.gz.age
@@ -93,13 +192,13 @@ soc-operations-0.1.145.tar.gz.age: OK
 
 Recupere la identidad privada desde el gestor de secretos autorizado, usando exactamente la
 entrada `SOC Operations Installer Descifrado`, y colóquela temporalmente en
-`/root/soc-operations-installer-key.txt`. Nunca la descargue desde GitHub ni copie su valor en
+`$HOME/.soc-operations-installer-key.txt`. Nunca la descargue desde GitHub ni copie su valor en
 chats, tickets, documentación o historial de comandos:
 
 ```bash
-chmod 0600 /root/soc-operations-installer-key.txt
+chmod 0600 "$HOME/.soc-operations-installer-key.txt"
 age --decrypt \
-  --identity /root/soc-operations-installer-key.txt \
+  --identity "$HOME/.soc-operations-installer-key.txt" \
   --output soc-operations-0.1.145.tar.gz \
   soc-operations-0.1.145.tar.gz.age
 
@@ -117,7 +216,7 @@ Si la política no permite conservar la identidad en el servidor, elimine única
 temporal después del descifrado:
 
 ```bash
-rm -f /root/soc-operations-installer-key.txt
+rm -f "$HOME/.soc-operations-installer-key.txt"
 ```
 
 Esta identidad descifra exclusivamente el paquete de instalación. No la reutilice como clave de
@@ -125,10 +224,10 @@ OpenBao, `auto-unseal.key` ni como clave de cifrado de los respaldos de SOC Oper
 
 ## 4. Ejecutar el preflight
 
-Desde `/root/soc-installer/release-0.1.145` instale solo el orquestador:
+Desde `$HOME/soc-installer/release-0.1.145` instale solo el orquestador:
 
 ```bash
-install -o root -g root -m 0755 \
+sudo install -o root -g root -m 0755 \
   ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
@@ -145,7 +244,7 @@ Ejecute la validación sin cambios persistentes:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install preflight \
-  --staging-root /root/soc-installer/release-0.1.145
+  --staging-root "$HOME/soc-installer/release-0.1.145"
 ```
 
 En un host con varias interfaces, añada `--service-address IP_INTERNA`. No continúe si falla una
@@ -157,7 +256,7 @@ Reemplace los valores de ejemplo:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install apply \
-  --staging-root /root/soc-installer/release-0.1.145 \
+  --staging-root "$HOME/soc-installer/release-0.1.145" \
   --service-address IP_INTERNA_AIO \
   --external-proxy-cidr IP_O_CIDR_DEL_PROXY \
   --email INGENIERO@EMPRESA.COM \

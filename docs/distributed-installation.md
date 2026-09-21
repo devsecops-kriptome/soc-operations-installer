@@ -15,9 +15,50 @@ en el Dashboard. El Manager master ejecuta únicamente el agente privilegiado mT
 
 ## Preparación
 
+Si el despliegue Wazuh también comienza desde cero, trabaje con una cuenta administrativa y
+`sudo` por comando, sin abrir una shell root interactiva. En todos los servidores cree, antes del
+primer `apt-get update` o `apt-get upgrade`, el blacklist de actualizaciones automáticas:
+
+```bash
+sudo tee /etc/apt/apt.conf.d/52unattended-upgrades-wazuh >/dev/null <<'EOF'
+Unattended-Upgrade::Package-Blacklist {
+  "wazuh-manager";
+  "wazuh-indexer";
+  "wazuh-dashboard";
+  "filebeat";
+};
+EOF
+```
+
+Después de instalar cada componente, retenga los paquetes presentes y confirme el resultado:
+
+```bash
+for package in wazuh-manager wazuh-indexer wazuh-dashboard filebeat; do
+  dpkg-query -W -f='${Status}\n' "$package" 2>/dev/null |
+    grep -qx 'install ok installed' && sudo apt-mark hold "$package"
+done
+apt-mark showhold | grep -E '^(wazuh-manager|wazuh-indexer|wazuh-dashboard|filebeat)$'
+```
+
+En cada Indexer aplique desde el inicio `vm.max_map_count=262144` y `vm.swappiness=1`; después de
+instalarlo configure `Xms=Xmx`, como máximo la mitad de la RAM y nunca más de `31g`, junto con
+`bootstrap.memory_lock: true` y `LimitMEMLOCK=infinity`. Reserve el resto para la caché y el
+sistema operativo.
+
+El número de réplicas depende de los data nodes, no del total de miembros del clúster:
+
+- un solo data node: `1` primary, `0` réplicas y `auto_expand_replicas: false`;
+- dos data nodes: `1` primary, `1` réplica y `auto_expand_replicas: false`.
+
+Estos valores deben quedar explícitos en los templates administrados y aplicarse también a los
+índices Wazuh existentes. Aumente primarios solo en los patrones que superen aproximadamente
+`20–40 GB` por primary. Si existe un nodo exclusivamente `cluster_manager`, no le asigne shards
+de datos ni lo cuente para calcular réplicas. El clúster debe estar `green`, sin shards
+`UNASSIGNED`, antes de instalar SOC Operations.
+
 Descargue, verifique, descifre y extraiga el release siguiendo la sección 3 de la
-[guía AIO](installation.md). El resultado debe ser `/root/soc-installer/release-0.1.145` con 38
-archivos y `SHA256SUMS` válido.
+[guía AIO](installation.md). El resultado debe ser
+`$HOME/soc-installer/release-0.1.145` con 38 archivos y `SHA256SUMS` válido.
 
 La identidad privada `age` requerida en ese paso se recupera únicamente desde el gestor de
 secretos autorizado, entrada `SOC Operations Installer Descifrado`. No copie su valor al archivo
@@ -48,8 +89,8 @@ Los archivos `deployment_*` todavía no existen: se generarán en la etapa del m
 ## Etapa 1: Dashboard
 
 ```bash
-cd /root/soc-installer/release-0.1.145
-install -o root -g root -m 0755 ./soc-operations-install \
+cd "$HOME/soc-installer/release-0.1.145"
+sudo install -o root -g root -m 0755 ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
 sudo /usr/local/sbin/soc-operations-install preflight \
@@ -83,13 +124,13 @@ Copie al manager el release, las dos claves públicas, las credenciales administ
 Indexer, la CA de API Wazuh y una copia `0600` root-only de `wazuh.yml`.
 
 ```bash
-cd /root/soc-installer/release-0.1.145
-install -o root -g root -m 0755 ./soc-lab-tenant-provisioner \
+cd "$HOME/soc-installer/release-0.1.145"
+sudo install -o root -g root -m 0755 ./soc-lab-tenant-provisioner \
   /usr/local/sbin/soc-lab-tenant-provisioner
-install -d -o root -g root -m 0755 /etc/soc-deploy-agent
-install -o root -g root -m 0444 release-signing.pem \
+sudo install -d -o root -g root -m 0755 /etc/soc-deploy-agent
+sudo install -o root -g root -m 0444 release-signing.pem \
   /etc/soc-deploy-agent/release-signing.pem
-install -o root -g root -m 0444 provisioning-signing.pem \
+sudo install -o root -g root -m 0444 provisioning-signing.pem \
   /etc/soc-deploy-agent/provisioning-signing.pem
 
 sudo env \

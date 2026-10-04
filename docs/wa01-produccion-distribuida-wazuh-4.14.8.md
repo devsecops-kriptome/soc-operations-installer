@@ -1860,7 +1860,7 @@ tres Indexers.
 
 El release aprobado se publica cifrado en:
 
-<code>https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.159</code>
+<code>https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.161</code>
 
 La identidad privada <code>age</code> se obtiene exclusivamente del gestor de secretos autorizado,
 entrada <strong>SOC Operations Installer Descifrado</strong>. Para este procedimiento se utiliza
@@ -1915,16 +1915,16 @@ Crear un directorio privado separado y descargar el manifiesto y el activo cifra
 
 ~~~bash
 umask 077
-install -d -m 0700 /root/soc-operations-0.1.159-download
-cd /root/soc-operations-0.1.159-download
+install -d -m 0700 /root/soc-operations-0.1.161-download
+cd /root/soc-operations-0.1.161-download
 
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output SHA256SUMS \
-  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.159/SHA256SUMS'
+  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.161/SHA256SUMS'
 
 curl --fail --location --proto '=https' --tlsv1.2 \
-  --output soc-operations-0.1.159.tar.gz.age \
-  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.159/soc-operations-0.1.159.tar.gz.age'
+  --output soc-operations-0.1.161.tar.gz.age \
+  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.161/soc-operations-0.1.161.tar.gz.age'
 ~~~
 
 Verificar primero el manifiesto descargado y después el activo cifrado contra las huellas fijadas
@@ -1932,12 +1932,12 @@ en esta guía:
 
 ~~~bash
 printf '%s  %s\n' \
-  '65d74c87037c1570492c8e4cff17717ac4dfd3c340b2fcf9eeb192c667d34e29' \
+  'e54b9926d714886b067a556ef7d930147ab3cb9e17a2d84bae78f5cd2fdb2f2e' \
   'SHA256SUMS' | sha256sum --check --strict -
 
 printf '%s  %s\n' \
-  'e0e843927a843af01e3bb4198199827886213f3ee9e909f91968b9eb2ec0ab1e' \
-  'soc-operations-0.1.159.tar.gz.age' | sha256sum --check --strict -
+  '4bdd2faa34aca4a388ba3bc22027223881ed77717a49f83c4b6685240b0652f7' \
+  'soc-operations-0.1.161.tar.gz.age' | sha256sum --check --strict -
 ~~~
 
 Descifrar con la identidad temporal, verificar el TAR y extraerlo. Después de comprobar los
@@ -1946,15 +1946,15 @@ hashes, retirar la copia temporal de la clave; la identidad original permanece e
 ~~~bash
 age --decrypt \
   --identity "$SOC_AGE_IDENTITY" \
-  --output soc-operations-release-0.1.159.tar.gz \
-  soc-operations-0.1.159.tar.gz.age
+  --output soc-operations-release-0.1.161.tar.gz \
+  soc-operations-0.1.161.tar.gz.age
 
 printf '%s  %s\n' \
-  'b395f84f9ec4e68c72f182145e2c9d06dea9fd3305185c641cf504122f4ff6dc' \
-  'soc-operations-release-0.1.159.tar.gz' | sha256sum --check --strict -
+  '672c9d10af6da884e4dcf3a349839b5431782303c73e873aeaffec230f7d3790' \
+  'soc-operations-release-0.1.161.tar.gz' | sha256sum --check --strict -
 
-tar --extract --gzip --file soc-operations-release-0.1.159.tar.gz
-cd release-0.1.159
+tar --extract --gzip --file soc-operations-release-0.1.161.tar.gz
+cd release-0.1.161
 sha256sum --check --strict SHA256SUMS
 test "$(find . -type f | wc -l)" -eq 49
 
@@ -1972,13 +1972,13 @@ Dejar el release en su ubicación definitiva en este mismo servidor. El bloque s
 existe el destino, para revisar una preparación anterior antes de reemplazarla:
 
 ~~~bash
-cd /root/soc-operations-0.1.159-download
-if [ -e /root/soc-operations-release-0.1.159 ]; then
+cd /root/soc-operations-0.1.161-download
+if [ -e /root/soc-operations-release-0.1.161 ]; then
   printf '%s\n' 'El destino ya existe: revisar y verificar el release anterior antes de continuar.' >&2
   exit 1
 fi
-mv -T -- release-0.1.159 /root/soc-operations-release-0.1.159
-chmod 0700 /root/soc-operations-release-0.1.159
+mv -T -- release-0.1.161 /root/soc-operations-release-0.1.161
+chmod 0700 /root/soc-operations-release-0.1.161
 ~~~
 
 Si trabajaste directamente en <code>.117</code>, continuar en
@@ -1997,18 +1997,18 @@ forma controlada:
 
 ~~~bash
 rsync --archive --protect-args \
-  /root/soc-operations-release-0.1.159/ \
-  '<USUARIO_ADMIN>@192.168.4.117:/var/tmp/soc-operations-release-0.1.159/'
+  /root/soc-operations-release-0.1.161/ \
+  '<USUARIO_ADMIN>@192.168.4.117:/var/tmp/soc-operations-release-0.1.161/'
 ~~~
 
 En <code>192.168.4.117</code>, copiar el directorio recibido a su ubicación definitiva. La
 transferencia incluye solo el release; la identidad <code>age</code> ya se retiró del equipo de origen:
 
 ~~~bash
-sudo install -d -o root -g root -m 0700 /root/soc-operations-release-0.1.159
+sudo install -d -o root -g root -m 0700 /root/soc-operations-release-0.1.161
 sudo rsync --archive --chown=root:root \
-  /var/tmp/soc-operations-release-0.1.159/ \
-  /root/soc-operations-release-0.1.159/
+  /var/tmp/soc-operations-release-0.1.161/ \
+  /root/soc-operations-release-0.1.161/
 ~~~
 
 <a id="alternativa-desde-windows"></a>
@@ -2019,33 +2019,33 @@ Windows se conserva únicamente como estación administrativa alternativa. Con <
 instalado:
 
 ~~~powershell
-$ReleaseDownload = Join-Path $env:USERPROFILE 'Downloads\soc-operations-0.1.159'
+$ReleaseDownload = Join-Path $env:USERPROFILE 'Downloads\soc-operations-0.1.161'
 New-Item -ItemType Directory -Force -Path $ReleaseDownload | Out-Null
 Set-Location $ReleaseDownload
 
-curl.exe --fail --location --proto '=https' --tlsv1.2 --output SHA256SUMS 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.159/SHA256SUMS'
-curl.exe --fail --location --proto '=https' --tlsv1.2 --output soc-operations-0.1.159.tar.gz.age 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.159/soc-operations-0.1.159.tar.gz.age'
+curl.exe --fail --location --proto '=https' --tlsv1.2 --output SHA256SUMS 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.161/SHA256SUMS'
+curl.exe --fail --location --proto '=https' --tlsv1.2 --output soc-operations-0.1.161.tar.gz.age 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.161/soc-operations-0.1.161.tar.gz.age'
 
-$ExpectedManifest = '65d74c87037c1570492c8e4cff17717ac4dfd3c340b2fcf9eeb192c667d34e29'
+$ExpectedManifest = 'e54b9926d714886b067a556ef7d930147ab3cb9e17a2d84bae78f5cd2fdb2f2e'
 $ActualManifest = (Get-FileHash -LiteralPath '.\SHA256SUMS' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualManifest -ne $ExpectedManifest) { throw 'SHA-256 invalido para SHA256SUMS' }
 
-$ExpectedEncrypted = 'e0e843927a843af01e3bb4198199827886213f3ee9e909f91968b9eb2ec0ab1e'
-$ActualEncrypted = (Get-FileHash -LiteralPath '.\soc-operations-0.1.159.tar.gz.age' -Algorithm SHA256).Hash.ToLowerInvariant()
+$ExpectedEncrypted = '4bdd2faa34aca4a388ba3bc22027223881ed77717a49f83c4b6685240b0652f7'
+$ActualEncrypted = (Get-FileHash -LiteralPath '.\soc-operations-0.1.161.tar.gz.age' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualEncrypted -ne $ExpectedEncrypted) { throw 'SHA-256 invalido para el activo cifrado' }
 
-age --decrypt --identity 'RUTA_SEGURA\identity.txt' --output 'soc-operations-release-0.1.159.tar.gz' 'soc-operations-0.1.159.tar.gz.age'
+age --decrypt --identity 'RUTA_SEGURA\identity.txt' --output 'soc-operations-release-0.1.161.tar.gz' 'soc-operations-0.1.161.tar.gz.age'
 
-$ExpectedPlain = 'b395f84f9ec4e68c72f182145e2c9d06dea9fd3305185c641cf504122f4ff6dc'
-$ActualPlain = (Get-FileHash -LiteralPath '.\soc-operations-release-0.1.159.tar.gz' -Algorithm SHA256).Hash.ToLowerInvariant()
+$ExpectedPlain = '672c9d10af6da884e4dcf3a349839b5431782303c73e873aeaffec230f7d3790'
+$ActualPlain = (Get-FileHash -LiteralPath '.\soc-operations-release-0.1.161.tar.gz' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualPlain -ne $ExpectedPlain) { throw 'SHA-256 invalido para el TAR descifrado' }
 
-tar -xzf '.\soc-operations-release-0.1.159.tar.gz'
+tar -xzf '.\soc-operations-release-0.1.161.tar.gz'
 ~~~
 
-Transferir después <code>release-0.1.159</code> completo por el canal administrativo y ejecutar en
+Transferir después <code>release-0.1.161</code> completo por el canal administrativo y ejecutar en
 Ubuntu la verificación interna con <code>sha256sum --check --strict SHA256SUMS</code>. Dejar el
-directorio en <code>/root/soc-operations-release-0.1.159</code>, como en la alternativa anterior.
+directorio en <code>/root/soc-operations-release-0.1.161</code>, como en la alternativa anterior.
 
 <a id="verificar-el-release-e-instalar-el-comando"></a>
 
@@ -2058,7 +2058,7 @@ No copiar únicamente el ZIP del plugin: el instalador verifica el orquestador, 
 locks, unidades y plantillas mediante hashes fijos.
 
 ~~~bash
-cd /root/soc-operations-release-0.1.159
+cd /root/soc-operations-release-0.1.161
 sha256sum --check SHA256SUMS
 sudo install -o root -g root -m 0755 soc-operations-install \
   /usr/local/sbin/soc-operations-install
@@ -2107,7 +2107,7 @@ Ejecutar primero solo:
 sudo /usr/local/sbin/soc-operations-install preflight \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
-  --staging-root /root/soc-operations-release-0.1.159
+  --staging-root /root/soc-operations-release-0.1.161
 ~~~
 
 El resultado debe identificar <code>topology=distributed</code>, Wazuh
@@ -2142,7 +2142,7 @@ sudo /usr/local/sbin/soc-operations-install apply \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
   --external-proxy-cidr 192.168.4.50/32 \
-  --staging-root /root/soc-operations-release-0.1.159
+  --staging-root /root/soc-operations-release-0.1.161
 ~~~
 
 | Parámetro | Uso en WA01 |
@@ -2172,11 +2172,11 @@ instalación esté completa. Conservar los parámetros originales si se necesita
 
 Si <code>apply</code> completó <code>runtime</code> y se detuvo en <code>dependencies</code>
 con <code>401 UNAUTHORIZED</code> al descargar MinIO desde Quay, descargar y verificar el
-release <code>0.1.159</code> según **Preparar el release fijo**. No modificar el paquete
+release <code>0.1.161</code> según **Preparar el release fijo**. No modificar el paquete
 anterior, las marcas de instalación ni los volúmenes de PostgreSQL, MinIO u OpenBao.
 
 Instalar el orquestador del staging nuevo y repetir los comandos de preflight y apply de
-esta guía con <code>--staging-root /root/soc-operations-release-0.1.159</code>.
+esta guía con <code>--staging-root /root/soc-operations-release-0.1.161</code>.
 Conservar exactamente el correo, el nombre, la URL pública y la topología del primer intento.
 Por ejemplo, si se utilizó <code>cmedina@kriptome.com</code>, conservar esa identidad en vez
 de cambiarla por el correo de ejemplo de la guía.
@@ -2191,13 +2191,13 @@ repetir <code>apply</code> para instalar los helpers nuevos y completar las depe
 
 #### 9.7.2. Retomar el fallo de conexión del release 0.1.153
 
-El release <code>0.1.159</code> corrige las direcciones loopback fijas del helper del plugin:
+El release <code>0.1.161</code> corrige las direcciones loopback fijas del helper del plugin:
 usa el Indexer y los certificados declarados en la topología y la IP de servicio del Dashboard
 para sus comprobaciones de salud. También corrige esas comprobaciones en runtime y status.
 
 Si <code>0.1.153</code> se detuvo en <code>dashboard-plugin</code> con
 <code>Failed to connect to 127.0.0.1 port 9200</code>, descargar y verificar el release
-<code>0.1.159</code> siguiendo **Preparar el release fijo**. Conservar el directorio anterior y
+<code>0.1.161</code> siguiendo **Preparar el release fijo**. Conservar el directorio anterior y
 los estados de <code>/var/lib/soc-operations-installer</code>: foundation ya aplicó cambios y
 no es necesario borrar sus marcas ni volver a desplegar Wazuh.
 
@@ -2205,16 +2205,16 @@ Instalar el nuevo orquestador y repetir el preflight:
 
 ~~~bash
 sudo install -o root -g root -m 0755 \
-  /root/soc-operations-release-0.1.159/soc-operations-install \
+  /root/soc-operations-release-0.1.161/soc-operations-install \
   /usr/local/sbin/soc-operations-install
 sudo /usr/local/sbin/soc-operations-install preflight \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
-  --staging-root /root/soc-operations-release-0.1.159
+  --staging-root /root/soc-operations-release-0.1.161
 ~~~
 
 Después ejecutar el comando <code>apply</code> anterior, conservando exactamente el correo,
-nombre y URL usados en el primer intento, y usando el staging <code>0.1.159</code>. El instalador
+nombre y URL usados en el primer intento, y usando el staging <code>0.1.161</code>. El instalador
 reinstala los helpers verificados y omite los pasos ya completados, incluidos root-preflight y
 foundation en este caso. Debe avanzar más allá de <code>dashboard-plugin</code>; después seguir
 la acción indicada para OpenBao. <code>resume</code> no reemplaza esta repetición de
@@ -2233,7 +2233,7 @@ el problema es la comprobación antigua del script incluido en el TAR de brandin
 dependencias ni OpenBao. No cambiar la versión detectada ni editar el TAR publicado:
 el instalador verifica su SHA-256.
 
-La corrección se distribuye en el release `0.1.159` de GitHub. Acepta únicamente Dashboard 4.14.7 y 4.14.8 y conserva la
+La corrección se distribuye en el release `0.1.161` de GitHub. Acepta únicamente Dashboard 4.14.7 y 4.14.8 y conserva la
 comprobación de destinos, hashes, respaldo y rollback. Las pruebas locales de versiones
 no sustituyen la validación de salud y visual en WA01.
 
@@ -2241,13 +2241,13 @@ Una vez recibido y verificado el release corregido, instalar su ejecutable:
 
 ~~~bash
 sudo install -o root -g root -m 0755 \
-  /root/soc-operations-release-0.1.159/soc-operations-install \
+  /root/soc-operations-release-0.1.161/soc-operations-install \
   /usr/local/sbin/soc-operations-install
 ~~~
 
 Repetir el comando `apply` anterior con los mismos parámetros de identidad, topología
 y publicación, sustituyendo únicamente `--staging-root` por
-`/root/soc-operations-release-0.1.159`. No borrar los estados ni los volúmenes; el
+`/root/soc-operations-release-0.1.161`. No borrar los estados ni los volúmenes; el
 instalador debe reconocer los pasos completados. Inicializar OpenBao solo después de
 que `apply` finalice correctamente.
 
@@ -2385,7 +2385,7 @@ No cambia el wheel ni desactiva su verificación SHA-256.
 Para una instalación parcial, preparar y verificar el release nuevo con el procedimiento
 anterior; instalar su ejecutable `soc-operations-install` y repetir el `apply` original
 con los mismos parámetros de identidad, topología y publicación, usando el staging
-`/root/soc-operations-release-0.1.159`. Esto actualiza los helpers y registra el nuevo staging
+`/root/soc-operations-release-0.1.161`. Esto actualiza los helpers y registra el nuevo staging
 sin borrar los pasos completados. No usar `upgrade` para este caso ni reinicializar OpenBao.
 Después repetir el comando de instalación del agente que sigue y ejecutar `resume`
 cuando la instalación del agente finalice correctamente. No borrar el venv ni los volúmenes.
@@ -2401,7 +2401,7 @@ sudo test -x /usr/local/sbin/soc-lab-tenant-provisioner
 
 sudo env \
   SOC_DEPLOYMENT_ID=wa01 \
-  SOC_STAGING_ROOT=/root/soc-operations-release-0.1.159 \
+  SOC_STAGING_ROOT=/root/soc-operations-release-0.1.161 \
   SOC_AIO_SERVICE_ADDRESS=192.168.4.117 \
   SOC_EXTERNAL_API_PROXY_CIDR=127.0.0.1/32 \
   SOC_WAZUH_TOPOLOGY=distributed \
@@ -2577,25 +2577,24 @@ sudo docker exec soc-operations-wa001-worker-1 python -c \
   'from soc_operations.config import get_settings; s=get_settings(); print("environment="+s.provisioning_environment); print("cluster_id="+s.provisioning_cluster_id)'
 ~~~
 
-> **Corrección del instalador:** la versión local `0.1.160` deriva `production` para
+> **Corrección del instalador:** el release `0.1.161` deriva `production` para
 > `distributed` y conserva `lab` para `aio`. `upgrade` y `resume` comprueban el worker aunque
 > OpenBao figure como configurado. Solo recrean el worker cuando su destino efectivo difiere;
 > no rotan tokens, no cambian el clúster, las aprobaciones ni la configuración del agente.
-> La publicación de `0.1.160` en GitHub está pendiente: los enlaces de descarga de esta guía
-> permanecen en el release publicado `0.1.159` hasta distribuir el nuevo artefacto verificado.
+> Incluye la corrección preparada en `0.1.160`, que no se publicó por separado.
 
-Después de disponer del staging **verificado** de `0.1.160` en el servidor `.117`, se puede
+Después de disponer del staging **verificado** de `0.1.161` en el servidor `.117`, se puede
 aplicar únicamente esta reparación con el helper corregido, sin reinstalar los servicios:
 
 ~~~bash
 (
 set -euo pipefail
-SOC_TARGET_RELEASE='/root/soc-operations-release-0.1.160'
+SOC_TARGET_RELEASE='/root/soc-operations-release-0.1.161'
 cd "$SOC_TARGET_RELEASE"
 test -f soc-operations-install
 test -f soc-lab-openbao-operator
 sha256sum --check --strict SHA256SUMS
-grep -Fqx 'readonly INSTALLER_VERSION="0.1.160"' soc-operations-install
+grep -Fqx 'readonly INSTALLER_VERSION="0.1.161"' soc-operations-install
 sudo install -o root -g root -m 0755 \
   soc-lab-openbao-operator /usr/local/sbin/soc-lab-openbao-operator
 sudo /usr/local/sbin/soc-lab-openbao-operator reconcile-provisioning-target
@@ -2617,6 +2616,86 @@ caso detenerse y preparar una recuperación autorizada y auditada, conservando l
 no editar SQL, recrear el tenant ni borrar su trazabilidad.
 No cambiar `SOC_ENVIRONMENT`, no sustituir `wa01` por `wa001` por el nombre histórico del
 proyecto Docker y no hacer que el agente de producción acepte `lab`.
+
+<a id="activacion-api-externa-y-runtime-desactualizado"></a>
+
+#### 9.13.2. Activación de API externa y contenedor desactualizado
+
+> **Antes de ejecutar:** este procedimiento corresponde a `.117`, donde Manager, Dashboard,
+> agente de despliegue y runtime SOC comparten servidor. Si el Manager está en otro servidor,
+> no copiarle `runtime.env` ni habilitar control de un runtime remoto. Mantener whitelist,
+> TLS y mTLS; no abrir puertos ni compartir API keys para resolver este problema.
+
+En **Administración → Credenciales API**, el rol global `soc_engineering` puede activar o
+desactivar la API externa confirmando su contraseña. Crear una credencial no activa el servicio.
+El instalador conserva `SOC_EXTERNAL_API_ENABLED=false` por defecto. La clave exige además
+alcances, tenants autorizados y vigencia; para `/manage/customers/list` se necesita `customers:read`.
+
+En versiones anteriores, el helper podía dejar `SOC_DEPLOY_ALLOW_RUNTIME_CONFIGURATION=false`
+por el simple hecho de que la topología fuera distribuida. La consulta de estado fallaba y
+el botón quedaba deshabilitado. `0.1.161` detecta la instalación **local** de Manager y runtime,
+valida propietario/permisos y el hash de Compose, y habilita su administración sin activar
+implícitamente la API. Un Manager remoto sin runtime conserva el control deshabilitado.
+
+Si se editó `runtime.env` sin recrear el contenedor, puede existir esta discrepancia:
+
+~~~text
+SOC_EXTERNAL_API_ENABLED=true
+external_api_enabled=false
+~~~
+
+Un `docker restart` no recarga variables de entorno. La reparación usa el gestor transaccional
+del agente instalado: conserva el valor persistido, recrea **solo** `external-api` cuando la
+respuesta no coincide, comprueba HTTP 401/503 y restaura el estado anterior si falla.
+No reinstala Wazuh, no cambia API keys y no ejecuta `compose down` ni elimina volúmenes.
+
+**Instalación existente en WA01:** descargar, descifrar y verificar `0.1.161` con el apartado
+9.4. Si la sesión SSH es de un usuario ordinario, recibir los archivos en su home y trasladarlos
+al staging protegido mediante `sudo`; abrir después una sesión administrativa `sudo -i`.
+No repetir `apply` ni inicializar de nuevo OpenBao para aplicar esta reparación puntual:
+
+~~~bash
+(
+set -euo pipefail
+SOC_TARGET_RELEASE='/root/soc-operations-release-0.1.161'
+cd "$SOC_TARGET_RELEASE"
+sha256sum --check --strict SHA256SUMS
+grep -Fqx 'readonly INSTALLER_VERSION="0.1.161"' soc-operations-install
+# Verifica los artefactos fijados, actualiza helpers y registra este staging.
+# Respeta el estado true/false existente; no activa la API por sí mismo.
+sudo bash ./soc-operations-install reconcile-external-api \
+  --staging-root "$SOC_TARGET_RELEASE"
+sudo /usr/local/sbin/soc-operations-install status
+)
+~~~
+
+La reparación requiere que el paso `deployment-agent` esté completado. Solo reinicia ese agente
+si cambió su permiso de administración; verifica su salud mTLS y recupera el archivo anterior
+si el reinicio falla. `install`, `upgrade` y `resume` también reconcilian este estado, incluso
+cuando el paso del agente estaba marcado como completado.
+
+Comprobar sin imprimir secretos:
+
+~~~bash
+sudo grep '^SOC_EXTERNAL_API_ENABLED=' /etc/soc-operations-lab/runtime.env
+sudo grep '^SOC_DEPLOY_ALLOW_RUNTIME_CONFIGURATION=' /etc/soc-deploy-agent/agent.env
+sudo docker exec soc-operations-wa001-external-api-1 python -c \
+  'from soc_operations.config import get_settings; print("external_api_enabled="+str(get_settings().external_api_enabled).lower())'
+curl --silent --show-error --connect-timeout 5 --max-time 10 \
+  --output /dev/null --write-out 'HTTP %{http_code}\n' \
+  http://127.0.0.1:8091/manage/customers/list
+~~~
+
+- Archivo y contenedor deben mostrar el mismo valor.
+- Con `true`, la prueba sin credencial debe responder **401**: API habilitada, autenticación requerida.
+- Con `false`, debe responder **503**: desactivación deliberada; activar desde la interfaz si corresponde.
+- `000` o una discrepancia persistente requieren diagnóstico; no se consideran una activación correcta.
+- `/health/live` con 200 solo demuestra liveness, no habilitación ni validez de una API key.
+
+Desde una fuente externa permitida, repetir la consulta autenticada a
+`https://wa01-socops-api.kriptome.com/manage/customers/list`. Esperar 200 únicamente si la clave
+es válida y tiene el alcance y los tenants requeridos. No pegarla en chats, tickets, URLs ni
+registros. La reparación local no acredita automáticamente el funcionamiento de Cloudflare/HAProxy.
 
 <a id="bloqueo-de-certificados"></a>
 
@@ -2674,10 +2753,10 @@ Las plantillas del TAR `0.1.159` están en la raíz del release. La ruta
 `deploy/geoip/manager.env.example` pertenece al repositorio fuente y **no existe** en el
 paquete extraído. Usar el staging verificado, sin depender del directorio actual.
 Si aparece `install: cannot stat 'deploy/geoip/manager.env.example'`, no descargar otra
-plantilla: comprobar `/root/soc-operations-release-0.1.159/manager.env.example`.
+plantilla: comprobar `/root/soc-operations-release-0.1.161/manager.env.example`.
 
 > [!IMPORTANT]
-> **Para GeoIP, usar los helpers corregidos 0.1.159.** El staging indicado abajo corresponde
+> **Para GeoIP, usar los helpers corregidos 0.1.159 incluidos en el release 0.1.161.** El staging indicado abajo corresponde
 > al paquete corregido distribuido en GitHub. No basta con
 > reinstalar los helpers de 0.1.158. Preparar y verificar el paquete corregido antes de continuar.
 > La corrección de `command -v` no corrige por sí sola el HTTP 403 del manifiesto;
@@ -2691,7 +2770,7 @@ solo para corregir GeoIP. Conservar `manager.env`, `worker.env`, `GeoIP.conf` y 
 #### 10.2.1. Preparar las dependencias y la configuración
 
 ~~~bash
-SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.159'
+SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.161'
 (
 set -euo pipefail
 sudo test -f "$SOC_GEOIP_RELEASE/manager.env.example"
@@ -2898,7 +2977,7 @@ originales mediante `sudo`, preparar la transferencia para `.118`:
 ~~~bash
 (
 set -euo pipefail
-SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.159'
+SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.161'
 SOC_INDEXER_IP='192.168.4.118'
 SOC_INDEXER_NODE='wa01-indexer01'
 read -rp 'Usuario SSH del Indexer (no root): ' SOC_SSH_USER

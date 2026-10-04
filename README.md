@@ -9,13 +9,34 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.159`
-- Instalador: `0.1.159`
+- Release: `v0.1.161`
+- Instalador: `0.1.161`
 - API, worker y agente: `0.1.113`
 - Plugin: `socOperations@0.1.93`
 - Perfiles soportados: Wazuh `4.14.7-1` con OSD `2.19.5`, o Wazuh `4.14.8-1` con OSD `2.19.6`
 
-`0.1.159` corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
+`0.1.161` corrige la administración de API externa cuando Manager y runtime SOC comparten
+servidor, incluso con Indexers distribuidos. Reconcilia el flag persistido con el servicio,
+recrea solo `external-api` cuando corresponde y verifica 401/503, con rollback. No activa la API
+por defecto, no cambia las credenciales y no reinstala Wazuh. Las activaciones desde la interfaz
+siguen requiriendo `soc_engineering`, contraseña, mTLS y auditoría.
+
+Para una instalación existente, después de verificar el release, seguir el
+[apartado 9.13.2 de la guía WA01](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#activacion-api-externa-y-runtime-desactualizado).
+El nuevo comando `reconcile-external-api --staging-root PATH` actualiza los helpers verificados
+y aplica únicamente esta reparación, sin repetir `apply` ni la ceremonia de OpenBao.
+`upgrade` y `resume` también la comprueban. Un Manager sin runtime local no recibe este control.
+
+Incluye la corrección preparada en `0.1.160` (no publicada por separado): `distributed` usa
+`production` para aprovisionar y `aio` conserva `lab`. Comprueba el destino efectivo del worker
+y no cambia el clúster ni hace que el agente de producción acepte manifiestos de laboratorio.
+
+Validación de `0.1.161`: 141 pruebas locales aprobadas, Ruff, sintaxis Bash y verificación de los
+48 artefactos. API/agente `0.1.113`, plugin `0.1.93`, imágenes y helpers GeoIP `0.1.159` no cambian.
+No se ha aplicado ni validado end-to-end en WA01. El defecto independiente de permisos del
+manifiesto GeoIP conserva la mitigación descrita en la guía; este release no lo corrige.
+
+Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.
 La guía WA01 añade numeración jerárquica, avisos destacados y detención de los bloques
 GeoIP si falla el preflight, conservando los enlaces a diagnósticos existentes.
@@ -88,7 +109,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.159.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.161.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

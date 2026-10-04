@@ -1529,14 +1529,87 @@ El nombre de red incluye el proyecto Compose fijo <code>soc-operations-wa001</co
 aunque el deployment sea <code>wa01</code>. Consultar <code>soc-operations_frontend</code>
 produce <code>network not found</code>; no crear otra red ni reinstalar el agente para resolverlo.
 
-El valor previsto es <code>172.19.0.0/16</code>, gateway <code>172.19.0.1</code>, pero se deben usar los valores reales:
+#### Obtener la interfaz, subred y gateway reales
+
+Ejecutar estos comandos en `.117`, en la misma sesión Bash. Las variables se calculan;
+no escribir `SOC_BRIDGE` como nombre literal de interfaz:
 
 ~~~bash
-sudo ufw allow in on SOC_BRIDGE from SOC_SUBNET to SOC_GATEWAY port 8443 proto tcp \
-  comment 'SOC Operations bridge to deploy agent'
+SOC_NETWORK='soc-operations-wa001_frontend'
+SOC_BRIDGE=$(sudo docker network inspect "$SOC_NETWORK" \
+  --format '{{if index .Options "com.docker.network.bridge.name"}}{{index .Options "com.docker.network.bridge.name"}}{{else}}br-{{slice .Id 0 12}}{{end}}')
+SOC_SUBNET=$(sudo docker network inspect "$SOC_NETWORK" \
+  --format '{{(index .IPAM.Config 0).Subnet}}')
+SOC_GATEWAY=$(sudo docker network inspect "$SOC_NETWORK" \
+  --format '{{(index .IPAM.Config 0).Gateway}}')
+
+printf 'Interfaz: %s\nSubred: %s\nGateway: %s\n' \
+  "$SOC_BRIDGE" "$SOC_SUBNET" "$SOC_GATEWAY"
+ip -4 address show dev "$SOC_BRIDGE"
 ~~~
 
-No abrir 8443 en la LAN.
+Ejemplo ilustrativo; el identificador del bridge cambia entre instalaciones:
+
+~~~text
+Interfaz: br-a1b2c3d4e5f6
+Subred: 172.19.0.0/16
+Gateway: 172.19.0.1
+~~~
+
+Detenerse si falla la inspección, la interfaz no existe o la subred/gateway difieren del
+perfil esperado `172.19.0.0/16` y `172.19.0.1`. No copiar el bridge ilustrativo.
+
+#### Confirmar el destino del agente desde el contenedor
+
+En modo distribuido, el FQDN del agente de WA01 resuelve a la IP LAN `.117`, no al gateway
+Docker. La comprobación mTLS hecha desde el host no garantiza acceso desde el contenedor.
+Obtener los datos sin imprimir contraseñas, tokens ni el archivo de entorno completo:
+
+~~~bash
+sudo docker ps -a --filter name=soc-operations-wa001-api-1 \
+  --format 'table {{.Names}}\t{{.Status}}'
+sudo ss -lntp | grep ':8443'
+sudo ufw status verbose
+sudo grep -h '^SOC_DEPLOYMENT_AGENT_URL=' \
+  /var/lib/soc-operations-installer/topology.env \
+  /etc/soc-operations-lab/runtime.env
+sudo docker exec soc-operations-wa001-api-1 python -c \
+  "import socket; print(socket.getaddrinfo('wa01-dashboard.corp.atg', 8443, type=socket.SOCK_STREAM))"
+~~~
+
+En WA01 se observó resolución a `192.168.4.117` y Nginx escuchando en `0.0.0.0:8443`.
+Si la búsqueda en `runtime.env` no devuelve una URL después de un rollback, revisar el
+valor persistido en `topology.env`; no inventar un nuevo endpoint. La resolución correcta
+no demuestra por sí sola que firewall y mTLS funcionen.
+
+#### Regla UFW para el agente local de WA01
+
+Solo después de comprobar los datos anteriores: si API y agente comparten `.117`, el FQDN
+resuelve a `192.168.4.117` y la API pertenece al bridge indicado, permitir el tráfico del
+bridge hacia **esa IP de destino**. Usar las variables calculadas, con `$`:
+
+~~~bash
+sudo ufw allow in on "$SOC_BRIDGE" from "$SOC_SUBNET" to 192.168.4.117 port 8443 proto tcp \
+  comment 'SOC Operations bridge to deploy agent'
+sudo ufw status verbose
+~~~
+
+No usar `to "$SOC_GATEWAY"` para una conexión dirigida a `.117`: es un destino diferente.
+El gateway solo corresponde a un endpoint que realmente resuelva al gateway, como el alias
+local del perfil AIO. Si el Manager está en otro servidor, diseñar la regla en ese servidor
+según el origen que reciba después del routing/NAT; no reutilizar este ejemplo local.
+
+Si previamente se copió el marcador y UFW muestra exactamente la regla
+`172.19.0.1 8443/tcp on SOC_BRIDGE` desde `172.19.0.0/16`, retirar únicamente esa regla errónea:
+
+~~~bash
+sudo ufw delete allow in on SOC_BRIDGE from 172.19.0.0/16 to 172.19.0.1 port 8443 proto tcp
+~~~
+
+No ejecutar `ufw reset`, no abrir 8443 a toda la LAN ni desactivar mTLS. La regla limitada
+no demuestra que el certificado sea válido: comprobar la salud desde el contenedor antes
+de repetir `resume`. Un `identity_agent=unavailable` también puede corresponder a DNS,
+material TLS, permisos de los archivos o un rechazo del servicio.
 
 Docker administra reglas de netfilter y, según la plataforma, puede evitar parte del filtrado
 esperado por UFW. Verificar además la cadena <code>DOCKER-USER</code>, el binding real de los

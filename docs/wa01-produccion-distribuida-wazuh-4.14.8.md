@@ -858,28 +858,110 @@ La identidad privada <code>age</code> se obtiene exclusivamente del gestor de se
 entrada <strong>SOC Operations Installer Descifrado</strong>. No copiarla a GitHub, la guía, el
 servidor Wazuh, chats o tickets.
 
-En una estación administrativa Windows con <code>age</code> instalado, descargar los dos activos:
+#### Preparación principal desde Ubuntu
+
+Realizar la descarga y el descifrado en un host administrativo Ubuntu protegido, preferentemente
+el bastión de despliegue y no el servidor Wazuh. Instalar las herramientas necesarias:
+
+~~~bash
+sudo apt-get update
+sudo apt-get install --yes age curl rsync
+~~~
+
+Crear un directorio privado y descargar el manifiesto y el activo cifrado:
+
+~~~bash
+umask 077
+install -d -m 0700 soc-operations-0.1.153-download
+cd soc-operations-0.1.153-download
+
+curl --fail --location --proto '=https' --tlsv1.2 \
+  --output SHA256SUMS \
+  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.153/SHA256SUMS'
+
+curl --fail --location --proto '=https' --tlsv1.2 \
+  --output soc-operations-0.1.153.tar.gz.age \
+  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.153/soc-operations-0.1.153.tar.gz.age'
+~~~
+
+Verificar primero el manifiesto descargado y después el activo cifrado contra las huellas fijadas
+en esta guía:
+
+~~~bash
+printf '%s  %s\n' \
+  '9e4cda7907fe538cce9c3d6aac8e8ea1a1e54ca8b902c1f1fbcdef141a460276' \
+  'SHA256SUMS' | sha256sum --check --strict -
+
+printf '%s  %s\n' \
+  '6b6e18e16948f7a7cd0d60cb66460c8d64417e5dd518e6a3c2e7a89f9f1f4976' \
+  'soc-operations-0.1.153.tar.gz.age' | sha256sum --check --strict -
+~~~
+
+Descifrar indicando la ruta de la identidad protegida. No copiar esa identidad dentro del
+directorio de descarga ni transferirla al servidor Wazuh:
+
+~~~bash
+age --decrypt \
+  --identity /ruta/protegida/identity.txt \
+  --output soc-operations-release-0.1.153.tar.gz \
+  soc-operations-0.1.153.tar.gz.age
+
+printf '%s  %s\n' \
+  'bd27d296ff15f0c686421fbe7ef074c9120927051705f84b0aae32aed96b0326' \
+  'soc-operations-release-0.1.153.tar.gz' | sha256sum --check --strict -
+
+tar --extract --gzip --file soc-operations-release-0.1.153.tar.gz
+cd release-0.1.153
+sha256sum --check --strict SHA256SUMS
+test "$(find . -type f | wc -l)" -eq 42
+~~~
+
+Los 41 elementos del manifiesto deben indicar <code>OK</code>. El directorio contiene 42 archivos
+contando el propio manifiesto. No continuar ante un hash incorrecto o un número de archivos
+distinto.
+
+Transferir el directorio completo al servidor central mediante la red administrativa. Sustituir
+<code>&lt;USUARIO_ADMIN&gt;</code> por la cuenta SSH autorizada, que debe poder elevar privilegios de
+forma controlada:
+
+~~~bash
+cd ..
+rsync --archive --protect-args \
+  release-0.1.153/ \
+  '<USUARIO_ADMIN>@192.168.4.117:/var/tmp/soc-operations-release-0.1.153/'
+~~~
+
+En <code>192.168.4.117</code>, mover la copia validada a su ubicación definitiva sin transferir la
+identidad <code>age</code>:
+
+~~~bash
+sudo install -d -o root -g root -m 0700 /root/soc-operations-release-0.1.153
+sudo rsync --archive --chown=root:root \
+  /var/tmp/soc-operations-release-0.1.153/ \
+  /root/soc-operations-release-0.1.153/
+~~~
+
+#### Alternativa desde Windows
+
+Windows se conserva únicamente como estación administrativa alternativa. Con <code>age</code>
+instalado:
 
 ~~~powershell
-$ReleaseDownload = Join-Path $HOME 'Downloads\soc-operations-0.1.153'
+$ReleaseDownload = Join-Path $env:USERPROFILE 'Downloads\soc-operations-0.1.153'
 New-Item -ItemType Directory -Force -Path $ReleaseDownload | Out-Null
 Set-Location $ReleaseDownload
 
 curl.exe --fail --location --proto '=https' --tlsv1.2 --output SHA256SUMS 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.153/SHA256SUMS'
 curl.exe --fail --location --proto '=https' --tlsv1.2 --output soc-operations-0.1.153.tar.gz.age 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.153/soc-operations-0.1.153.tar.gz.age'
-~~~
 
-Verificar el activo cifrado contra la huella fijada para este release:
+$ExpectedManifest = '9e4cda7907fe538cce9c3d6aac8e8ea1a1e54ca8b902c1f1fbcdef141a460276'
+$ActualManifest = (Get-FileHash -LiteralPath '.\SHA256SUMS' -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($ActualManifest -ne $ExpectedManifest) { throw 'SHA-256 invalido para SHA256SUMS' }
 
-~~~powershell
 $ExpectedEncrypted = '6b6e18e16948f7a7cd0d60cb66460c8d64417e5dd518e6a3c2e7a89f9f1f4976'
 $ActualEncrypted = (Get-FileHash -LiteralPath '.\soc-operations-0.1.153.tar.gz.age' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualEncrypted -ne $ExpectedEncrypted) { throw 'SHA-256 invalido para el activo cifrado' }
-~~~
 
-Descifrar introduciendo únicamente la ruta de la identidad protegida:
-
-~~~powershell
 age --decrypt --identity 'RUTA_SEGURA\identity.txt' --output 'soc-operations-release-0.1.153.tar.gz' 'soc-operations-0.1.153.tar.gz.age'
 
 $ExpectedPlain = 'bd27d296ff15f0c686421fbe7ef074c9120927051705f84b0aae32aed96b0326'
@@ -887,19 +969,13 @@ $ActualPlain = (Get-FileHash -LiteralPath '.\soc-operations-release-0.1.153.tar.
 if ($ActualPlain -ne $ExpectedPlain) { throw 'SHA-256 invalido para el TAR descifrado' }
 
 tar -xzf '.\soc-operations-release-0.1.153.tar.gz'
-Set-Location '.\release-0.1.153'
-Get-Content -LiteralPath '.\SHA256SUMS'
 ~~~
 
-Verificar los 41 elementos del manifiesto mediante el procedimiento corporativo o
-<code>sha256sum --check SHA256SUMS</code> en Linux. El directorio contiene 42 archivos contando el
-propio manifiesto.
+Transferir después <code>release-0.1.153</code> completo por el canal administrativo y ejecutar en
+Ubuntu la verificación interna con <code>sha256sum --check --strict SHA256SUMS</code>.
 
-Transferir al servidor central el directorio extraído <code>release-0.1.153</code> completo
-mediante el canal administrativo y conservarlo como
-<code>/root/soc-operations-release-0.1.153</code>. No copiar únicamente el ZIP del plugin: el
-instalador verifica el orquestador, helpers, wheel, locks, unidades y plantillas mediante hashes
-fijos.
+No copiar únicamente el ZIP del plugin: el instalador verifica el orquestador, helpers, wheel,
+locks, unidades y plantillas mediante hashes fijos.
 
 ~~~bash
 cd /root/soc-operations-release-0.1.153

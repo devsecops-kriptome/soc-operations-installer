@@ -9,13 +9,17 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.155`
-- Instalador: `0.1.155`
+- Release: `v0.1.156`
+- Instalador: `0.1.156`
 - API, worker y agente: `0.1.113`
 - Plugin: `socOperations@0.1.93`
 - Perfiles soportados: Wazuh `4.14.7-1` con OSD `2.19.5`, o Wazuh `4.14.8-1` con OSD `2.19.6`
 
-`0.1.155` incorpora la imagen recuperada de MinIO dentro del TAR cifrado del instalador.
+`0.1.156` comprueba CPU `x86_64` y nivel `x86-64-v2` en todos los procesadores visibles durante
+el preflight, antes de instalar componentes. Si faltan instrucciones, las identifica y solicita
+corregir el modelo de CPU de la VM. El helper de dependencias también realiza ese control.
+
+Conserva la imagen recuperada de MinIO incorporada en `0.1.155` dentro del TAR cifrado.
 Verifica su SHA-256, la importa, comprueba identidad y plataforma y usa una etiqueta local con
 las descargas deshabilitadas para MinIO. Conserva las correcciones de topología de `0.1.154`,
 las dos parejas Wazuh/OSD y los mismos artefactos de API y plugin.
@@ -24,7 +28,7 @@ Si `0.1.153` quedó detenido en `dashboard-plugin`, seguir la
 [recuperación de la instalación parcial](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#retomar-el-fallo-de-conexión-del-release-01153).
 Se debe repetir `apply` con el staging nuevo y conservar los estados de los pasos completados.
 
-Validación del cambio: 33 pruebas de regresión e integridad, sintaxis Bash y comprobación de los
+Validación del cambio: 55 pruebas de regresión e integridad, sintaxis Bash y comprobación de los
 48 artefactos del TAR. En Docker local se probó la importación y, en un contenedor sin red,
 el arranque, la creación de bucket, el versionado y la carga y lectura de un objeto S3.
 La comprobación de instalación real en WA01 sigue pendiente.
@@ -35,6 +39,11 @@ El instalador despliega MinIO como almacenamiento interno compatible con S3 para
 No requiere contratar Amazon S3. El endpoint interno es `http://minio:9000` y el bucket
 configurado es `soc-operations-evidence`.
 
+La CPU visible debe soportar `x86-64-v2`. En Proxmox, `kvm64` puede ocultar instrucciones del
+host; configurar un modelo compatible como `x86-64-v2-AES` o `host`, según hardware y destinos
+de migración, con apagado completo y posterior encendido de la VM. Consultar el
+[procedimiento de CPU para MinIO](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#cpu-de-las-máquinas-virtuales-para-minio).
+
 La imagen original recuperada corresponde a:
 
 ```text
@@ -42,7 +51,7 @@ quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z@sha256:d249d1fb6966de4d8ad26c04
 ```
 
 La descarga desde el registro falló durante `apply` en WA01 con `v0.1.154`.
-`v0.1.155` contiene `soc-operations-minio-image.tar.gz`, exportado del laboratorio anterior,
+`v0.1.156` contiene `soc-operations-minio-image.tar.gz`, exportado del laboratorio anterior,
 con SHA-256 `2223b43be55458a29e8add829dbcd0cc0fda68872c104df6f5e475144b492598`.
 Se incluye únicamente `linux/amd64`, sin volúmenes, credenciales ni evidencias.
 MinIO se carga localmente y no consulta Quay. OpenBao y las demás imágenes todavía requieren
@@ -67,7 +76,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.155.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.156.tar.gz.age` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

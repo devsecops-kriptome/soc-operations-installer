@@ -9,6 +9,7 @@ credenciales ni evidencias del laboratorio.
 
 - Versión: `RELEASE.2025-07-23T15-54-02Z`.
 - Plataforma incluida y comprobada: `linux/amd64`; no se declara soporte ARM.
+- CPU mínima visible: `x86-64-v2`, también dentro de las máquinas virtuales.
 - Archivo: `soc-operations-minio-image.tar.gz`.
 - SHA-256 del archivo: `2223b43be55458a29e8add829dbcd0cc0fda68872c104df6f5e475144b492598`.
 - Índice OCI original: `sha256:d249d1fb6966de4d8ad26c04754b545205ff15a62e4fd19ebd0f26fa5baacbc0`.

@@ -27,6 +27,40 @@ Se debe repetir `apply` con el staging nuevo y conservar los estados de los paso
 Validación del cambio: 28 pruebas de regresión e integridad, sintaxis Bash y comprobación de los
 41 artefactos del TAR. La comprobación de instalación real en WA01 sigue pendiente.
 
+## Almacenamiento S3 e imagen pendiente de evaluación
+
+El instalador despliega MinIO como almacenamiento interno compatible con S3 para evidencias.
+No requiere contratar Amazon S3. El endpoint interno es `http://minio:9000` y el bucket
+configurado es `soc-operations-evidence`.
+
+El release `v0.1.154` referencia esta imagen:
+
+```text
+quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z@sha256:d249d1fb6966de4d8ad26c04754b545205ff15a62e4fd19ebd0f26fa5baacbc0
+```
+
+La descarga desde el registro falló durante `apply` en WA01. El laboratorio anterior conserva
+una imagen con ese digest, pero el archivo exportado todavía no está disponible en este
+repositorio ni en sus Releases. El paquete cifrado del instalador tampoco incluye esa imagen.
+Por tanto, `v0.1.154` puede detenerse en el paso `dependencies` en un servidor sin la imagen local.
+
+**Esta imagen debe ser evaluada antes de aprobar su uso en producción.**
+El [repositorio oficial de MinIO Community](https://github.com/minio/minio) está archivado y
+declara que ya no se mantiene. Recuperar la imagen resuelve su disponibilidad, pero no acredita
+soporte, ausencia de vulnerabilidades ni aptitud para producción.
+
+Si se redistribuye la imagen recuperada, se publicará como un activo de GitHub Releases,
+acompañado por su SHA-256, procedencia, identificación de plataforma y la información y el
+código fuente que correspondan a su licencia. Antes de incorporarla al instalador se comprobará
+su importación en Docker y la resolución de la referencia fijada: `docker save/load` puede
+conservar una etiqueta sin conservar `RepoDigests`. No se exportarán volúmenes, credenciales
+ni datos de evidencias.
+
+SeaweedFS es una alternativa en evaluación, **todavía no integrada ni validada**. Cualquier
+sustitución requiere comprobar las operaciones S3 utilizadas por SOC Operations, los permisos,
+el cifrado, el versionado, el respaldo y la restauración. La imagen aprobada se fijará por versión
+y digest; no se utilizará una etiqueta flotante `latest` en producción.
+
 ## Uso
 
 1. Descargar `soc-operations-0.1.154.tar.gz.age` desde Releases.

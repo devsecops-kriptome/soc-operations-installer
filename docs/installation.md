@@ -1,4 +1,4 @@
-# Instalación limpia AIO de SOC Operations 0.1.152
+# Instalación limpia AIO de SOC Operations 0.1.153
 
 Esta guía instala SOC Operations sobre un servidor all-in-one de Wazuh ya operativo. El
 instalador no instala ni actualiza Wazuh, no modifica el firewall y no está soportado sobre una
@@ -7,8 +7,8 @@ instalación parcial o una versión distinta de la indicada.
 ## 1. Requisitos
 
 - Ubuntu Server 24.04;
-- Wazuh Manager, Indexer y Dashboard `4.14.7-1` en el mismo servidor;
-- OpenSearch Dashboards `2.19.5`;
+- Wazuh Manager, Indexer y Dashboard `4.14.7-1` u `4.14.8-1` en el mismo servidor;
+- OpenSearch Dashboards `2.19.5` para Wazuh 4.14.7 o `2.19.6` para Wazuh 4.14.8;
 - acceso administrativo mediante `sudo`;
 - salida HTTPS hacia GitHub y los repositorios oficiales de Ubuntu/Wazuh;
 - FQDN HTTPS definitivo de Wazuh Dashboard;
@@ -16,14 +16,15 @@ instalación parcial o una versión distinta de la indicada.
 - acceso autorizado a la identidad privada `age` almacenada en el gestor de secretos bajo
   `SOC Operations Installer Descifrado`.
 
-El release `0.1.152` no es compatible con Wazuh 4.12. El `preflight` lo rechaza antes de instalar
-componentes. No modifique esa comprobación; consulte [Compatibilidad](compatibility.md).
+El release `0.1.153` no es compatible con Wazuh 4.12 ni con parejas cruzadas entre Wazuh y OSD. El
+`preflight` las rechaza antes de instalar componentes. No modifique esa comprobación; consulte
+[Compatibilidad](compatibility.md).
 
 La instalación limpia supone un host nuevo o restaurado. Si existen datos anteriores de SOC
 Operations, respáldelos y ejecute una restauración controlada; no borre manualmente
 `/var/lib/soc-operations-installer`, PostgreSQL u OpenBao para forzar una reinstalación.
 
-## 2. Instalar y validar Wazuh 4.14.7
+## 2. Instalar y validar Wazuh 4.14
 
 Trabaje con su cuenta administrativa y anteponga `sudo` solamente cuando sea necesario; no abra
 una shell root interactiva. Antes del primer `apt-get update` o `apt-get upgrade`, excluya los
@@ -93,7 +94,8 @@ systemctl is-active wazuh-manager wazuh-indexer wazuh-dashboard filebeat
 ss -lntH | grep -E ':(443|1514|1515|9200|55000)[[:space:]]'
 ```
 
-Manager, Indexer y Dashboard deben mostrar `4.14.7-1`; los cuatro servicios deben estar activos.
+Manager, Indexer y Dashboard deben mostrar la misma versión admitida, `4.14.7-1` o
+`4.14.8-1`; los cuatro servicios deben estar activos.
 
 Retenga el stack completo y verifique la selección de APT:
 
@@ -241,17 +243,17 @@ install -d -m 0700 "$HOME/soc-installer"
 cd "$HOME/soc-installer"
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.152/soc-operations-0.1.152.tar.gz.age
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.153/soc-operations-0.1.153.tar.gz.age
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.152/SHA256SUMS
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.153/SHA256SUMS
 
-grep 'soc-operations-0.1.152.tar.gz.age$' SHA256SUMS | sha256sum --check
+grep 'soc-operations-0.1.153.tar.gz.age$' SHA256SUMS | sha256sum --check
 ```
 
 El resultado debe ser:
 
 ```text
-soc-operations-0.1.152.tar.gz.age: OK
+soc-operations-0.1.153.tar.gz.age: OK
 ```
 
 Recupere la identidad privada desde el gestor de secretos autorizado, usando exactamente la
@@ -263,18 +265,18 @@ chats, tickets, documentación o historial de comandos:
 chmod 0600 "$HOME/.soc-operations-installer-key.txt"
 age --decrypt \
   --identity "$HOME/.soc-operations-installer-key.txt" \
-  --output soc-operations-0.1.152.tar.gz \
-  soc-operations-0.1.152.tar.gz.age
+  --output soc-operations-0.1.153.tar.gz \
+  soc-operations-0.1.153.tar.gz.age
 
 sha256sum --check SHA256SUMS
-tar -xzf soc-operations-0.1.152.tar.gz
-cd release-0.1.152
+tar -xzf soc-operations-0.1.153.tar.gz
+cd release-0.1.153
 sha256sum --check SHA256SUMS
-test "$(find . -maxdepth 1 -type f | wc -l)" -eq 38
+test "$(find . -maxdepth 1 -type f | wc -l)" -eq 42
 ```
 
-La primera verificación valida el asset cifrado y el TAR; la segunda valida los 37 artefactos del
-release. El directorio contiene 38 archivos en total porque incluye su propio `SHA256SUMS`.
+La primera verificación valida el asset cifrado y el TAR; la segunda valida los 41 artefactos del
+release. El directorio contiene 42 archivos en total porque incluye su propio `SHA256SUMS`.
 
 Si la política no permite conservar la identidad en el servidor, elimine únicamente su copia
 temporal después del descifrado:
@@ -288,7 +290,7 @@ OpenBao, `auto-unseal.key` ni como clave de cifrado de los respaldos de SOC Oper
 
 ## 4. Ejecutar el preflight
 
-Desde `$HOME/soc-installer/release-0.1.152` instale solo el orquestador:
+Desde `$HOME/soc-installer/release-0.1.153` instale solo el orquestador:
 
 ```bash
 sudo install -o root -g root -m 0755 \
@@ -309,10 +311,10 @@ printf 'Esperado:  %s\nInstalado: %s\n' \
 test "$INSTALLED_INSTALLER_SHA256" = "$EXPECTED_INSTALLER_SHA256"
 ```
 
-Para el release `0.1.152` publicado, ambas huellas deben ser:
+Para el release `0.1.153` publicado, ambas huellas deben ser:
 
 ```text
-f3904a0b9dbaa275dffc8a37dae78b46eb6073ccac1d9c00addc1d5223a87a16
+343bfef911fd86749c7af48289c7a56d66037c06e608b049fbfca3cff95d3dc1
 ```
 
 La comparación contra el `SHA256SUMS` interno es la validación autoritativa.
@@ -321,7 +323,7 @@ Ejecute la validación sin cambios persistentes:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install preflight \
-  --staging-root "$HOME/soc-installer/release-0.1.152"
+  --staging-root "$HOME/soc-installer/release-0.1.153"
 ```
 
 En un host con varias interfaces, añada `--service-address IP_INTERNA`. No continúe si falla una
@@ -333,7 +335,7 @@ Reemplace los valores de ejemplo:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install apply \
-  --staging-root "$HOME/soc-installer/release-0.1.152" \
+  --staging-root "$HOME/soc-installer/release-0.1.153" \
   --service-address IP_INTERNA_AIO \
   --external-proxy-cidr IP_O_CIDR_DEL_PROXY \
   --email INGENIERO@EMPRESA.COM \
@@ -355,7 +357,7 @@ identidad; no elimine el estado. El resultado esperado es:
 phase=waiting_for_openbao_custody
 ```
 
-El instalador `0.1.152` crea los directorios `/opt/soc-operations-lab` y
+El instalador `0.1.153` crea los directorios `/opt/soc-operations-lab` y
 `/opt/soc-operations/docs` antes de desplegar los archivos auxiliares, incluido
 `continuity.env.example`. En una instalación nueva no es necesario prepararlos manualmente.
 También valida la identidad fija de la imagen de API tanto con el ID de configuración como con el
@@ -427,7 +429,7 @@ release vigente y reconcilie los componentes con:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install upgrade \
-  --staging-root "$HOME/soc-installer/release-0.1.152"
+  --staging-root "$HOME/soc-installer/release-0.1.153"
 ```
 
 Si `first-engineer` sigue pendiente, `upgrade` vuelve a mostrar los dos prompts de contraseña. La
@@ -443,7 +445,7 @@ sudo /usr/local/sbin/soc-operations-install status
 La salida final debe incluir:
 
 ```text
-installer_version=0.1.152
+installer_version=0.1.153
 phase=complete
 dashboard=302
 soc_api_liveness=200

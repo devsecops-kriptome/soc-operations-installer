@@ -1,7 +1,7 @@
 # SOC Operations Installer
 
-Repositorio público de distribución del instalador SOC Operations para Wazuh 4.14.7, en perfil
-AIO o distribuido con un único Dashboard.
+Repositorio público de distribución del instalador SOC Operations para Wazuh 4.14.7 y 4.14.8, en
+perfil AIO o distribuido con un único Dashboard.
 
 El código fuente y el paquete sin cifrar no se publican aquí. Cada versión se distribuye como un
 asset cifrado de GitHub Releases y requiere una identidad privada `age`. La identidad se recupera
@@ -9,27 +9,27 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.152`
-- Instalador: `0.1.152`
-- API, worker y agente: `0.1.112`
+- Release: `v0.1.153`
+- Instalador: `0.1.153`
+- API, worker y agente: `0.1.113`
 - Plugin: `socOperations@0.1.93`
-- Wazuh requerido: `4.14.7-1`
-- OpenSearch Dashboards requerido: `2.19.5`
+- Perfiles soportados: Wazuh `4.14.7-1` con OSD `2.19.5`, o Wazuh `4.14.8-1` con OSD `2.19.6`
 
-`0.1.152` corrige la creación transaccional del primer ingeniero y de los playbooks MITRE globales
-bajo las políticas RLS de PostgreSQL. El permiso nuevo se limita a insertar el catálogo inicial:
-el servicio de bootstrap no puede modificarlo ni eliminarlo. También conserva la validación de
-`venv`/`ensurepip`, la recuperación auditada de contraseña y la separación de los puertos
-`8443`/`9443`.
+`0.1.153` incorpora compatibilidad cerrada para ambas parejas Wazuh/OSD y distribuye un ZIP de
+plugin compilado para cada plataforma. Las combinaciones cruzadas se rechazan antes de modificar
+el sistema. Conserva la creación transaccional del primer ingeniero, RLS, recuperación auditada de
+contraseña y separación de los puertos `8443`/`9443`.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.152.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.153.tar.gz.age` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o
    [instalación distribuida](docs/distributed-installation.md). Ambas guías incluyen el bloqueo
    previo de actualizaciones Wazuh, límites iniciales de memoria y baseline de shards/réplicas.
+   Para WA01 sobre Wazuh 4.14.8 consulte además la
+   [guía distribuida de producción](docs/wa01-produccion-distribuida-wazuh-4.14.8.md).
 4. Aplicar manualmente la política de red descrita en [Referencia de firewall](docs/firewall-reference.md).
 5. En AIO o distribuido, configurar y probar el
    [respaldo y recuperación](docs/backup-and-restore.md).

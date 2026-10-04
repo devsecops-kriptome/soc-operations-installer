@@ -1,14 +1,15 @@
 # Despliegue completo de MaxMind GeoIP centralizado
 
-## 1. Alcance y estado en SOC Operations 0.1.152
+## 1. Alcance y estado en SOC Operations 0.1.153
 
-Este procedimiento comienza después de instalar Wazuh 4.14.7 y SOC Operations. Funciona en:
+Este procedimiento comienza después de instalar un perfil Wazuh 4.14 compatible y SOC Operations.
+Funciona en:
 
 - AIO: Dashboard, Manager e Indexer en el mismo servidor;
 - distribuido: un Manager principal y uno o varios Wazuh Indexer del mismo clúster.
 
 La integración MaxMind es opcional y todavía no se configura desde la pantalla Administración de
-SOC Operations. En `0.1.152` se administra con archivos `root-only` y servicios systemd. No guarde
+SOC Operations. En `0.1.153` se administra con archivos `root-only` y servicios systemd. No guarde
 la cuenta o la licencia en Git, variables de shell persistentes, historial o PostgreSQL.
 
 Si utiliza esta guía como documento independiente, el release debe haberse verificado y
@@ -39,7 +40,7 @@ la sincronización no equivale a activación y un clúster distribuido exige rei
 
 Complete las etapas en este orden:
 
-1. instale Wazuh 4.14.7 y confirme que Dashboard, Manager e Indexer están sanos;
+1. instale Wazuh 4.14.7 o 4.14.8 y confirme que Dashboard, Manager e Indexer están sanos;
 2. instale SOC Operations siguiendo la guía [AIO](installation.md) o
    [distribuida](distributed-installation.md);
 3. configure firewall y resolución DNS;
@@ -79,7 +80,8 @@ sudo find /usr/share/wazuh-indexer/modules/ingest-geoip -maxdepth 1 \
 sudo sha256sum /usr/share/wazuh-indexer/modules/ingest-geoip/*.mmdb
 ```
 
-La versión esperada es `4.14.7-1`. Deben existir las tres bases y al menos un
+La versión esperada es `4.14.7-1` o `4.14.8-1` según el perfil elegido. Deben existir las tres
+bases y al menos un
 `maxmind-db-*.jar`. El worker se detiene si no puede garantizar el rollback durante la activación.
 
 ## 4. Red, DNS y puertos
@@ -107,10 +109,10 @@ distribuidor se genera para la IP y el DNS declarados.
 
 ## 5. Preparar el Manager principal
 
-Entre al directorio extraído del release `0.1.152` e instale dependencias. En Ubuntu 24.04:
+Entre al directorio extraído del release `0.1.153` e instale dependencias. En Ubuntu 24.04:
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.152"
+cd "$HOME/soc-installer/release-0.1.153"
 sudo apt-get update
 sudo apt-get install -y geoipupdate libmaxminddb-bin nginx openssl util-linux
 ```
@@ -219,11 +221,11 @@ según el procedimiento seguro de su organización.
 
 ## 7. Preparar cada Indexer `ingest`
 
-Copie también el release `0.1.152` al Indexer. Suponga que el bundle individual quedó en
+Copie también el release `0.1.153` al Indexer. Suponga que el bundle individual quedó en
 `/root/geoip-client`:
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.152"
+cd "$HOME/soc-installer/release-0.1.153"
 sudo install -d -o root -g root -m 0700 /etc/soc-geoip-indexer
 sudo install -o root -g root -m 0444 /root/geoip-client/ca.crt \
   /etc/soc-geoip-indexer/ca.crt
@@ -399,7 +401,7 @@ uno.
 
 ## 11. Activar y desactivar la integración
 
-En `0.1.152` no existe todavía un interruptor en la interfaz web.
+En `0.1.153` no existe todavía un interruptor en la interfaz web.
 
 Para detener nuevas descargas y sincronizaciones sin borrar las bases activas:
 
@@ -463,7 +465,7 @@ Valide servicio, salud y `_simulate`. No avance a otro nodo hasta cerrar la caus
   copia robada.
 
 La futura interfaz Administración > Integraciones > MaxMind deberá guardar el secreto en OpenBao
-y controlar estos servicios, pero esa función no forma parte de `0.1.152`.
+y controlar estos servicios, pero esa función no forma parte de `0.1.153`.
 
 ## 14. Actualizaciones de Wazuh y límites
 
@@ -484,7 +486,7 @@ la ubicación física de una persona o equipo.
 
 | Resultado | Revisión |
 | --- | --- |
-| `preflight` rechaza versión | Confirme `wazuh-indexer 4.14.7-1` |
+| `preflight` rechaza versión | Confirme `wazuh-indexer 4.14.7-1` o `4.14.8-1` y que todo el stack usa el mismo perfil |
 | Manager no descarga | Revise licencia, DNS, proxy y salida HTTPS |
 | `curl` mTLS falla | Revise DNS, hora, CA, certificado, clave y firewall `8444` |
 | El manifiesto no tiene tres bases | Revise `EditionIDs` y vuelva a ejecutar `update` |

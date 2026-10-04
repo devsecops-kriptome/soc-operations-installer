@@ -1,10 +1,13 @@
-# Instalación distribuida de SOC Operations 0.1.152
+# Instalación distribuida de SOC Operations 0.1.153
 
 ## Topología admitida
 
-- exactamente un Wazuh Dashboard `4.14.7-1` con OpenSearch Dashboards `2.19.5`;
-- uno o varios Wazuh Manager `4.14.7-1` pertenecientes al mismo clúster;
-- uno o varios Wazuh Indexer `4.14.7-1` pertenecientes al mismo clúster.
+- exactamente un Wazuh Dashboard de uno de los perfiles admitidos;
+- uno o varios Wazuh Manager de la misma versión y pertenecientes al mismo clúster;
+- uno o varios Wazuh Indexer de la misma versión y pertenecientes al mismo clúster.
+
+Las parejas admitidas son Wazuh `4.14.7-1` con OSD `2.19.5` y Wazuh `4.14.8-1` con OSD
+`2.19.6`. No se permiten versiones cruzadas.
 
 SOC Operations se instala únicamente en el Dashboard. El manager master recibe solo el agente
 privilegiado mTLS. No se admiten varios Dashboard ni varios clústeres Wazuh independientes en una
@@ -61,7 +64,7 @@ de datos ni lo cuente para calcular réplicas. El clúster debe estar `green`, s
 
 Descargue, verifique, descifre y extraiga el release siguiendo la sección 3 de la
 [guía AIO](installation.md). El resultado debe ser
-`$HOME/soc-installer/release-0.1.152` con 38 archivos y `SHA256SUMS` válido.
+`$HOME/soc-installer/release-0.1.153` con 42 archivos y `SHA256SUMS` válido.
 
 La identidad privada `age` requerida en ese paso se recupera únicamente desde el gestor de
 secretos autorizado, entrada `SOC Operations Installer Descifrado`. No copie su valor al archivo
@@ -92,7 +95,7 @@ Los archivos `deployment_*` todavía no existen: se generarán en la etapa del m
 ## Etapa 1: Dashboard
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.152"
+cd "$HOME/soc-installer/release-0.1.153"
 sudo install -o root -g root -m 0755 ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
@@ -127,7 +130,7 @@ Copie al manager el release, las dos claves públicas, las credenciales administ
 Indexer, la CA de API Wazuh y una copia `0600` root-only de `wazuh.yml`.
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.152"
+cd "$HOME/soc-installer/release-0.1.153"
 sudo install -o root -g root -m 0755 ./soc-lab-tenant-provisioner \
   /usr/local/sbin/soc-lab-tenant-provisioner
 sudo install -d -o root -g root -m 0755 /etc/soc-deploy-agent
@@ -164,7 +167,7 @@ sudo /usr/local/sbin/soc-operations-install resume
 sudo /usr/local/sbin/soc-operations-install status
 ```
 
-La salida debe incluir `installer_version=0.1.152`, `topology=distributed`, el `deployment_id`
+La salida debe incluir `installer_version=0.1.153`, `topology=distributed`, el `deployment_id`
 esperado, `phase=complete`, `external_api_gateway=200` y las sondas HTTP `200` de la API.
 
 ## API externa en el Dashboard

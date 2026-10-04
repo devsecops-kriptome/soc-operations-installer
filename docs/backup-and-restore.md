@@ -1,6 +1,6 @@
 # Respaldo y recuperación AIO o distribuida
 
-El release `0.1.152` ejecuta el flujo de continuidad desde el único Dashboard, ya sea AIO o
+El release `0.1.153` ejecuta el flujo de continuidad desde el único Dashboard, ya sea AIO o
 distribuido. Su objetivo es reconstruir SOC Operations sin volver a crear manualmente tenants,
 usuarios, casos, incidentes, SLA, playbooks, reportes y configuración operativa.
 
@@ -69,7 +69,7 @@ systemctl list-timers soc-aio-continuity.timer
 
 La recuperación se prueba en una red aislada y sigue este orden:
 
-1. instalar la misma topología Wazuh `4.14.7-1` y SOC Operations en el Dashboard nuevo;
+1. instalar la misma topología y versión Wazuh compatible y SOC Operations en el Dashboard nuevo;
 2. configurar acceso temporal de lectura al repositorio S3/OpenSearch;
 3. recuperar por el canal independiente la `auto-unseal.key` original;
 4. montar temporalmente la clave privada de descifrado;
@@ -89,5 +89,5 @@ PostgreSQL, una hora para índices activos y RTO de cuatro horas.
 
 Este flujo admite un único Dashboard y no elimina ese dominio único de fallo. Producción crítica
 debe usar almacenamiento externo y evaluar PostgreSQL administrado y OpenBao HA con auto-unseal
-basado en KMS/HSM/Transit. No promueva `0.1.152` a producción hasta completar la instalación limpia y el
+basado en KMS/HSM/Transit. No promueva `0.1.153` a producción hasta completar la instalación limpia y el
 simulacro de restauración.

@@ -1799,7 +1799,9 @@ set -euo pipefail
 sudo test -f "$SOC_GEOIP_RELEASE/manager.env.example"
 sudo test -f "$SOC_GEOIP_RELEASE/GeoIP.conf.example"
 # Continuar solo si ambas comprobaciones terminan sin error.
-sudo apt-get install -y geoipupdate libmaxminddb-bin curl jq nginx openssl util-linux
+sudo apt-get update
+sudo apt-get install -y geoipupdate mmdb-bin curl jq nginx openssl util-linux
+sudo bash -c 'command -v curl && command -v geoipupdate && command -v mmdblookup'
 sudo install -d -o root -g root -m 0700 /etc/soc-geoip-manager
 
 if sudo test -e /etc/soc-geoip-manager/manager.env; then
@@ -1847,7 +1849,14 @@ EditionIDs GeoLite2-City GeoLite2-Country GeoLite2-ASN
 
 Mantenerlo <code>root:root 0600</code>; nunca guardar la licencia en Git o evidencia.
 No ejecutar `install /dev/null .../GeoIP.conf` sobre un archivo existente: lo vaciaría.
-`libmaxminddb-bin` proporciona `mmdblookup`, requerido para validar las bases descargadas.
+En Ubuntu 24.04, `mmdb-bin` proporciona `mmdblookup`, requerido para validar las bases
+descargadas. Consultar la [referencia oficial de Ubuntu](https://manpages.ubuntu.com/manpages/noble/man1/mmdblookup.1.html).
+
+> [!IMPORTANT]
+> Si aparece `E: Unable to locate package libmaxminddb-bin`, el comando usa un nombre
+> incorrecto para Ubuntu. Sustituirlo por `mmdb-bin` y repetir el bloque de preparación.
+> La comprobación de las tres herramientas debe terminar correctamente antes de continuar;
+> no borrar configuraciones ni reinstalar SOC Operations para resolver este error.
 
 > [!WARNING]
 > **Corrección GeoIP:** los helpers de `0.1.158` invocaban `/usr/bin/command`, que no existe

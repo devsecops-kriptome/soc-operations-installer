@@ -114,7 +114,7 @@ Entre al directorio extraído del release `0.1.154` e instale dependencias. En U
 ```bash
 cd "$HOME/soc-installer/release-0.1.154"
 sudo apt-get update
-sudo apt-get install -y geoipupdate libmaxminddb-bin nginx openssl util-linux
+sudo apt-get install -y geoipupdate mmdb-bin nginx openssl util-linux
 ```
 
 ### 5.1 Credenciales MaxMind

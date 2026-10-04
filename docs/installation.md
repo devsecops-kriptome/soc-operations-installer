@@ -1,8 +1,13 @@
-# Instalación limpia AIO de SOC Operations 0.1.161
+# Instalación limpia AIO de SOC Operations 0.1.162
 
 Esta guía instala SOC Operations sobre un servidor all-in-one de Wazuh ya operativo. El
 instalador no instala ni actualiza Wazuh, no modifica el firewall y no está soportado sobre una
 instalación parcial o una versión distinta de la indicada.
+
+> **Instalación existente:** no seguir los pasos de instalación limpia ni inicializar OpenBao.
+> Preparar respaldo y release verificado y seguir el
+> [procedimiento de upgrade](wa01-produccion-distribuida-wazuh-4.14.8.md#actualizar-soc-operations-sin-reinstalar-wa01),
+> adaptando las direcciones a la topología persistida.
 
 ## 1. Requisitos
 
@@ -16,7 +21,7 @@ instalación parcial o una versión distinta de la indicada.
 - acceso autorizado a la identidad privada `age` almacenada en el gestor de secretos bajo
   `SOC Operations Installer Descifrado`.
 
-El release `0.1.161` no es compatible con Wazuh 4.12 ni con parejas cruzadas entre Wazuh y OSD. El
+El release `0.1.162` no es compatible con Wazuh 4.12 ni con parejas cruzadas entre Wazuh y OSD. El
 `preflight` las rechaza antes de instalar componentes. No modifique esa comprobación; consulte
 [Compatibilidad](compatibility.md).
 
@@ -243,17 +248,17 @@ install -d -m 0700 "$HOME/soc-installer"
 cd "$HOME/soc-installer"
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.161/soc-operations-0.1.161.tar.gz.age
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.162/soc-operations-0.1.162.tar.gz.age
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.161/SHA256SUMS
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.162/SHA256SUMS
 
-grep 'soc-operations-0.1.161.tar.gz.age$' SHA256SUMS | sha256sum --check
+grep 'soc-operations-0.1.162.tar.gz.age$' SHA256SUMS | sha256sum --check
 ```
 
 El resultado debe ser:
 
 ```text
-soc-operations-0.1.161.tar.gz.age: OK
+soc-operations-0.1.162.tar.gz.age: OK
 ```
 
 Recupere la identidad privada desde el gestor de secretos autorizado, usando exactamente la
@@ -265,12 +270,12 @@ chats, tickets, documentación o historial de comandos:
 chmod 0600 "$HOME/.soc-operations-installer-key.txt"
 age --decrypt \
   --identity "$HOME/.soc-operations-installer-key.txt" \
-  --output soc-operations-0.1.161.tar.gz \
-  soc-operations-0.1.161.tar.gz.age
+  --output soc-operations-0.1.162.tar.gz \
+  soc-operations-0.1.162.tar.gz.age
 
 sha256sum --check SHA256SUMS
-tar -xzf soc-operations-0.1.161.tar.gz
-cd release-0.1.161
+tar -xzf soc-operations-0.1.162.tar.gz
+cd release-0.1.162
 sha256sum --check SHA256SUMS
 test "$(find . -maxdepth 1 -type f | wc -l)" -eq 49
 ```
@@ -290,7 +295,7 @@ OpenBao, `auto-unseal.key` ni como clave de cifrado de los respaldos de SOC Oper
 
 ## 4. Ejecutar el preflight
 
-Desde `$HOME/soc-installer/release-0.1.161` instale solo el orquestador:
+Desde `$HOME/soc-installer/release-0.1.162` instale solo el orquestador:
 
 ```bash
 sudo install -o root -g root -m 0755 \
@@ -311,7 +316,7 @@ printf 'Esperado:  %s\nInstalado: %s\n' \
 test "$INSTALLED_INSTALLER_SHA256" = "$EXPECTED_INSTALLER_SHA256"
 ```
 
-Para el release `0.1.161` publicado, ambas huellas deben ser:
+Para el release `0.1.162` publicado, ambas huellas deben ser:
 
 ```text
 59851588dd1c4b22a24ca7789806aca0a0892f52ce701753bc7c32f2382ae7bb
@@ -323,7 +328,7 @@ Ejecute la validación sin cambios persistentes:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install preflight \
-  --staging-root "$HOME/soc-installer/release-0.1.161"
+  --staging-root "$HOME/soc-installer/release-0.1.162"
 ```
 
 En un host con varias interfaces, añada `--service-address IP_INTERNA`. No continúe si falla una
@@ -335,7 +340,7 @@ Reemplace los valores de ejemplo:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install apply \
-  --staging-root "$HOME/soc-installer/release-0.1.161" \
+  --staging-root "$HOME/soc-installer/release-0.1.162" \
   --service-address IP_INTERNA_AIO \
   --external-proxy-cidr IP_O_CIDR_DEL_PROXY \
   --email INGENIERO@EMPRESA.COM \
@@ -357,7 +362,7 @@ identidad; no elimine el estado. El resultado esperado es:
 phase=waiting_for_openbao_custody
 ```
 
-El instalador `0.1.161` crea los directorios `/opt/soc-operations-lab` y
+El instalador `0.1.162` crea los directorios `/opt/soc-operations-lab` y
 `/opt/soc-operations/docs` antes de desplegar los archivos auxiliares, incluido
 `continuity.env.example`. En una instalación nueva no es necesario prepararlos manualmente.
 También valida la identidad fija de la imagen de API tanto con el ID de configuración como con el
@@ -429,7 +434,7 @@ release vigente y reconcilie los componentes con:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install upgrade \
-  --staging-root "$HOME/soc-installer/release-0.1.161"
+  --staging-root "$HOME/soc-installer/release-0.1.162"
 ```
 
 Si `first-engineer` sigue pendiente, `upgrade` vuelve a mostrar los dos prompts de contraseña. La
@@ -445,7 +450,7 @@ sudo /usr/local/sbin/soc-operations-install status
 La salida final debe incluir:
 
 ```text
-installer_version=0.1.161
+installer_version=0.1.162
 phase=complete
 dashboard=302
 soc_api_liveness=200

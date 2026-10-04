@@ -9,32 +9,43 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.161`
-- Instalador: `0.1.161`
-- API, worker y agente: `0.1.113`
-- Plugin: `socOperations@0.1.93`
+- Release: `v0.1.162`
+- Instalador: `0.1.162`
+- API, worker y agente: `0.1.114`
+- Plugin: `socOperations@0.1.94`
 - Perfiles soportados: Wazuh `4.14.7-1` con OSD `2.19.5`, o Wazuh `4.14.8-1` con OSD `2.19.6`
 
-`0.1.161` corrige la administración de API externa cuando Manager y runtime SOC comparten
-servidor, incluso con Indexers distribuidos. Reconcilia el flag persistido con el servicio,
-recrea solo `external-api` cuando corresponde y verifica 401/503, con rollback. No activa la API
-por defecto, no cambia las credenciales y no reinstala Wazuh. Las activaciones desde la interfaz
-siguen requiriendo `soc_engineering`, contraseña, mTLS y auditoría.
+`0.1.162` permite habilitar o deshabilitar snapshots y seleccionar un repositorio writable
+al editar un tenant existente. Reconcilia políticas separadas para alertas y archives, muestra
+su estado real y detiene la política mixta anterior únicamente después de verificar las nuevas.
+No borra snapshots, no recrea tenants y no habilita automáticamente todos los tenants.
 
-Para una instalación existente, después de verificar el release, seguir el
-[apartado 9.13.2 de la guía WA01](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#activacion-api-externa-y-runtime-desactualizado).
-El nuevo comando `reconcile-external-api --staging-root PATH` actualiza los helpers verificados
-y aplica únicamente esta reparación, sin repetir `apply` ni la ceremonia de OpenBao.
-`upgrade` y `resume` también la comprueban. Un Manager sin runtime local no recibe este control.
+Actualiza el agente local antes de iniciar el runtime nuevo, incluso con Indexers distribuidos;
+comprueba por mTLS su versión y capacidad. Conserva credenciales opcionales y flags operativos
+del `agent.env`. Para un Manager remoto, actualizar primero su agente desde el mismo release.
+El árbol de migraciones coincide con `0.1.113`: esta corrección no añade migraciones.
 
-Incluye la corrección preparada en `0.1.160` (no publicada por separado): `distributed` usa
-`production` para aprovisionar y `aio` conserva `lab`. Comprueba el destino efectivo del worker
-y no cambia el clúster ni hace que el agente de producción acepte manifiestos de laboratorio.
+Para una instalación existente, verificar el release y seguir el
+[upgrade seguro de WA01, apartado 9.15](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#actualizar-soc-operations-sin-reinstalar-wa01).
+Requiere respaldo actual, ventana y `upgrade`, no repetir `apply`, inicializar OpenBao ni borrar
+volúmenes. El upgrade no es una transacción global; conservar el release anterior.
+Después, usar **Guardar y reconciliar** según
+[snapshots por familia, apartado 7.11.6.1](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#habilitar-snapshots-en-un-tenant-existente).
 
-Validación de `0.1.161`: 141 pruebas locales aprobadas, Ruff, sintaxis Bash y verificación de los
-48 artefactos. API/agente `0.1.113`, plugin `0.1.93`, imágenes y helpers GeoIP `0.1.159` no cambian.
-No se ha aplicado ni validado end-to-end en WA01. El defecto independiente de permisos del
-manifiesto GeoIP conserva la mitigación descrita en la guía; este release no lo corrige.
+Validación de `0.1.162`: 450 pruebas locales aprobadas y 5 omitidas por requisitos
+de integración, Ruff, sintaxis Bash, dos builds de plugin y verificación de los 48 artefactos.
+No se ha aplicado ni validado end-to-end en WA01. La restauración y el primer snapshot real
+deben probarse allí antes de dar el respaldo por aceptado.
+
+Conserva la corrección de `0.1.161` de API externa: reconcilia el flag persistido y el servicio
+cuando Manager y runtime comparten servidor, recrea únicamente `external-api` cuando corresponde
+y verifica 401/503. No activa la API por defecto, no cambia credenciales y no reinstala Wazuh.
+Consultar el [apartado 9.13.2](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#activacion-api-externa-y-runtime-desactualizado).
+
+Incluye la corrección de `0.1.160`: `distributed` usa `production` y `aio` conserva `lab`.
+No cambia el clúster ni permite al agente de producción aceptar manifiestos de laboratorio.
+Los helpers GeoIP siguen en `0.1.159`; el defecto independiente de permisos del manifiesto
+conserva la mitigación descrita en la guía y no se corrige en este release.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.

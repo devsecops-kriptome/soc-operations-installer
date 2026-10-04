@@ -9,23 +9,25 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.154`
-- Instalador: `0.1.154`
+- Release: `v0.1.155`
+- Instalador: `0.1.155`
 - API, worker y agente: `0.1.113`
 - Plugin: `socOperations@0.1.93`
 - Perfiles soportados: Wazuh `4.14.7-1` con OSD `2.19.5`, o Wazuh `4.14.8-1` con OSD `2.19.6`
 
-`0.1.154` corrige el fallo de instalación distribuida al conectar al Indexer por loopback:
-el helper del plugin usa el endpoint y los certificados de la topología. Las comprobaciones del
-Dashboard usan la IP de servicio configurada, también en runtime y status. Conserva las dos
-parejas Wazuh/OSD y los mismos artefactos de API y plugin del release anterior.
+`0.1.155` incorpora la imagen recuperada de MinIO dentro del TAR cifrado del instalador.
+Verifica su SHA-256, la importa, comprueba identidad y plataforma y usa una etiqueta local con
+las descargas deshabilitadas para MinIO. Conserva las correcciones de topología de `0.1.154`,
+las dos parejas Wazuh/OSD y los mismos artefactos de API y plugin.
 
 Si `0.1.153` quedó detenido en `dashboard-plugin`, seguir la
 [recuperación de la instalación parcial](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#retomar-el-fallo-de-conexión-del-release-01153).
 Se debe repetir `apply` con el staging nuevo y conservar los estados de los pasos completados.
 
-Validación del cambio: 28 pruebas de regresión e integridad, sintaxis Bash y comprobación de los
-41 artefactos del TAR. La comprobación de instalación real en WA01 sigue pendiente.
+Validación del cambio: 33 pruebas de regresión e integridad, sintaxis Bash y comprobación de los
+48 artefactos del TAR. En Docker local se probó la importación y, en un contenedor sin red,
+el arranque, la creación de bucket, el versionado y la carga y lectura de un objeto S3.
+La comprobación de instalación real en WA01 sigue pendiente.
 
 ## Almacenamiento S3 e imagen pendiente de evaluación
 
@@ -33,28 +35,30 @@ El instalador despliega MinIO como almacenamiento interno compatible con S3 para
 No requiere contratar Amazon S3. El endpoint interno es `http://minio:9000` y el bucket
 configurado es `soc-operations-evidence`.
 
-El release `v0.1.154` referencia esta imagen:
+La imagen original recuperada corresponde a:
 
 ```text
 quay.io/minio/minio:RELEASE.2025-07-23T15-54-02Z@sha256:d249d1fb6966de4d8ad26c04754b545205ff15a62e4fd19ebd0f26fa5baacbc0
 ```
 
-La descarga desde el registro falló durante `apply` en WA01. El laboratorio anterior conserva
-una imagen con ese digest, pero el archivo exportado todavía no está disponible en este
-repositorio ni en sus Releases. El paquete cifrado del instalador tampoco incluye esa imagen.
-Por tanto, `v0.1.154` puede detenerse en el paso `dependencies` en un servidor sin la imagen local.
+La descarga desde el registro falló durante `apply` en WA01 con `v0.1.154`.
+`v0.1.155` contiene `soc-operations-minio-image.tar.gz`, exportado del laboratorio anterior,
+con SHA-256 `2223b43be55458a29e8add829dbcd0cc0fda68872c104df6f5e475144b492598`.
+Se incluye únicamente `linux/amd64`, sin volúmenes, credenciales ni evidencias.
+MinIO se carga localmente y no consulta Quay. OpenBao y las demás imágenes todavía requieren
+acceso a sus registros. Consultar la
+[recuperación del fallo de descarga](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#retomar-el-fallo-de-descarga-de-minio-del-release-01154).
 
 **Esta imagen debe ser evaluada antes de aprobar su uso en producción.**
 El [repositorio oficial de MinIO Community](https://github.com/minio/minio) está archivado y
 declara que ya no se mantiene. Recuperar la imagen resuelve su disponibilidad, pero no acredita
 soporte, ausencia de vulnerabilidades ni aptitud para producción.
 
-Si se redistribuye la imagen recuperada, se publicará como un activo de GitHub Releases,
-acompañado por su SHA-256, procedencia, identificación de plataforma y la información y el
-código fuente que correspondan a su licencia. Antes de incorporarla al instalador se comprobará
-su importación en Docker y la resolución de la referencia fijada: `docker save/load` puede
-conservar una etiqueta sin conservar `RepoDigests`. No se exportarán volúmenes, credenciales
-ni datos de evidencias.
+El TAR cifrado incluye las licencias, los créditos y las fuentes upstream de las versiones
+identificadas de MinIO y mc. Las dependencias transitivas no están vendorizadas.
+Consultar [MINIO-NOTICE.md](docs/MINIO-NOTICE.md) para procedencia, términos y evaluación pendiente.
+El instalador comprueba los IDs conocidos del índice OCI y de la configuración, según el
+almacén de imágenes utilizado por Docker, sin depender de que `docker load` conserve `RepoDigests`.
 
 SeaweedFS es una alternativa en evaluación, **todavía no integrada ni validada**. Cualquier
 sustitución requiere comprobar las operaciones S3 utilizadas por SOC Operations, los permisos,
@@ -63,7 +67,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.154.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.155.tar.gz.age` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

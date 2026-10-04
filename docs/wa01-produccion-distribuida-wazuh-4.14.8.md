@@ -1,7 +1,7 @@
 # Instalación distribuida WA01 con Wazuh 4.14.8 y SOC Operations
 
 > Estado: guía de preparación y despliegue para producción.
-> Revisión: 2026-10-03.
+> Revisión: 2026-10-04.
 > Alcance: Wazuh 4.14.8, tres Indexers, Manager, Dashboard, SOC Operations, HAProxy, Cloudflare, UFW y GeoIP MaxMind.
 > Bloqueo: SOC Operations no debe autorizarse para producción hasta superar completamente <code>docs/acceptance.md</code>.
 
@@ -851,7 +851,7 @@ Registrar como evidencia:
 ~~~
 
 Guardar este contenido como <code>/root/wa01-soc-topology.json</code>, propiedad
-<code>root:root</code> y modo <code>0600</code>. El release <code>0.1.154</code> valida
+<code>root:root</code> y modo <code>0600</code>. El release <code>0.1.155</code> valida
 exactamente este esquema y utiliza únicamente el primer elemento de <code>indexer.urls</code> como
 endpoint operativo. Es recomendable reemplazarlo más adelante por una dirección interna estable
 con health checks. Mientras no exista, se usa <code>.118</code> y se documenta el cambio manual a
@@ -912,7 +912,7 @@ tres Indexers.
 
 El release aprobado se publica cifrado en:
 
-<code>https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.154</code>
+<code>https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.155</code>
 
 La identidad privada <code>age</code> se obtiene exclusivamente del gestor de secretos autorizado,
 entrada <strong>SOC Operations Installer Descifrado</strong>. Para este procedimiento se utiliza
@@ -965,16 +965,16 @@ Crear un directorio privado separado y descargar el manifiesto y el activo cifra
 
 ~~~bash
 umask 077
-install -d -m 0700 /root/soc-operations-0.1.154-download
-cd /root/soc-operations-0.1.154-download
+install -d -m 0700 /root/soc-operations-0.1.155-download
+cd /root/soc-operations-0.1.155-download
 
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output SHA256SUMS \
-  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.154/SHA256SUMS'
+  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.155/SHA256SUMS'
 
 curl --fail --location --proto '=https' --tlsv1.2 \
-  --output soc-operations-0.1.154.tar.gz.age \
-  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.154/soc-operations-0.1.154.tar.gz.age'
+  --output soc-operations-0.1.155.tar.gz.age \
+  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.155/soc-operations-0.1.155.tar.gz.age'
 ~~~
 
 Verificar primero el manifiesto descargado y después el activo cifrado contra las huellas fijadas
@@ -982,12 +982,12 @@ en esta guía:
 
 ~~~bash
 printf '%s  %s\n' \
-  '5cbb237bdcf47b654d69133119b96afc12c98da7d74db3a2f6a8c7004bcd2f52' \
+  '1b8cc884d883836009445f3d3780f54a9cbd94d34613a7c147c33999ee3cd1f8' \
   'SHA256SUMS' | sha256sum --check --strict -
 
 printf '%s  %s\n' \
-  '1f6712f72121773cf28f1548cb6b8723c94596743e7fca15c87d5ea7cbda26f4' \
-  'soc-operations-0.1.154.tar.gz.age' | sha256sum --check --strict -
+  '3929071b24a71243a185ec67ee762215c36efea4ee4a2fc63dfe6e45353d2309' \
+  'soc-operations-0.1.155.tar.gz.age' | sha256sum --check --strict -
 ~~~
 
 Descifrar con la identidad temporal, verificar el TAR y extraerlo. Después de comprobar los
@@ -996,15 +996,15 @@ hashes, retirar la copia temporal de la clave; la identidad original permanece e
 ~~~bash
 age --decrypt \
   --identity "$SOC_AGE_IDENTITY" \
-  --output soc-operations-release-0.1.154.tar.gz \
-  soc-operations-0.1.154.tar.gz.age
+  --output soc-operations-release-0.1.155.tar.gz \
+  soc-operations-0.1.155.tar.gz.age
 
 printf '%s  %s\n' \
-  '61230709dacf3671c22a68f52f1a53e34d47fabfc330aabd513ac78ae7207118' \
-  'soc-operations-release-0.1.154.tar.gz' | sha256sum --check --strict -
+  'd2ef562841d6481736ff23da1e11aef2723877f8188f3e75f66be41cc8953b31' \
+  'soc-operations-release-0.1.155.tar.gz' | sha256sum --check --strict -
 
-tar --extract --gzip --file soc-operations-release-0.1.154.tar.gz
-cd release-0.1.154
+tar --extract --gzip --file soc-operations-release-0.1.155.tar.gz
+cd release-0.1.155
 sha256sum --check --strict SHA256SUMS
 test "$(find . -type f | wc -l)" -eq 42
 
@@ -1022,13 +1022,13 @@ Dejar el release en su ubicación definitiva en este mismo servidor. El bloque s
 existe el destino, para revisar una preparación anterior antes de reemplazarla:
 
 ~~~bash
-cd /root/soc-operations-0.1.154-download
-if [ -e /root/soc-operations-release-0.1.154 ]; then
+cd /root/soc-operations-0.1.155-download
+if [ -e /root/soc-operations-release-0.1.155 ]; then
   printf '%s\n' 'El destino ya existe: revisar y verificar el release anterior antes de continuar.' >&2
   exit 1
 fi
-mv -T -- release-0.1.154 /root/soc-operations-release-0.1.154
-chmod 0700 /root/soc-operations-release-0.1.154
+mv -T -- release-0.1.155 /root/soc-operations-release-0.1.155
+chmod 0700 /root/soc-operations-release-0.1.155
 ~~~
 
 Si trabajaste directamente en <code>.117</code>, continuar en
@@ -1045,18 +1045,18 @@ forma controlada:
 
 ~~~bash
 rsync --archive --protect-args \
-  /root/soc-operations-release-0.1.154/ \
-  '<USUARIO_ADMIN>@192.168.4.117:/var/tmp/soc-operations-release-0.1.154/'
+  /root/soc-operations-release-0.1.155/ \
+  '<USUARIO_ADMIN>@192.168.4.117:/var/tmp/soc-operations-release-0.1.155/'
 ~~~
 
 En <code>192.168.4.117</code>, copiar el directorio recibido a su ubicación definitiva. La
 transferencia incluye solo el release; la identidad <code>age</code> ya se retiró del equipo de origen:
 
 ~~~bash
-sudo install -d -o root -g root -m 0700 /root/soc-operations-release-0.1.154
+sudo install -d -o root -g root -m 0700 /root/soc-operations-release-0.1.155
 sudo rsync --archive --chown=root:root \
-  /var/tmp/soc-operations-release-0.1.154/ \
-  /root/soc-operations-release-0.1.154/
+  /var/tmp/soc-operations-release-0.1.155/ \
+  /root/soc-operations-release-0.1.155/
 ~~~
 
 #### Alternativa desde Windows
@@ -1065,33 +1065,33 @@ Windows se conserva únicamente como estación administrativa alternativa. Con <
 instalado:
 
 ~~~powershell
-$ReleaseDownload = Join-Path $env:USERPROFILE 'Downloads\soc-operations-0.1.154'
+$ReleaseDownload = Join-Path $env:USERPROFILE 'Downloads\soc-operations-0.1.155'
 New-Item -ItemType Directory -Force -Path $ReleaseDownload | Out-Null
 Set-Location $ReleaseDownload
 
-curl.exe --fail --location --proto '=https' --tlsv1.2 --output SHA256SUMS 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.154/SHA256SUMS'
-curl.exe --fail --location --proto '=https' --tlsv1.2 --output soc-operations-0.1.154.tar.gz.age 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.154/soc-operations-0.1.154.tar.gz.age'
+curl.exe --fail --location --proto '=https' --tlsv1.2 --output SHA256SUMS 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.155/SHA256SUMS'
+curl.exe --fail --location --proto '=https' --tlsv1.2 --output soc-operations-0.1.155.tar.gz.age 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.155/soc-operations-0.1.155.tar.gz.age'
 
-$ExpectedManifest = '5cbb237bdcf47b654d69133119b96afc12c98da7d74db3a2f6a8c7004bcd2f52'
+$ExpectedManifest = '1b8cc884d883836009445f3d3780f54a9cbd94d34613a7c147c33999ee3cd1f8'
 $ActualManifest = (Get-FileHash -LiteralPath '.\SHA256SUMS' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualManifest -ne $ExpectedManifest) { throw 'SHA-256 invalido para SHA256SUMS' }
 
-$ExpectedEncrypted = '1f6712f72121773cf28f1548cb6b8723c94596743e7fca15c87d5ea7cbda26f4'
-$ActualEncrypted = (Get-FileHash -LiteralPath '.\soc-operations-0.1.154.tar.gz.age' -Algorithm SHA256).Hash.ToLowerInvariant()
+$ExpectedEncrypted = '3929071b24a71243a185ec67ee762215c36efea4ee4a2fc63dfe6e45353d2309'
+$ActualEncrypted = (Get-FileHash -LiteralPath '.\soc-operations-0.1.155.tar.gz.age' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualEncrypted -ne $ExpectedEncrypted) { throw 'SHA-256 invalido para el activo cifrado' }
 
-age --decrypt --identity 'RUTA_SEGURA\identity.txt' --output 'soc-operations-release-0.1.154.tar.gz' 'soc-operations-0.1.154.tar.gz.age'
+age --decrypt --identity 'RUTA_SEGURA\identity.txt' --output 'soc-operations-release-0.1.155.tar.gz' 'soc-operations-0.1.155.tar.gz.age'
 
-$ExpectedPlain = '61230709dacf3671c22a68f52f1a53e34d47fabfc330aabd513ac78ae7207118'
-$ActualPlain = (Get-FileHash -LiteralPath '.\soc-operations-release-0.1.154.tar.gz' -Algorithm SHA256).Hash.ToLowerInvariant()
+$ExpectedPlain = 'd2ef562841d6481736ff23da1e11aef2723877f8188f3e75f66be41cc8953b31'
+$ActualPlain = (Get-FileHash -LiteralPath '.\soc-operations-release-0.1.155.tar.gz' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualPlain -ne $ExpectedPlain) { throw 'SHA-256 invalido para el TAR descifrado' }
 
-tar -xzf '.\soc-operations-release-0.1.154.tar.gz'
+tar -xzf '.\soc-operations-release-0.1.155.tar.gz'
 ~~~
 
-Transferir después <code>release-0.1.154</code> completo por el canal administrativo y ejecutar en
+Transferir después <code>release-0.1.155</code> completo por el canal administrativo y ejecutar en
 Ubuntu la verificación interna con <code>sha256sum --check --strict SHA256SUMS</code>. Dejar el
-directorio en <code>/root/soc-operations-release-0.1.154</code>, como en la alternativa anterior.
+directorio en <code>/root/soc-operations-release-0.1.155</code>, como en la alternativa anterior.
 
 #### Verificar el release e instalar el comando
 
@@ -1102,7 +1102,7 @@ No copiar únicamente el ZIP del plugin: el instalador verifica el orquestador, 
 locks, unidades y plantillas mediante hashes fijos.
 
 ~~~bash
-cd /root/soc-operations-release-0.1.154
+cd /root/soc-operations-release-0.1.155
 sha256sum --check SHA256SUMS
 sudo install -o root -g root -m 0755 soc-operations-install \
   /usr/local/sbin/soc-operations-install
@@ -1116,6 +1116,29 @@ sudo test -r /var/ossec/api/configuration/ssl/server.crt
 No continuar si un hash falla o si el release no contiene
 <code>socOperations-2.19.6.zip</code>.
 
+### Almacenamiento interno de evidencias y copia recuperada de MinIO
+
+SOC Operations utiliza MinIO como almacenamiento interno compatible con S3. No requiere
+contratar Amazon S3 ni preparar un servicio externo para esta instalación. Se configura
+<code>http://minio:9000</code> y el bucket <code>soc-operations-evidence</code>; los puertos
+9000 y 9001 se mantienen en loopback, sin publicarlos mediante Cloudflare o HAProxy.
+
+Desde el release <code>0.1.155</code>, el TAR cifrado incluye
+<code>soc-operations-minio-image.tar.gz</code>, recuperado sin modificaciones del laboratorio
+anterior. Su SHA-256 es
+<code>2223b43be55458a29e8add829dbcd0cc0fda68872c104df6f5e475144b492598</code>.
+La copia contiene únicamente la imagen <code>linux/amd64</code>, no los volúmenes ni las
+credenciales del laboratorio. El instalador verifica el archivo, carga la imagen, comprueba
+su identidad y plataforma y crea una etiqueta local con <code>pull_policy: never</code>.
+MinIO no se descarga de Quay; OpenBao y las demás imágenes siguen dependiendo de sus registros.
+
+Consultar <code>MINIO-NOTICE.md</code>, las licencias, los créditos y los archivos de fuentes
+incluidos en el release. **Esta imagen debe evaluarse antes de aprobar su uso en producción:**
+MinIO Community ya no se mantiene. La integridad y las pruebas locales de operaciones S3 no
+certifican ausencia de vulnerabilidades, aislamiento de tenants, custodia de claves ni respaldo
+y restauración. Se mantiene la configuración de cifrado existente; recuperar la imagen no
+sustituye la evaluación de ese diseño para producción.
+
 ### Preflight sin cambios
 
 Ejecutar primero solo:
@@ -1124,7 +1147,7 @@ Ejecutar primero solo:
 sudo /usr/local/sbin/soc-operations-install preflight \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
-  --staging-root /root/soc-operations-release-0.1.154
+  --staging-root /root/soc-operations-release-0.1.155
 ~~~
 
 El resultado debe identificar <code>topology=distributed</code>, Wazuh
@@ -1149,7 +1172,7 @@ sudo /usr/local/sbin/soc-operations-install apply \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
   --external-proxy-cidr 192.168.4.50/32 \
-  --staging-root /root/soc-operations-release-0.1.154
+  --staging-root /root/soc-operations-release-0.1.155
 ~~~
 
 | Parámetro | Uso en WA01 |
@@ -1173,15 +1196,34 @@ y del agente que se describen a continuación son estados previstos; no signific
 instalación esté completa. Conservar los parámetros originales si se necesita repetir
 <code>apply</code>; <code>resume</code> recupera los datos persistidos y no recibe estos argumentos.
 
+#### Retomar el fallo de descarga de MinIO del release 0.1.154
+
+Si <code>apply</code> completó <code>runtime</code> y se detuvo en <code>dependencies</code>
+con <code>401 UNAUTHORIZED</code> al descargar MinIO desde Quay, descargar y verificar el
+release <code>0.1.155</code> según **Preparar el release fijo**. No modificar el paquete
+anterior, las marcas de instalación ni los volúmenes de PostgreSQL, MinIO u OpenBao.
+
+Instalar el orquestador del staging nuevo y repetir los comandos de preflight y apply de
+esta guía con <code>--staging-root /root/soc-operations-release-0.1.155</code>.
+Conservar exactamente el correo, el nombre, la URL pública y la topología del primer intento.
+Por ejemplo, si se utilizó <code>cmedina@kriptome.com</code>, conservar esa identidad en vez
+de cambiarla por el correo de ejemplo de la guía.
+
+El paso de dependencias debe mostrar
+<code>Bundled MinIO image verified and imported; no registry pull required</code>.
+El resto de la instalación conserva sus pausas previstas para la custodia de OpenBao y la
+activación del primer ingeniero. <code>resume</code> se ejecuta en esas etapas; primero se debe
+repetir <code>apply</code> para instalar los helpers nuevos y completar las dependencias.
+
 #### Retomar el fallo de conexión del release 0.1.153
 
-El release <code>0.1.154</code> corrige las direcciones loopback fijas del helper del plugin:
+El release <code>0.1.155</code> corrige las direcciones loopback fijas del helper del plugin:
 usa el Indexer y los certificados declarados en la topología y la IP de servicio del Dashboard
 para sus comprobaciones de salud. También corrige esas comprobaciones en runtime y status.
 
 Si <code>0.1.153</code> se detuvo en <code>dashboard-plugin</code> con
 <code>Failed to connect to 127.0.0.1 port 9200</code>, descargar y verificar el release
-<code>0.1.154</code> siguiendo **Preparar el release fijo**. Conservar el directorio anterior y
+<code>0.1.155</code> siguiendo **Preparar el release fijo**. Conservar el directorio anterior y
 los estados de <code>/var/lib/soc-operations-installer</code>: foundation ya aplicó cambios y
 no es necesario borrar sus marcas ni volver a desplegar Wazuh.
 
@@ -1189,16 +1231,16 @@ Instalar el nuevo orquestador y repetir el preflight:
 
 ~~~bash
 sudo install -o root -g root -m 0755 \
-  /root/soc-operations-release-0.1.154/soc-operations-install \
+  /root/soc-operations-release-0.1.155/soc-operations-install \
   /usr/local/sbin/soc-operations-install
 sudo /usr/local/sbin/soc-operations-install preflight \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
-  --staging-root /root/soc-operations-release-0.1.154
+  --staging-root /root/soc-operations-release-0.1.155
 ~~~
 
 Después ejecutar el comando <code>apply</code> anterior, conservando exactamente el correo,
-nombre y URL usados en el primer intento, y usando el staging <code>0.1.154</code>. El instalador
+nombre y URL usados en el primer intento, y usando el staging <code>0.1.155</code>. El instalador
 reinstala los helpers verificados y omite los pasos ya completados, incluidos root-preflight y
 foundation en este caso. Debe avanzar más allá de <code>dashboard-plugin</code>; después seguir
 la acción indicada para OpenBao. <code>resume</code> no reemplaza esta repetición de
@@ -1217,7 +1259,7 @@ En una instalación nueva, el estado esperado tras <code>apply</code> es
 sudo /usr/local/sbin/soc-operations-install openbao-init
 ~~~
 
-El helper del release <code>0.1.154</code> solicita literalmente <code>INIT WA001</code>.
+El helper del release <code>0.1.155</code> solicita literalmente <code>INIT WA001</code>.
 Ese texto es una confirmación interna del instalador, aunque el deployment se llame
 <code>wa01</code>. La inicialización muestra una sola vez cinco recovery shares, con umbral de
 tres, y el token root inicial. Guardarlos con la custodia indicada por el comando, incluyendo
@@ -1261,7 +1303,7 @@ sudo test -x /usr/local/sbin/soc-lab-tenant-provisioner
 
 sudo env \
   SOC_DEPLOYMENT_ID=wa01 \
-  SOC_STAGING_ROOT=/root/soc-operations-release-0.1.154 \
+  SOC_STAGING_ROOT=/root/soc-operations-release-0.1.155 \
   SOC_AIO_SERVICE_ADDRESS=192.168.4.117 \
   SOC_EXTERNAL_API_PROXY_CIDR=127.0.0.1/32 \
   SOC_WAZUH_TOPOLOGY=distributed \

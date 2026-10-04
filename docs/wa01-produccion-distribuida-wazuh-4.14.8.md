@@ -1770,7 +1770,28 @@ El aprovisionador actual genera certificados mTLS del agente válidos por 30 dí
 - Solo <code>.118</code> y <code>.119</code> instalan worker.
 - Cada worker usa certificado cliente propio.
 - La sincronización es automática y la activación manual, rolling.
-- Se conservan cuatro releases.
+- El distribuidor conserva cuatro releases. El worker `0.1.159` no implementa poda
+  automática de sus releases locales; vigilar el espacio en `/var/lib/soc-geoip-indexer`.
+
+> [!IMPORTANT]
+> **Estado del procedimiento:** el helper `0.1.159` corrige la detección de comandos, pero
+> conserva un defecto de permisos al generar `manifest.json`. La mitigación de esta guía
+> permite probar el flujo; no equivale a publicar un helper corregido ni a aprobar GeoIP
+> para producción. Mantener suspendida la actualización automática del distribuidor hasta
+> disponer de esa corrección validada. Las bases activas de Wazuh no se borran ni se detienen
+> por suspender únicamente `soc-geoip-manager.timer`.
+
+Ejecutar los bloques **en orden y en el servidor indicado**. Los bloques `bash` son comandos;
+los bloques `text` e `ini` son contenido para guardar dentro del archivo que se está editando.
+Si se cierra la sesión SSH, definir de nuevo las variables de staging en la nueva sesión.
+
+| Punto de control | Qué confirma | Qué no confirma |
+| --- | --- | --- |
+| Cuatro archivos del worker con `OK` | Integridad del subconjunto del release recibido | Presencia del bundle mTLS, configuración o instalación |
+| `preflight passed` | Comprobaciones locales del helper | Acceso HTTP al manifiesto ni descarga de las bases |
+| GET de `manifest.json` por mTLS | Acceso al distribuidor desde ese Indexer | Integridad y lectura de todas las bases |
+| `install` finalizado y `pending_release` presente | Worker instalado y bases descargadas/verificadas | Bases activas en Wazuh |
+| `active_release` correcto, hashes coincidentes y clúster `green` | Activación y continuidad del clúster | Enriquecimiento real: comprobar también pipeline y evento nuevo |
 
 <a id="distribuidor-en-1921684117"></a>
 
@@ -1786,11 +1807,15 @@ plantilla: comprobar `/root/soc-operations-release-0.1.159/manager.env.example`.
 > **Para GeoIP, usar los helpers corregidos 0.1.159.** El staging indicado abajo corresponde
 > al paquete corregido distribuido en GitHub. No basta con
 > reinstalar los helpers de 0.1.158. Preparar y verificar el paquete corregido antes de continuar.
+> La corrección de `command -v` no corrige por sí sola el HTTP 403 del manifiesto;
+> completar también la comprobación de permisos de 10.2.3.
 
 Si SOC Operations ya está instalado y se creó el primer ingeniero, para esta corrección basta
 con preparar/verificar el release 0.1.159 e instalar sus helpers mediante los bloques GeoIP
 siguientes. No repetir `apply` ni `upgrade`, reinstalar la aplicación o reinicializar OpenBao
 solo para corregir GeoIP. Conservar `manager.env`, `worker.env`, `GeoIP.conf` y cualquier PKI existente.
+
+#### 10.2.1. Preparar las dependencias y la configuración
 
 ~~~bash
 SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.159'
@@ -1800,8 +1825,8 @@ sudo test -f "$SOC_GEOIP_RELEASE/manager.env.example"
 sudo test -f "$SOC_GEOIP_RELEASE/GeoIP.conf.example"
 # Continuar solo si ambas comprobaciones terminan sin error.
 sudo apt-get update
-sudo apt-get install -y geoipupdate mmdb-bin curl jq nginx openssl util-linux
-sudo bash -c 'command -v curl && command -v geoipupdate && command -v mmdblookup'
+sudo apt-get install -y geoipupdate mmdb-bin curl jq nginx openssl util-linux python3
+sudo bash -c 'set -e; for binary in curl geoipupdate mmdblookup nginx openssl python3 sha256sum systemctl flock; do command -v "$binary"; done'
 sudo install -d -o root -g root -m 0700 /etc/soc-geoip-manager
 
 if sudo test -e /etc/soc-geoip-manager/manager.env; then
@@ -1822,7 +1847,7 @@ sudo nano /etc/soc-geoip-manager/manager.env
 )
 ~~~
 
-Configurar en `manager.env`:
+**Contenido del archivo `/etc/soc-geoip-manager/manager.env` — no ejecutar en la consola:**
 
 ~~~text
 SOC_GEOIP_MANAGER_LISTEN_IP=192.168.4.117
@@ -1865,8 +1890,12 @@ descargadas. Consultar la [referencia oficial de Ubuntu](https://manpages.ubuntu
 > con el TAR antiguo ni crear un ejecutable `/usr/bin/command` para evitar el error.
 > Conservar credenciales y PKI existentes. Las pruebas locales no acreditan GeoIP end-to-end.
 
+#### 10.2.2. Instalar el distribuidor y publicar la primera descarga
+
 Instalar el ejecutable verificado y pasar el staging explícitamente: copiar el helper a
 `/usr/local/sbin` no copia su plantilla Nginx ni sus unidades systemd.
+Si el distribuidor ya está instalado y `status` muestra un release publicado, no repetir
+este bloque: continuar en 10.2.3. `install` ya ejecuta la primera actualización.
 
 ~~~bash
 (
@@ -1878,14 +1907,95 @@ sudo install -o root -g root -m 0755 \
 sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" soc-geoip-manager preflight
 # set -e detiene este bloque si falla preflight; no se crean certificados después del fallo.
 sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" soc-geoip-manager install
-sudo soc-geoip-manager update
-sudo soc-geoip-manager issue-client wa01-indexer01 /root/geoip-wa01-indexer01
-sudo soc-geoip-manager issue-client wa01-indexer02 /root/geoip-wa01-indexer02
+# Mitigación temporal del defecto de permisos de 0.1.159: no publicar otro manifiesto
+# automáticamente hasta instalar un helper corregido y validado.
+sudo systemctl disable --now soc-geoip-manager.timer
 sudo soc-geoip-manager status
 )
 ~~~
 
-Transferir cada bundle solo a su nodo y eliminar las copias temporales.
+#### 10.2.3. Comprobar la publicación y los permisos del manifiesto
+
+En `.117`, revisar el release publicado y la ruta utilizada por Nginx:
+
+~~~bash
+sudo soc-geoip-manager status
+sudo stat -Lc '%a %U:%G %n' /var/lib/soc-geoip-manager/current/manifest.json
+sudo namei -l /var/lib/soc-geoip-manager/current/manifest.json
+sudo tail -n 40 /var/log/nginx/error.log
+~~~
+
+El manifiesto es metadato de distribución, no contiene la licencia MaxMind ni claves.
+Debe ser `root:root 0644`; las bases son `0644` y los directorios publicados permiten
+recorrido con `0755`. **No aplicar esos permisos a `/etc/soc-geoip-manager` ni a su PKI.**
+
+En el helper `0.1.159` revisado, `umask 077` y la creación del manifiesto sin `chmod` producen
+un archivo `0600`. Eso impide su lectura a un worker Nginx no root. La causa de un 403 en
+el servidor concreto se confirma correlacionando la petición con el log de Nginx; no
+atribuir todo 403 a UFW o a HAProxy. La plantilla usa `alias` para servir la ruta publicada.
+Consultar [Nginx: alias](https://nginx.org/en/docs/http/ngx_http_core_module.html#alias)
+y [diagnóstico mediante sus logs](https://nginx.org/en/docs/beginners_guide.html).
+
+Si el release está publicado y se confirma el manifiesto `0600`, aplicar esta mitigación
+limitada en `.117`. También suspender el timer si ya había quedado activo:
+
+~~~bash
+(
+set -euo pipefail
+sudo systemctl disable --now soc-geoip-manager.timer
+sudo test -f /var/lib/soc-geoip-manager/current/manifest.json
+sudo test ! -L /var/lib/soc-geoip-manager/current/manifest.json
+sudo chmod 0644 /var/lib/soc-geoip-manager/current/manifest.json
+sudo stat -Lc '%a %U:%G %n' /var/lib/soc-geoip-manager/current/manifest.json
+)
+~~~
+
+No es necesario reiniciar Nginx ni Wazuh por cambiar ese permiso. No usar `chmod -R`,
+`777`, `curl -k` ni `ssl_verify_client off`. Si los permisos ya son correctos y el 403
+continúa, seguir 10.4.3 antes de modificar controles de acceso.
+
+> [!WARNING]
+> **Mitigación temporal, no corrección del instalador:** cada `soc-geoip-manager update`
+> de este helper puede volver a crear el manifiesto `0600`. Mientras se use `0.1.159`,
+> mantener el timer del distribuidor deshabilitado y realizar las actualizaciones en una
+> ventana manual, comprobando y corrigiendo el manifiesto después de cada publicación.
+> Para volver a automatizar, corregir su modo a `0644` antes de publicar el release,
+> probar lectura HTTP como Nginx y desde ambos Indexers, y distribuir un nuevo artefacto
+> verificado. No editar el staging firmado/verificado de `0.1.159` conservando sus hashes.
+
+El resultado esperado con esta mitigación es un `release_id` presente y `timer=inactive`
+en el distribuidor; no confundirlo con un fallo de Wazuh ni con los timers de los workers.
+
+#### 10.2.4. Emitir o conservar el bundle de cada Indexer
+
+Si ya se emitieron ambos bundles, conservarlos y continuar con la transferencia. El helper
+no admite volver a emitir sobre un directorio existente; no borrarlo para forzar el comando.
+En una instalación nueva, ejecutar en `.117`:
+
+~~~bash
+(
+set -euo pipefail
+for SOC_NODE in wa01-indexer01 wa01-indexer02; do
+  SOC_BUNDLE="/root/geoip-$SOC_NODE"
+  if sudo test -e "$SOC_BUNDLE" || sudo test -L "$SOC_BUNDLE"; then
+    sudo test -d "$SOC_BUNDLE"
+    sudo test ! -L "$SOC_BUNDLE"
+    for SOC_FILE in ca.crt client.crt client.key; do
+      sudo test -f "$SOC_BUNDLE/$SOC_FILE"
+      sudo test ! -L "$SOC_BUNDLE/$SOC_FILE"
+    done
+    printf 'Bundle existente: conservar y verificar %s\n' "$SOC_BUNDLE"
+  else
+    sudo soc-geoip-manager issue-client "$SOC_NODE" "$SOC_BUNDLE"
+  fi
+  sudo openssl verify -purpose sslclient \
+    -CAfile /etc/soc-geoip-manager/pki/ca.crt "$SOC_BUNDLE/client.crt"
+done
+)
+~~~
+
+Transferir cada bundle solo a su nodo. Retirar las copias temporales después de confirmar
+la instalación; no imprimir ni compartir la clave cliente.
 
 <a id="workers-en-1921684118-y-1921684119"></a>
 
@@ -1897,14 +2007,108 @@ de la CA del distribuidor. Los archivos del release están en su raíz, no en `d
 El helper lee `/etc/soc-geoip-indexer/worker.env`: `indexer.env.example` es solo el nombre de
 la plantilla.
 
+> [!IMPORTANT]
+> **El usuario SSH no necesita ser root.** Recibir los archivos en
+> `$HOME/soc-geoip-incoming` del usuario de login. No copiar por SCP a `/root` ni dar permisos
+> de escritura sobre `/root`. Usar `sudo` únicamente para instalar en `/etc`, `/usr/local/sbin`
+> y systemd. Si el usuario no tiene esos privilegios, un administrador debe ejecutar esos pasos.
+> Haber verificado los cuatro archivos del worker no acredita que el bundle mTLS esté presente
+> ni que GeoIP esté instalado o activo.
+
+#### 10.3.1. Transferir desde .117 al home del usuario SSH
+
+El worker viene del release verificado de SOC Operations en `.117`; no es el contenedor
+`worker` de la API. Copiar solamente los cuatro archivos del worker, `SHA256SUMS` y las tres
+credenciales del bundle correspondiente. Desde `.117`, con un usuario que pueda leer los
+originales mediante `sudo`, preparar la transferencia para `.118`:
+
 ~~~bash
-SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.159'
 (
 set -euo pipefail
-sudo test -f "$SOC_GEOIP_RELEASE/indexer.env.example"
-# Continuar solo si la plantilla está presente y se verificó SHA256SUMS.
+SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.159'
+SOC_INDEXER_IP='192.168.4.118'
+SOC_INDEXER_NODE='wa01-indexer01'
+read -rp 'Usuario SSH del Indexer (no root): ' SOC_SSH_USER
+test -n "$SOC_SSH_USER"
+SOC_TRANSFER=$(mktemp -d -t soc-geoip-transfer.XXXXXXXX)
+chmod 0700 "$SOC_TRANSFER"
+for SOC_FILE in soc-geoip-indexer soc-geoip-indexer.service soc-geoip-indexer.timer indexer.env.example SHA256SUMS; do
+  sudo install -o "$(id -u)" -g "$(id -g)" -m 0600 \
+    "$SOC_GEOIP_RELEASE/$SOC_FILE" "$SOC_TRANSFER/$SOC_FILE"
+done
+for SOC_FILE in ca.crt client.crt client.key; do
+  sudo install -o "$(id -u)" -g "$(id -g)" -m 0600 \
+    "/root/geoip-$SOC_INDEXER_NODE/$SOC_FILE" "$SOC_TRANSFER/$SOC_FILE"
+done
+ssh -p 11050 -l "$SOC_SSH_USER" "$SOC_INDEXER_IP" \
+  'umask 077; mkdir -p "$HOME/soc-geoip-incoming"; chmod 0700 "$HOME/soc-geoip-incoming"; test -z "$(ls -A "$HOME/soc-geoip-incoming")"'
+# El destino debe estar vacío: no sobrescribir un bundle anterior ni mezclar nodos.
+scp -p -P 11050 -o "User=$SOC_SSH_USER" \
+  "$SOC_TRANSFER/soc-geoip-indexer" "$SOC_TRANSFER/soc-geoip-indexer.service" \
+  "$SOC_TRANSFER/soc-geoip-indexer.timer" "$SOC_TRANSFER/indexer.env.example" \
+  "$SOC_TRANSFER/SHA256SUMS" "$SOC_TRANSFER/ca.crt" \
+  "$SOC_TRANSFER/client.crt" "$SOC_TRANSFER/client.key" \
+  "$SOC_INDEXER_IP:soc-geoip-incoming/"
+printf 'Transferencia completada. Copia temporal privada en .117: %s\n' "$SOC_TRANSFER"
+)
+~~~
+
+Para `.119`, repetir con `SOC_INDEXER_IP='192.168.4.119'` y
+`SOC_INDEXER_NODE='wa01-indexer02'`, usando su usuario SSH real. Si el destino ya contiene
+archivos verificados, no repetir SCP; continuar en ese Indexer. Verificar la huella SSH por
+el canal autorizado; no desactivar la comprobación del host. La clave cliente no aparece
+en `SHA256SUMS` del release: se obtiene del bundle emitido en `.117`, por el canal SSH confiable.
+
+#### 10.3.2. Verificar y configurar en cada Indexer
+
+Después del login SSH normal en `.118` o `.119`, trabajar desde el home. Si ya se obtuvieron
+los cuatro resultados `OK`, este es el siguiente paso. Comprobar también que se recibieron
+`ca.crt`, `client.crt` y `client.key` del nodo correcto:
+
+> [!IMPORTANT]
+> **Si `/etc/soc-geoip-indexer/worker.env` indica «directorio no existe», falta ejecutar
+> el bloque de preparación siguiente.** No empezar por `nano`: el bloque crea primero
+> `/etc/soc-geoip-indexer`, instala el bundle y crea `worker.env` desde la plantilla.
+> Para editarlo se usa `sudo nano`, no `nano` con el usuario normal.
+
+Confirmar la IP local con `hostname -I`; el nombre SLEIPNIR no determina por sí solo si
+se está en `.118` o `.119`. Usar la URL y el bundle de la IP correspondiente.
+
+~~~bash
+SOC_GEOIP_RELEASE="$HOME/soc-geoip-incoming"
+(
+set -euo pipefail
+cd "$SOC_GEOIP_RELEASE"
+chmod 0700 "$SOC_GEOIP_RELEASE"
+for SOC_FILE in soc-geoip-indexer soc-geoip-indexer.service soc-geoip-indexer.timer indexer.env.example SHA256SUMS ca.crt client.crt client.key; do
+  test -f "$SOC_FILE"
+  test ! -L "$SOC_FILE"
+done
+chmod 0600 client.key
+sha256sum --check --strict --ignore-missing SHA256SUMS
+grep -Fqx 'readonly VERSION="0.1.159"' soc-geoip-indexer
+sudo apt-get update
+sudo apt-get install -y curl python3 openssl util-linux
+sudo bash -c 'set -e; for binary in curl python3 openssl sha256sum systemctl flock; do command -v "$binary"; done'
+# Continuar solo si están TODOS los archivos y pasan sus hashes. --ignore-missing permite
+# verificar el subconjunto del release, pero por sí solo no detecta un worker ausente.
 sudo install -d -o root -g root -m 0700 /etc/soc-geoip-indexer
-if sudo test -e /etc/soc-geoip-indexer/worker.env; then
+for SOC_FILE in ca.crt client.crt client.key; do
+  if sudo test -e "/etc/soc-geoip-indexer/$SOC_FILE" || sudo test -L "/etc/soc-geoip-indexer/$SOC_FILE"; then
+    sudo test -f "/etc/soc-geoip-indexer/$SOC_FILE"
+    sudo test ! -L "/etc/soc-geoip-indexer/$SOC_FILE"
+    sudo cmp --silent "$SOC_FILE" "/etc/soc-geoip-indexer/$SOC_FILE"
+  fi
+done
+# Si alguna credencial existente es distinta, detenerse y revisar: no sobrescribir PKI.
+for SOC_FILE in ca.crt client.crt client.key; do
+  if ! sudo test -e "/etc/soc-geoip-indexer/$SOC_FILE"; then
+    sudo install -o root -g root -m 0600 "$SOC_FILE" "/etc/soc-geoip-indexer/$SOC_FILE"
+  fi
+done
+if sudo test -e /etc/soc-geoip-indexer/worker.env || sudo test -L /etc/soc-geoip-indexer/worker.env; then
+  sudo test -f /etc/soc-geoip-indexer/worker.env
+  sudo test ! -L /etc/soc-geoip-indexer/worker.env
   printf '%s\n' 'worker.env ya existe: conservar y revisar, no sobrescribir.'
 else
   sudo install -o root -g root -m 0600 \
@@ -1914,7 +2118,7 @@ sudo nano /etc/soc-geoip-indexer/worker.env
 )
 ~~~
 
-Base para cada nodo:
+**Contenido de `/etc/soc-geoip-indexer/worker.env` — guardar en nano, no pegar en la consola:**
 
 ~~~text
 SOC_GEOIP_SOURCE_URL=https://wa01-dashboard.corp.atg:8444/geoip/v1
@@ -1932,11 +2136,44 @@ SOC_GEOIP_INDEXER_SERVICE=wazuh-indexer.service
 ~~~
 
 Configurar las rutas a CA del distribuidor, certificado y clave cliente propios, CA del Indexer, certificado administrativo y clave administrativa. Claves y entorno deben ser 0600.
-Instalar `ca.crt`, `client.crt` y `client.key` del bundle del nodo en las rutas anteriores
-antes del preflight. No usar el certificado cliente del otro Indexer.
+El bloque anterior ya instala `ca.crt`, `client.crt` y `client.key` en esas rutas;
+no usar el certificado cliente del otro Indexer. En nano, guardar con `Ctrl+O`, confirmar
+con Enter y salir con `Ctrl+X`.
+
+Después de guardar `worker.env`, verificar permisos y el canal mTLS desde el Indexer:
+
+~~~bash
+(
+set -euo pipefail
+sudo chown root:root /etc/soc-geoip-indexer/worker.env /etc/soc-geoip-indexer/client.key
+sudo chmod 0600 /etc/soc-geoip-indexer/worker.env /etc/soc-geoip-indexer/client.key
+getent hosts wa01-dashboard.corp.atg
+sudo openssl verify -purpose sslclient -CAfile /etc/soc-geoip-indexer/ca.crt \
+  /etc/soc-geoip-indexer/client.crt
+sudo openssl x509 -in /etc/soc-geoip-indexer/client.crt -noout -subject -issuer -dates
+sudo curl --noproxy '*' --fail-with-body --silent --show-error --connect-timeout 10 --max-time 30 \
+  --cert /etc/soc-geoip-indexer/client.crt \
+  --key /etc/soc-geoip-indexer/client.key \
+  --cacert /etc/soc-geoip-indexer/ca.crt \
+  'https://wa01-dashboard.corp.atg:8444/geoip/v1/manifest.json'
+)
+~~~
+
+El nombre debe resolver a `.117` y el endpoint devolver el manifiesto GeoIP, sin errores
+TLS ni HTTP. Si falla, revisar DNS, el permiso UFW de `.117:8444` para ese Indexer,
+el servicio Nginx del distribuidor y el bundle del nodo. No usar `-k`.
+No continuar con `install` si esta petición falla. Si devuelve 403, ir a 10.4.3.
+La prueba usa acceso interno directo a `.117:8444`, no Cloudflare ni el FQDN público.
+Comprobar también el sujeto del certificado: en `.118`, el bundle emitido por el helper
+debe mostrar `CN=soc-geoip-indexer-wa01-indexer01`; en `.119`,
+`CN=soc-geoip-indexer-wa01-indexer02`. La CA y el propósito correctos no garantizan que
+se haya copiado el bundle del nodo correcto. Si el sujeto no coincide, revisar la entrega,
+no regenerar toda la PKI. Los datos de certificado son públicos; no imprimir `client.key`.
 
 Los nombres anteriores son los que lee el helper; no usar `SOC_GEOIP_SELF_INDEXER_URL`,
 `SOC_GEOIP_EXPECTED_NODES` ni `SOC_GEOIP_SOURCE_SERVER_NAME`, que no son sus parámetros.
+
+#### 10.3.3. Instalar y sincronizar el worker sin activar
 
 Para el timer de Wazuh 4.14.8, la unidad necesita también el override de versión:
 el helper resuelve `SOC_EXPECTED_WAZUH_VERSION` antes de leer `worker.env`.
@@ -1947,21 +2184,60 @@ sudo install -d -o root -g root -m 0755 /etc/systemd/system/soc-geoip-indexer.se
 sudo nano /etc/systemd/system/soc-geoip-indexer.service.d/wazuh-version.conf
 ~~~
 
-Contenido del drop-in, conservando otros overrides existentes:
+**Contenido del archivo abierto en nano — NO son comandos de Bash:**
 
 ~~~ini
 [Service]
 Environment=SOC_EXPECTED_WAZUH_VERSION=4.14.8-1
 ~~~
 
-Después ejecutar `sudo systemctl daemon-reload`. No confiar en que una variable de la
-sesión SSH se transfiera automáticamente a los timers de systemd.
+Guardar con `Ctrl+O`, Enter y salir con `Ctrl+X`. Si se pegó `[Service]` en el prompt
+`cmedina@...$`, no se creó el override: volver a abrir el archivo y guardar ambas líneas.
+Conservar otros overrides existentes. Verificar el contenido y recargar systemd:
 
 ~~~bash
 (
 set -euo pipefail
-: "${SOC_GEOIP_RELEASE:?Definir primero el staging verificado del release corregido}"
+sudo grep -Fqx '[Service]' /etc/systemd/system/soc-geoip-indexer.service.d/wazuh-version.conf
+sudo grep -Fqx 'Environment=SOC_EXPECTED_WAZUH_VERSION=4.14.8-1' \
+  /etc/systemd/system/soc-geoip-indexer.service.d/wazuh-version.conf
+sudo chown root:root /etc/systemd/system/soc-geoip-indexer.service.d/wazuh-version.conf
+sudo chmod 0644 /etc/systemd/system/soc-geoip-indexer.service.d/wazuh-version.conf
+sudo systemctl daemon-reload
+)
+~~~
+
+No confiar en que una variable de la sesión SSH se transfiera automáticamente a los timers.
+`Environment=` configura el proceso del servicio, según
+[systemd.exec en Ubuntu](https://manpages.ubuntu.com/manpages/noble/man5/systemd.exec.5.html).
+El `sudo env ...=4.14.8-1` de una ejecución manual no prueba que el archivo esté guardado.
+
+~~~bash
+(
+set -euo pipefail
+SOC_GEOIP_RELEASE="$HOME/soc-geoip-incoming"
+cd "$SOC_GEOIP_RELEASE"
+for SOC_FILE in soc-geoip-indexer soc-geoip-indexer.service soc-geoip-indexer.timer indexer.env.example SHA256SUMS; do
+  test -f "$SOC_FILE"
+  test ! -L "$SOC_FILE"
+done
+sha256sum --check --strict --ignore-missing SHA256SUMS
 sudo grep -Fqx 'readonly VERSION="0.1.159"' "$SOC_GEOIP_RELEASE/soc-geoip-indexer"
+sudo grep -Fqx '[Service]' /etc/systemd/system/soc-geoip-indexer.service.d/wazuh-version.conf
+sudo grep -Fqx 'Environment=SOC_EXPECTED_WAZUH_VERSION=4.14.8-1' \
+  /etc/systemd/system/soc-geoip-indexer.service.d/wazuh-version.conf
+# El sync valida las bases con el lector Java incluido en Wazuh, no con geoipupdate.
+sudo test -d /usr/share/wazuh-indexer/modules/ingest-geoip
+sudo test -x /usr/share/wazuh-indexer/jdk/bin/java
+SOC_GEOIP_MAXMIND_JAR=$(sudo find /usr/share/wazuh-indexer/modules/ingest-geoip \
+  -maxdepth 1 -type f -name 'maxmind-db-*.jar' -print -quit)
+test -n "$SOC_GEOIP_MAXMIND_JAR"
+# Gate de red antes de instalar las unidades: la prueba local del helper no consulta HTTP.
+sudo curl --noproxy '*' --fail-with-body --silent --show-error --connect-timeout 10 --max-time 30 \
+  --cert /etc/soc-geoip-indexer/client.crt \
+  --key /etc/soc-geoip-indexer/client.key \
+  --cacert /etc/soc-geoip-indexer/ca.crt \
+  --output /dev/null 'https://wa01-dashboard.corp.atg:8444/geoip/v1/manifest.json'
 sudo install -o root -g root -m 0755 \
   "$SOC_GEOIP_RELEASE/soc-geoip-indexer" /usr/local/sbin/soc-geoip-indexer
 sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 \
@@ -1971,10 +2247,30 @@ sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" SOC_EXPECTED_WAZUH_VERSION=
   soc-geoip-indexer install
 sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer sync
 sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer status
+sudo systemctl show soc-geoip-indexer.service --property=Environment --value \
+  | grep -F 'SOC_EXPECTED_WAZUH_VERSION=4.14.8-1'
 )
 ~~~
 
-Activar primero en Indexer 1:
+`install` habilita el timer y sincroniza las bases; no reinicia Wazuh Indexer ni las activa
+con `SOC_GEOIP_AUTO_ACTIVATE=false`. El `sync` explícito permite reconfirmar la descarga.
+Esperar `pending_release=<identificador>`, `auto_activate=false`, `indexer_service=active`
+y `timer=active`; `active_release=none` es normal antes de la primera activación.
+El timer usa las copias instaladas en `/etc`, `/usr/local/sbin` y `/var/lib`, no el home.
+
+Si `install` termina con `curl: (22) ... 403`, la instalación **no está completa** aunque
+ya exista el symlink del timer. El helper instala las unidades y habilita el timer antes
+de descargar; no hace rollback automático de esas unidades. Seguir 10.4.3 y 10.4.4,
+sin reinstalar SOC Operations, borrar bases ni emitir certificados nuevamente.
+
+#### 10.3.4. Activar de forma rolling y validar
+
+> [!WARNING]
+> `activate` **reinicia el servicio Wazuh Indexer del nodo actual**. Ejecutar en ventana
+> aprobada, con el clúster `green` y sus tres nodos presentes. No activar `.118` y `.119`
+> simultáneamente. Si `.118` no recupera `green`, detenerse antes de continuar con `.119`.
+
+Activar primero en Indexer 1 (`.118`):
 
 ~~~bash
 (
@@ -1984,22 +2280,161 @@ sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer status
 )
 ~~~
 
-Esperar estado green, verificar pipelines y simular una IP pública. Después repetir en Indexer 2. Comparar SHA-256 de City, Country y ASN entre distribuidor y receptores.
+Esperar estado green, verificar pipelines y simular una IP pública. Después repetir en
+Indexer 2. Comparar SHA-256 de City, Country y ASN entre distribuidor y receptores.
 
-Timers previstos:
+El helper comprueba `green` antes de activar, pero su espera posterior acepta un clúster
+no `red` con tres nodos. Por eso, que `activate` finalice no sustituye la comprobación
+explícita de `green` antes de pasar al siguiente Indexer.
+
+En cada Indexer comprobar el clúster después de activar (en `.119`, cambiar la IP):
+
+~~~bash
+(
+set -euo pipefail
+sudo curl --noproxy '*' --fail-with-body --silent --show-error --max-time 140 \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  'https://192.168.4.118:9200/_cluster/health?wait_for_status=green&timeout=120s' \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps(d,indent=2)); sys.exit(0 if d.get("status")=="green" and d.get("number_of_nodes")==3 and d.get("timed_out") is False else 1)'
+)
+~~~
+
+Confirmar `status: green`, `number_of_nodes: 3` y `timed_out: false`. El HTTP 200 por sí
+solo no acredita esas condiciones. En `soc-geoip-indexer status`, la versión activa debe
+coincidir con la pendiente. Comparar los hashes con los siguientes comandos:
+
+En `.117`, bases publicadas:
+
+~~~bash
+sudo sha256sum /var/lib/soc-geoip-manager/current/GeoLite2-{City,Country,ASN}.mmdb
+~~~
+
+En `.118` y `.119`, bases descargadas y bases realmente utilizadas por el módulo:
+
+~~~bash
+(
+set -euo pipefail
+sudo sha256sum /var/lib/soc-geoip-indexer/pending/GeoLite2-{City,Country,ASN}.mmdb
+sudo sha256sum /usr/share/wazuh-indexer/modules/ingest-geoip/GeoLite2-{City,Country,ASN}.mmdb
+)
+~~~
+
+La primera columna de cada salida debe coincidir para **el mismo nombre de base** en
+todos los nodos; no comparar rutas completas ni comparar City con Country o ASN.
+También debe coincidir con el SHA-256 declarado para esa base en el manifiesto del release.
+Si `pending` no existe, volver a sincronizar; si el hash activo difiere, no dar GeoIP
+por instalado ni pasar al siguiente nodo. El `status` no sustituye esta comprobación.
+Validar después el pipeline y un evento nuevo: estas bases no recalculan documentos
+históricos automáticamente. No enviar logs reales ni secretos para una prueba sintética.
+
+Conservar las evidencias de validación; después retirar las
+copias temporales de `client.key` en el home del Indexer y en la carpeta temporal de `.117`,
+dejando intacta la copia instalada root-owned en `/etc/soc-geoip-indexer/client.key`.
+No borrar el staging antes de completar todos los pasos de instalación.
+
+Timers previstos después de corregir y validar la publicación del manifiesto:
 
 - Distribuidor: martes y viernes 04:15, demora aleatoria de hasta una hora.
 - Workers: martes y viernes 06:15, demora aleatoria de hasta cuatro horas.
 
 Con <code>SOC_GEOIP_AUTO_ACTIVATE=false</code>, el timer sincroniza pero no activa.
+Con la mitigación de `0.1.159`, el timer del distribuidor permanece deshabilitado;
+los timers de los workers pueden sincronizar el último release legible. No se deben
+confundir esas dos automatizaciones. Revisar la zona horaria de los servidores antes de
+interpretar los horarios; las unidades no fijan explícitamente `America/Lima`.
 
 ~~~bash
 systemctl list-timers --all | grep -i geoip
+timedatectl show --property=Timezone --value
 sudo journalctl -u soc-geoip-manager --since '-7 days' --no-pager
 sudo journalctl -u soc-geoip-indexer --since '-7 days' --no-pager
 ~~~
 
-Antes de actualizar SOC Operations, seguir la preparación de upgrade de <code>docs/maxmind-geoip.md</code>.
+Antes de actualizar SOC Operations o Wazuh, consultar la sección de actualizaciones de
+[la referencia GeoIP del proyecto](maxmind-geoip.md). Sus ejemplos se escribieron
+para Wazuh 4.14.7; para WA01 conservar los overrides de versión y los controles de esta guía.
+Después de un upgrade, comparar los hashes reales de las bases con el release aprobado;
+el identificador `active_release` por sí solo no prueba que el paquete no haya repuesto
+archivos. Si los hashes difieren y el helper responde «already active», detenerse y
+solicitar un procedimiento de reactivación validado, no borrar su estado para forzarlo.
+
+### 10.4. Diagnóstico y recuperación GeoIP
+
+#### 10.4.1. Directorio o plantilla inexistente
+
+- `/etc/soc-geoip-indexer/worker.env`: ejecutar primero el bloque de 10.3.2 que crea el
+  directorio y copia `indexer.env.example`; editar después con `sudo nano`.
+- `deploy/geoip/manager.env.example`: esa ruta es del repositorio fuente, no del TAR.
+  En `.117`, usar la raíz del staging verificado; en los Indexers, usar el home del login.
+- Cuatro archivos con `OK` no verifican el bundle ni aseguran que haya pasado `install`.
+
+#### 10.4.2. Override de versión no guardado
+
+El texto `[Service]` y `Environment=...` pertenece a `wazuh-version.conf`, no a la consola.
+Si se pulsó `Ctrl+C` en el prompt, comprobar el archivo con los `grep` de 10.3.3. Después
+de instalar la unidad, `systemctl show ... --property=Environment` debe mostrar
+`SOC_EXPECTED_WAZUH_VERSION=4.14.8-1`. No modificar el paquete Wazuh para sortear esta validación.
+
+#### 10.4.3. HTTP 403 al descargar el manifiesto
+
+Un 403 demuestra que **algún servidor HTTP** respondió; no demuestra por sí solo que
+respondiera el distribuidor correcto, que el certificado fuera aceptado o que UFW bloquee
+el puerto. Correlacionar la prueba directa desde el Indexer con los logs de `.117`.
+
+En el Indexer afectado, ejecutar:
+
+~~~bash
+sudo grep '^SOC_GEOIP_SOURCE_URL=' /etc/soc-geoip-indexer/worker.env
+getent hosts wa01-dashboard.corp.atg
+sudo curl --noproxy '*' --fail-with-body --silent --show-error --include \
+  --connect-timeout 10 --max-time 30 \
+  --cert /etc/soc-geoip-indexer/client.crt \
+  --key /etc/soc-geoip-indexer/client.key \
+  --cacert /etc/soc-geoip-indexer/ca.crt \
+  'https://wa01-dashboard.corp.atg:8444/geoip/v1/manifest.json'
+~~~
+
+Usar el archivo `manifest.json`, no solo `/geoip/v1/`: el listado de directorios está
+deshabilitado deliberadamente. `--include` muestra la respuesta, sin imprimir claves.
+Si existen proxies de salida, verificar por qué la prueba directa y el helper toman
+rutas diferentes; no publicar valores de variables de proxy que contengan credenciales.
+
+En `.117`, inmediatamente después de la petición:
+
+~~~bash
+sudo tail -n 60 /var/log/nginx/error.log
+sudo tail -n 60 /var/log/nginx/access.log
+sudo stat -Lc '%a %U:%G %n' /var/lib/soc-geoip-manager/current/manifest.json
+sudo namei -l /var/lib/soc-geoip-manager/current/manifest.json
+sudo ss -lntp | grep ':8444'
+~~~
+
+- `Permission denied` al abrir el manifiesto y modo `600`: aplicar 10.2.3 en `.117`;
+  repetir la petición desde el Indexer y exigir HTTP 200 con el JSON esperado.
+- Error al recorrer un directorio: revisar ese componente, ACL o controles del sistema.
+  No abrir recursivamente `/etc` ni el árbol de claves para resolverlo.
+- `directory index ... is forbidden`: se consultó un directorio; usar la URL completa.
+- Rechazo de certificado: verificar emisor, vigencia, propósito `sslclient` y bundle
+  del nodo. No reemitir PKI ni desactivar mTLS sin diagnóstico.
+- Sin registro de la petición en el listener correcto: revisar resolución DNS, ruta,
+  proxy de salida y selección del servidor Nginx. No ampliar UFW a `Anywhere` por un 403.
+
+#### 10.4.4. Reanudar una instalación parcial del worker
+
+Si `install` falló tras habilitar el timer, detener solo ese timer mientras se diagnostica:
+
+~~~bash
+sudo systemctl disable --now soc-geoip-indexer.timer
+sudo journalctl -u soc-geoip-indexer.service --since '-30 minutes' --no-pager
+~~~
+
+Corregir primero el GET mTLS de 10.3.2, guardar/verificar el override y repetir el bloque
+de instalación de 10.3.3 desde `$HOME/soc-geoip-incoming`. `install` vuelve a habilitar el
+timer y sincroniza; no necesita otro `apply` del instalador principal. No continuar a
+`activate` si no existe `pending_release`, si hay un error o si el clúster no está `green`.
+Los logs sirven como diagnóstico; sanitizarlos antes de compartirlos.
 
 <a id="pruebas-de-aceptación"></a>
 
@@ -2040,9 +2475,15 @@ Antes de actualizar SOC Operations, seguir la preparación de upgrade de <code>d
 
 ### 11.4. GeoIP y continuidad
 
+- GET mTLS del manifiesto y descarga verificable desde `.118` y `.119`, sin desactivar TLS.
+- Manifiesto `0644` publicado y credenciales privadas conservadas `0600` bajo root.
+- Override `4.14.8-1` visible en el entorno efectivo del servicio de cada worker.
 - Los hashes City, Country y ASN coinciden.
 - Los pipelines enriquecen documentos en ambos nodos.
 - Un release inválido no se activa y rollback recupera el anterior.
+- Después de activar cada nodo, estado `green`, tres nodos y `timed_out: false`.
+- No aprobar la actualización automática del distribuidor con la mitigación temporal
+  de `0.1.159`; exige corregir y validar los permisos de publicación en el helper.
 - Snapshot OpenSearch y restauración probados.
 - PostgreSQL demuestra RPO 15 minutos y el conjunto RTO 4 horas.
 - Cada nodo puede reiniciarse de forma ordenada sin pérdida de quorum.
@@ -2080,6 +2521,8 @@ Conservar como evidencia:
 - Automatizar rotación mTLS de SOC Operations.
 - Dimensionar con EPS, agentes y retención reales.
 - Aprobar <code>docs/acceptance.md</code>.
+- Corregir el modo del manifiesto GeoIP antes de publicarlo, probar ambas descargas mTLS
+  y distribuir un helper nuevo verificado antes de rehabilitar el timer del distribuidor.
 - Evaluar separar el Indexer manager-only del servidor central en una evolución futura.
 
 <a id="referencias"></a>

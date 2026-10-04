@@ -915,31 +915,31 @@ El release aprobado se publica cifrado en:
 <code>https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.153</code>
 
 La identidad privada <code>age</code> se obtiene exclusivamente del gestor de secretos autorizado,
-entrada <strong>SOC Operations Installer Descifrado</strong>. No copiarla a GitHub, la guía, el
-servidor Wazuh, chats o tickets.
+entrada <strong>SOC Operations Installer Descifrado</strong>. Para este procedimiento se utiliza
+temporalmente en el servidor de instalación. No publicarla en GitHub, la guía, chats o tickets.
 
 #### Preparación principal desde Ubuntu
 
-Realizar la descarga y el descifrado en un host administrativo Ubuntu protegido, preferentemente
-el bastión de despliegue y no el servidor Wazuh. Instalar las herramientas necesarias:
+Ejecutar directamente en el servidor central Ubuntu <code>192.168.4.117</code>, donde se instalará
+SOC Operations. No se necesita otro equipo: descargar, descifrar y preparar el release en ese
+mismo servidor. Abrir una sesión administrativa y mantenerla durante estos pasos:
 
 ~~~bash
-sudo apt-get update
-sudo apt-get install --yes age curl rsync
+sudo -i
+# Detener la secuencia si falla una descarga, un descifrado o una verificación.
+set -euo pipefail
+apt-get update
+apt-get install --yes age curl nano
 ~~~
 
-Crear la carpeta privada de la identidad en el host administrativo Ubuntu. Este bloque crea
-<code>identity.txt</code> vacío solo si no existe, conservando una identidad previamente guardada:
+Crear una carpeta temporal privada bajo <code>/run</code> y el archivo <code>identity.txt</code>
+vacío. La carpeta es nueva en cada ejecución y solo root puede acceder:
 
 ~~~bash
 umask 077
-SOC_AGE_DIR="$HOME/.config/soc-operations/age"
+SOC_AGE_DIR="$(mktemp -d /run/soc-operations-age.XXXXXX)"
 SOC_AGE_IDENTITY="$SOC_AGE_DIR/identity.txt"
-install -d -m 0700 "$SOC_AGE_DIR"
-if [ ! -e "$SOC_AGE_IDENTITY" ]; then
-  install -m 0600 /dev/null "$SOC_AGE_IDENTITY"
-fi
-chmod 0600 "$SOC_AGE_IDENTITY"
+install -m 0600 /dev/null "$SOC_AGE_IDENTITY"
 nano "$SOC_AGE_IDENTITY"
 ~~~
 
@@ -958,16 +958,15 @@ stat -c '%a %U %n' "$SOC_AGE_DIR" "$SOC_AGE_IDENTITY"
 ~~~
 
 <code>age-keygen</code> debe finalizar sin error y los permisos deben ser <code>700</code> para
-la carpeta y <code>600</code> para el archivo, propiedad del usuario administrativo. Continuar
-en la misma sesión Bash para conservar <code>SOC_AGE_IDENTITY</code>; si se abre otra sesión,
-volver a definir la ruta antes del descifrado.
+la carpeta y <code>600</code> para el archivo, propiedad de root. Continuar en la misma sesión
+Bash para conservar <code>SOC_AGE_IDENTITY</code>.
 
 Crear un directorio privado separado y descargar el manifiesto y el activo cifrado:
 
 ~~~bash
 umask 077
-install -d -m 0700 soc-operations-0.1.153-download
-cd soc-operations-0.1.153-download
+install -d -m 0700 /root/soc-operations-0.1.153-download
+cd /root/soc-operations-0.1.153-download
 
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output SHA256SUMS \
@@ -991,8 +990,8 @@ printf '%s  %s\n' \
   'soc-operations-0.1.153.tar.gz.age' | sha256sum --check --strict -
 ~~~
 
-Descifrar indicando la ruta de la identidad protegida. No copiar esa identidad dentro del
-directorio de descarga ni transferirla al servidor Wazuh:
+Descifrar con la identidad temporal, verificar el TAR y extraerlo. Después de comprobar los
+hashes, retirar la copia temporal de la clave; la identidad original permanece en el Vault:
 
 ~~~bash
 age --decrypt \
@@ -1008,25 +1007,50 @@ tar --extract --gzip --file soc-operations-release-0.1.153.tar.gz
 cd release-0.1.153
 sha256sum --check --strict SHA256SUMS
 test "$(find . -type f | wc -l)" -eq 42
+
+rm -- "$SOC_AGE_IDENTITY"
+rmdir -- "$SOC_AGE_DIR"
+unset SOC_AGE_IDENTITY SOC_AGE_DIR
 ~~~
 
 Los 41 elementos del manifiesto deben indicar <code>OK</code>. El directorio contiene 42 archivos
 contando el propio manifiesto. No continuar ante un hash incorrecto o un número de archivos
-distinto.
+distinto. Si se interrumpe el procedimiento antes de retirar la identidad, eliminar esa copia
+temporal al finalizar la intervención.
 
-Transferir el directorio completo al servidor central mediante la red administrativa. Sustituir
+Dejar el release en su ubicación definitiva en este mismo servidor. El bloque se detiene si ya
+existe el destino, para revisar una preparación anterior antes de reemplazarla:
+
+~~~bash
+cd /root/soc-operations-0.1.153-download
+if [ -e /root/soc-operations-release-0.1.153 ]; then
+  printf '%s\n' 'El destino ya existe: revisar y verificar el release anterior antes de continuar.' >&2
+  exit 1
+fi
+mv -T -- release-0.1.153 /root/soc-operations-release-0.1.153
+chmod 0700 /root/soc-operations-release-0.1.153
+~~~
+
+Si trabajaste directamente en <code>.117</code>, continuar en
+**Verificar el release e instalar el comando**. Las dos alternativas siguientes solo aplican
+cuando se prepara el release en otro equipo.
+
+#### Solo si se prepara en otro servidor Ubuntu
+
+Si ejecutaste la preparación anterior en un servidor Ubuntu distinto de <code>.117</code>,
+copiar el directorio completo al servidor central mediante la red administrativa. Instalar
+<code>rsync</code> en ambos equipos si no está disponible. Sustituir
 <code>&lt;USUARIO_ADMIN&gt;</code> por la cuenta SSH autorizada, que debe poder elevar privilegios de
 forma controlada:
 
 ~~~bash
-cd ..
 rsync --archive --protect-args \
-  release-0.1.153/ \
+  /root/soc-operations-release-0.1.153/ \
   '<USUARIO_ADMIN>@192.168.4.117:/var/tmp/soc-operations-release-0.1.153/'
 ~~~
 
-En <code>192.168.4.117</code>, mover la copia validada a su ubicación definitiva sin transferir la
-identidad <code>age</code>:
+En <code>192.168.4.117</code>, copiar el directorio recibido a su ubicación definitiva. La
+transferencia incluye solo el release; la identidad <code>age</code> ya se retiró del equipo de origen:
 
 ~~~bash
 sudo install -d -o root -g root -m 0700 /root/soc-operations-release-0.1.153
@@ -1066,7 +1090,13 @@ tar -xzf '.\soc-operations-release-0.1.153.tar.gz'
 ~~~
 
 Transferir después <code>release-0.1.153</code> completo por el canal administrativo y ejecutar en
-Ubuntu la verificación interna con <code>sha256sum --check --strict SHA256SUMS</code>.
+Ubuntu la verificación interna con <code>sha256sum --check --strict SHA256SUMS</code>. Dejar el
+directorio en <code>/root/soc-operations-release-0.1.153</code>, como en la alternativa anterior.
+
+#### Verificar el release e instalar el comando
+
+En el servidor central <code>192.168.4.117</code>, ejecutar como root. Si llegas desde una de las
+alternativas, abrir antes una sesión con <code>sudo -i</code>:
 
 No copiar únicamente el ZIP del plugin: el instalador verifica el orquestador, helpers, wheel,
 locks, unidades y plantillas mediante hashes fijos.

@@ -1132,26 +1132,126 @@ El resultado debe identificar <code>topology=distributed</code>, Wazuh
 plataforma, credenciales administrativas, número exacto de nodos y hashes, pero no instala el
 producto. Conservar su salida y no ejecutar <code>apply</code> hasta resolver cualquier error.
 
-El agente privilegiado se instala en <code>.117</code>:
+### Instalar SOC Operations con apply
 
-~~~text
-SOC_DEPLOYMENT_ID=wa01
-SOC_AIO_SERVICE_ADDRESS=192.168.4.117
-SOC_EXTERNAL_API_PROXY_CIDR=127.0.0.1/32
-SOC_WAZUH_TOPOLOGY=distributed
-SOC_EXPECTED_WAZUH_VERSION=4.14.8-1
-SOC_WAZUH_VERSION=4.14.8
-SOC_DEPLOYMENT_AGENT_URL=https://wa01-dashboard.corp.atg:8443
-SOC_INDEXER_URL=https://192.168.4.118:9200
-SOC_INDEXER_TLS_SERVER_NAME=192.168.4.118
-SOC_INDEXER_ADMIN_CERT=/etc/wazuh-indexer/certs/admin.pem
-SOC_INDEXER_ADMIN_KEY=/etc/wazuh-indexer/certs/admin-key.pem
-SOC_INDEXER_CA_BUNDLE=/etc/wazuh-indexer/certs/root-ca.pem
-SOC_WAZUH_API_CONFIG=/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
-SOC_WAZUH_API_CA_BUNDLE=/var/ossec/api/configuration/ssl/server.crt
+Después de un preflight satisfactorio, ejecutar en <code>192.168.4.117</code> durante la ventana
+de instalación. <code>apply</code> vuelve a ejecutar el preflight y realiza cambios: instala
+helpers, plugin, runtime y dependencias, y configura branding y RBAC de Wazuh. Puede reiniciar
+servicios y afectar temporalmente el acceso al Dashboard.
+
+Reemplazar el correo y el nombre del ejemplo por los del primer ingeniero antes de ejecutar:
+
+~~~bash
+sudo /usr/local/sbin/soc-operations-install apply \
+  --email 'ingenieria@kriptome.com' \
+  --display-name 'Ingenieria SOC' \
+  --public-url 'https://wa01-dashboard.kriptome.com' \
+  --topology-file /root/wa01-soc-topology.json \
+  --service-address 192.168.4.117 \
+  --external-proxy-cidr 192.168.4.50/32 \
+  --staging-root /root/soc-operations-release-0.1.153
 ~~~
 
-El nombre TLS debe coincidir con un SAN. Copiar el bundle cliente a las rutas protegidas de la topología.
+| Parámetro | Uso en WA01 |
+|---|---|
+| <code>--email</code> | Identidad de acceso del primer usuario <code>soc_engineering</code>; usar un correo real bajo custodia del equipo. |
+| <code>--display-name</code> | Nombre visible de ese usuario. |
+| <code>--public-url</code> | Origen HTTPS del Dashboard; sin rutas ni la dirección de la API SOC. |
+| <code>--topology-file</code> | JSON validado con los nodos y las rutas de certificados. |
+| <code>--service-address</code> | IP del servidor donde se instala SOC Operations. |
+| <code>--external-proxy-cidr</code> | IP de origen de HAProxy autorizada para la API externa en 9443; no sustituye la whitelist de usuarios. |
+| <code>--staging-root</code> | Directorio completo del release cuyos hashes verifica el instalador. |
+
+Consultar el estado después de cada etapa:
+
+~~~bash
+sudo /usr/local/sbin/soc-operations-install status
+~~~
+
+Si <code>apply</code> termina con un error, resolverlo antes de continuar. Las pausas de OpenBao
+y del agente que se describen a continuación son estados previstos; no significan que toda la
+instalación esté completa. Conservar los parámetros originales si se necesita repetir
+<code>apply</code>; <code>resume</code> recupera los datos persistidos y no recibe estos argumentos.
+
+### Inicializar OpenBao y continuar la instalación
+
+En una instalación nueva, el estado esperado tras <code>apply</code> es
+<code>waiting_for_openbao_custody</code>. Solo si OpenBao aún no está inicializado, ejecutar:
+
+~~~bash
+sudo /usr/local/sbin/soc-operations-install openbao-init
+~~~
+
+El helper del release <code>0.1.153</code> solicita literalmente <code>INIT WA001</code>.
+Ese texto es una confirmación interna del instalador, aunque el deployment se llame
+<code>wa01</code>. La inicialización muestra una sola vez cinco recovery shares, con umbral de
+tres, y el token root inicial. Guardarlos con la custodia indicada por el comando, incluyendo
+una copia cifrada externa de la clave de sellado. No registrar esta sesión con <code>tee</code>
+o grabación de terminal: su salida contiene secretos.
+
+Este release utiliza auto-unseal estático local; la custodia de su clave forma parte de la
+recuperación y debe validarse antes de aceptar producción. No repetir <code>openbao-init</code>
+si el estado indica que OpenBao ya está inicializado.
+
+Si aparece <code>waiting_for_openbao_unseal</code>, revisar el estado de OpenBao. Para una
+instancia existente con sellado Shamir, el comando interactivo es:
+
+~~~bash
+sudo /usr/local/sbin/soc-operations-install openbao-unseal
+~~~
+
+Para un fallo del auto-unseal estático, recuperar primero su clave/configuración; las recovery
+shares no reemplazan esa clave de sellado. Una vez inicializado y desbloqueado, continuar:
+
+~~~bash
+sudo /usr/local/sbin/soc-operations-install resume
+sudo /usr/local/sbin/soc-operations-install status
+~~~
+
+Durante la configuración inicial, <code>resume</code> solicita el token root mediante entrada
+oculta. En la topología distribuida, si el agente todavía no existe, se detiene en
+<code>waiting_for_manager_agent</code>. Continuar con el apartado siguiente; no repetir la
+inicialización de OpenBao.
+
+### Instalar el agente en el Manager de WA01
+
+El agente privilegiado se instala en <code>.117</code>, donde también reside el Dashboard. El
+primer <code>resume</code> ya debe haber creado las dos claves públicas de firma. Como ambos
+componentes comparten servidor, no es necesario transferirlas entre equipos.
+
+~~~bash
+sudo test -r /etc/soc-deploy-agent/release-signing.pem
+sudo test -r /etc/soc-deploy-agent/provisioning-signing.pem
+sudo test -x /usr/local/sbin/soc-lab-tenant-provisioner
+
+sudo env \
+  SOC_DEPLOYMENT_ID=wa01 \
+  SOC_STAGING_ROOT=/root/soc-operations-release-0.1.153 \
+  SOC_AIO_SERVICE_ADDRESS=192.168.4.117 \
+  SOC_EXTERNAL_API_PROXY_CIDR=127.0.0.1/32 \
+  SOC_WAZUH_TOPOLOGY=distributed \
+  SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 \
+  SOC_WAZUH_VERSION=4.14.8 \
+  SOC_DEPLOYMENT_AGENT_URL=https://wa01-dashboard.corp.atg:8443 \
+  SOC_INDEXER_URL=https://192.168.4.118:9200 \
+  SOC_INDEXER_TLS_SERVER_NAME=192.168.4.118 \
+  SOC_INDEXER_ADMIN_CERT=/etc/wazuh-indexer/certs/admin.pem \
+  SOC_INDEXER_ADMIN_KEY=/etc/wazuh-indexer/certs/admin-key.pem \
+  SOC_INDEXER_CA_BUNDLE=/etc/wazuh-indexer/certs/root-ca.pem \
+  SOC_WAZUH_API_CONFIG=/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml \
+  SOC_WAZUH_API_CA_BUNDLE=/var/ossec/api/configuration/ssl/server.crt \
+  /usr/local/sbin/soc-lab-tenant-provisioner install
+~~~
+
+La dirección loopback de <code>SOC_EXTERNAL_API_PROXY_CIDR</code> en este comando corresponde al
+helper del agente; el gateway del Dashboard conserva el proxy <code>192.168.4.50/32</code>
+declarado en <code>apply</code>. Mantener explícitas las variables de versión para Wazuh 4.14.8.
+
+El nombre TLS debe coincidir con un SAN. El agente genera el bundle cliente en
+<code>/etc/soc-operations-lab/deploy-tls/</code>: <code>client.crt</code>, <code>client.key</code> y
+<code>service-ca.crt</code>. Estas son las rutas declaradas en el JSON de WA01 y ya son locales
+al Dashboard. Si se eligieron otras rutas, ajustarlas mediante el procedimiento de topología
+antes de reanudar.
 
 ### UFW y contenedores
 
@@ -1174,6 +1274,27 @@ Docker administra reglas de netfilter y, según la plataforma, puede evitar part
 esperado por UFW. Verificar además la cadena <code>DOCKER-USER</code>, el binding real de los
 puertos publicados y una prueba desde la LAN. La condición de aceptación es que 8443 solo sea
 alcanzable desde el bridge autorizado.
+
+### Reanudación final y primer acceso
+
+Después de instalar el agente y comprobar la conectividad del bridge, ejecutar en <code>.117</code>:
+
+~~~bash
+sudo /usr/local/sbin/soc-operations-install resume
+sudo /usr/local/sbin/soc-operations-install status
+~~~
+
+El instalador verifica mTLS, activa los agentes de identidad y aprovisionamiento y crea el primer
+ingeniero. Solicita su contraseña por entrada oculta. En el bootstrap de este release no se
+envía correo de activación al primer ingeniero: ingresar directamente en
+<code>https://wa01-dashboard.kriptome.com</code> con el correo indicado en <code>apply</code> y
+la contraseña establecida durante <code>resume</code>.
+
+El estado debe mostrar <code>phase=complete</code>, <code>topology=distributed</code>,
+<code>deployment_id=wa01</code> y los pasos completados. Si continúa en
+<code>waiting_for_manager_agent</code>, revisar servicio del agente, resolución DNS, TLS, rutas
+del bundle y firewall antes de repetir <code>resume</code>. Completar después las pruebas de
+aceptación; el estado técnico <code>complete</code> no sustituye la validación de producción.
 
 ### Bloqueo de certificados
 

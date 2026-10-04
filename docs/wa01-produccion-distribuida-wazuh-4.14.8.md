@@ -526,6 +526,66 @@ sudo systemctl restart wazuh-dashboard
 sudo journalctl -u wazuh-dashboard -n 100 --no-pager
 ~~~
 
+### Bloquear actualizaciones automáticas de Wazuh con APT
+
+Aplicar el bloqueo después de instalar los paquetes y comprobar sus versiones, antes de ejecutar
+un <code>apt upgrade</code> general. Si el stack ya está instalado, ejecutar este paso ahora en los
+tres servidores. <code>apt-mark hold</code> conserva la versión instalada; no instala ni corrige
+una versión equivocada. En WA01, los paquetes Wazuh deben mostrar <code>4.14.8-1</code>.
+Filebeat tiene su propia versión: registrar y conservar la instalada por el asistente Wazuh.
+
+En el servidor central <code>192.168.4.117</code>:
+
+~~~bash
+dpkg-query -W -f='${Package}\t${Version}\n' \
+  wazuh-indexer wazuh-manager wazuh-dashboard filebeat
+sudo apt-mark hold wazuh-indexer wazuh-manager wazuh-dashboard filebeat
+apt-mark showhold
+~~~
+
+En cada Indexer de datos, <code>192.168.4.118</code> y <code>192.168.4.119</code>:
+
+~~~bash
+dpkg-query -W -f='${Package}\t${Version}\n' wazuh-indexer
+sudo apt-mark hold wazuh-indexer
+apt-mark showhold
+~~~
+
+Comprobar que <code>showhold</code> enumere los cuatro paquetes en <code>.117</code> y
+<code>wazuh-indexer</code> en cada nodo de datos. Otros paquetes previamente bloqueados pueden
+aparecer también. En cada servidor, simular la actualización general sin instalar cambios:
+
+~~~bash
+sudo apt-get update
+sudo apt-get --simulate upgrade
+sudo apt-get --simulate dist-upgrade
+~~~
+
+Los paquetes bloqueados no deben aparecer como operaciones de instalación, actualización o
+eliminación propuestas. El bloqueo evita su actualización automática mediante APT, incluido el
+flujo normal de <code>unattended-upgrades</code>; los demás paquetes Ubuntu pueden seguir
+recibiendo actualizaciones. No usar <code>--allow-change-held-packages</code> en tareas generales.
+El bloqueo no impide que un administrador lo retire o instale manualmente paquetes con
+<code>dpkg</code>, ni controla archivos del plugin instalados fuera de APT.
+
+Para una actualización planificada, validar primero la compatibilidad Wazuh/OSD/SOC Operations,
+preparar respaldo y rollback y seguir el orden del procedimiento de actualización aprobado.
+Retirar el bloqueo únicamente del paquete y nodo que se vaya a actualizar; por ejemplo, durante
+la ventana de mantenimiento de un Indexer:
+
+~~~bash
+sudo apt-mark unhold wazuh-indexer
+# Ejecutar aquí la actualización aprobada a una versión explícita y sus comprobaciones.
+# Volver a bloquear al terminar, incluso si se cancela la actualización.
+sudo apt-mark hold wazuh-indexer
+dpkg-query -W -f='${Package}\t${Version}\n' wazuh-indexer
+apt-mark showhold
+~~~
+
+Aplicar el mismo ciclo individual a Manager, Dashboard o Filebeat cuando corresponda. Revisar
+periódicamente las correcciones de seguridad disponibles para programar su actualización.
+Referencia: [Ubuntu — apt-mark](https://manpages.ubuntu.com/manpages/noble/man8/apt-mark.8.html).
+
 ## HAProxy
 
 En <code>D:\GPT\Haproxy\Estructura</code>, agregar los tres FQDN HTTPS a:
@@ -868,7 +928,41 @@ sudo apt-get update
 sudo apt-get install --yes age curl rsync
 ~~~
 
-Crear un directorio privado y descargar el manifiesto y el activo cifrado:
+Crear la carpeta privada de la identidad en el host administrativo Ubuntu. Este bloque crea
+<code>identity.txt</code> vacío solo si no existe, conservando una identidad previamente guardada:
+
+~~~bash
+umask 077
+SOC_AGE_DIR="$HOME/.config/soc-operations/age"
+SOC_AGE_IDENTITY="$SOC_AGE_DIR/identity.txt"
+install -d -m 0700 "$SOC_AGE_DIR"
+if [ ! -e "$SOC_AGE_IDENTITY" ]; then
+  install -m 0600 /dev/null "$SOC_AGE_IDENTITY"
+fi
+chmod 0600 "$SOC_AGE_IDENTITY"
+nano "$SOC_AGE_IDENTITY"
+~~~
+
+**Agregar la identidad privada age:** abrir en el Vault la entrada
+**SOC Operations Installer Descifrado**, copiar su identidad privada y pegarla en
+<code>identity.txt</code>. Debe contener la clave <code>AGE-SECRET-KEY-…</code> completa, sin
+comillas; una clave pública <code>age1…</code> no permite descifrar. Guardar y cerrar el editor.
+La nota anterior es una instrucción, no el contenido que debe pegarse en el archivo.
+No generar una identidad nueva: debe ser la que corresponde al destinatario del release.
+
+Validar que el archivo contiene una identidad utilizable sin mostrar la clave ni su contenido:
+
+~~~bash
+age-keygen -y "$SOC_AGE_IDENTITY" >/dev/null
+stat -c '%a %U %n' "$SOC_AGE_DIR" "$SOC_AGE_IDENTITY"
+~~~
+
+<code>age-keygen</code> debe finalizar sin error y los permisos deben ser <code>700</code> para
+la carpeta y <code>600</code> para el archivo, propiedad del usuario administrativo. Continuar
+en la misma sesión Bash para conservar <code>SOC_AGE_IDENTITY</code>; si se abre otra sesión,
+volver a definir la ruta antes del descifrado.
+
+Crear un directorio privado separado y descargar el manifiesto y el activo cifrado:
 
 ~~~bash
 umask 077
@@ -902,7 +996,7 @@ directorio de descarga ni transferirla al servidor Wazuh:
 
 ~~~bash
 age --decrypt \
-  --identity /ruta/protegida/identity.txt \
+  --identity "$SOC_AGE_IDENTITY" \
   --output soc-operations-release-0.1.153.tar.gz \
   soc-operations-0.1.153.tar.gz.age
 

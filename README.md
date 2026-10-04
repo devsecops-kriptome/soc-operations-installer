@@ -9,20 +9,27 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.153`
-- Instalador: `0.1.153`
+- Release: `v0.1.154`
+- Instalador: `0.1.154`
 - API, worker y agente: `0.1.113`
 - Plugin: `socOperations@0.1.93`
 - Perfiles soportados: Wazuh `4.14.7-1` con OSD `2.19.5`, o Wazuh `4.14.8-1` con OSD `2.19.6`
 
-`0.1.153` incorpora compatibilidad cerrada para ambas parejas Wazuh/OSD y distribuye un ZIP de
-plugin compilado para cada plataforma. Las combinaciones cruzadas se rechazan antes de modificar
-el sistema. Conserva la creación transaccional del primer ingeniero, RLS, recuperación auditada de
-contraseña y separación de los puertos `8443`/`9443`.
+`0.1.154` corrige el fallo de instalación distribuida al conectar al Indexer por loopback:
+el helper del plugin usa el endpoint y los certificados de la topología. Las comprobaciones del
+Dashboard usan la IP de servicio configurada, también en runtime y status. Conserva las dos
+parejas Wazuh/OSD y los mismos artefactos de API y plugin del release anterior.
+
+Si `0.1.153` quedó detenido en `dashboard-plugin`, seguir la
+[recuperación de la instalación parcial](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#retomar-el-fallo-de-conexión-del-release-01153).
+Se debe repetir `apply` con el staging nuevo y conservar los estados de los pasos completados.
+
+Validación del cambio: 28 pruebas de regresión e integridad, sintaxis Bash y comprobación de los
+41 artefactos del TAR. La comprobación de instalación real en WA01 sigue pendiente.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.153.tar.gz.age` desde Releases.
+1. Descargar `soc-operations-0.1.154.tar.gz.age` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

@@ -565,15 +565,25 @@ opensearch.hosts:
 opensearch.ssl.verificationMode: full
 ~~~
 
-Si los certificados no incluyen IP como SAN, usar sus FQDN internos. No degradar permanentemente TLS. La configuración Wazuh del Dashboard debe usar la API local:
+Si los certificados del Indexer no incluyen IP como SAN, usar sus FQDN internos. No degradar
+la verificación TLS. Para la API Wazuh, Dashboard y Manager comparten `.117` y el certificado
+observado contiene `DNS:localhost`: usar `https://localhost`, no la IP LAN ni `127.0.0.1`.
+Comprobar los SAN antes de cambiar el destino. En
+`/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml`, modificar únicamente la URL del
+host existente y conservar usuario, contraseña, puerto y `run_as`. Este fragmento no sustituye
+el archivo completo:
 
 ~~~yaml
 hosts:
   - default:
-      url: https://127.0.0.1
+      url: https://localhost
       port: 55000
       run_as: true
 ~~~
+
+Si la API está en otro servidor, no usar `localhost`: configurar un FQDN del Manager que
+coincida con su certificado. El procedimiento de comprobación y respaldo está en
+[Error de conexión con la API Wazuh durante RBAC](#error-de-conexión-con-la-api-wazuh-durante-rbac).
 
 ~~~bash
 sudo systemctl restart wazuh-dashboard
@@ -1216,6 +1226,12 @@ de instalación. <code>apply</code> vuelve a ejecutar el preflight y realiza cam
 helpers, plugin, runtime y dependencias, y configura branding y RBAC de Wazuh. Puede reiniciar
 servicios y afectar temporalmente el acceso al Dashboard.
 
+Antes de ejecutar: si Dashboard, Manager y helper comparten servidor y el certificado de la API
+incluye `DNS:localhost`, el host existente de `wazuh.yml` debe usar `url: https://localhost`.
+Si aparece `[soc-wazuh-rbac] ERROR: Wazuh API request failed for POST /security/user/authenticate`,
+seguir [el diagnóstico TLS y cambio a localhost](#error-de-conexión-con-la-api-wazuh-durante-rbac).
+No usar esta dirección para una API ubicada en otro servidor ni desactivar la verificación TLS.
+
 Reemplazar el correo y el nombre del ejemplo por los del primer ingeniero antes de ejecutar:
 
 ~~~bash
@@ -1329,6 +1345,78 @@ y publicación, sustituyendo únicamente `--staging-root` por
 instalador debe reconocer los pasos completados. Inicializar OpenBao solo después de
 que `apply` finalice correctamente.
 
+### Error de conexión con la API Wazuh durante RBAC
+
+Si `apply` se detiene en `wazuh-rbac` con este mensaje:
+
+~~~text
+[soc-wazuh-rbac] ERROR: Wazuh API request failed for POST /security/user/authenticate
+~~~
+
+No asumir que la contraseña es incorrecta: este mensaje corresponde a un fallo de
+conexión o TLS. Primero comprobar el servicio, el destino y la identidad del certificado,
+sin mostrar la contraseña de `wazuh-wui`:
+
+~~~bash
+sudo ss -lntp | grep ':55000'
+
+sudo grep -nE '^[[:space:]]*(url|port|run_as):' \
+  /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
+
+sudo openssl x509 \
+  -in /var/ossec/api/configuration/ssl/server.crt \
+  -noout -subject -issuer -ext subjectAltName
+~~~
+
+En WA01, Dashboard y Manager comparten `.117` y el helper RBAC también se ejecuta allí.
+El certificado observado identifica únicamente `DNS:localhost`; acceder mediante
+`https://192.168.4.117:55000` falla porque la IP no figura en sus SAN. Que los Indexers
+estén distribuidos en otros servidores no impide usar localhost para esta conexión local.
+
+Solo si Dashboard, Manager y helper están en el mismo servidor y el certificado identifica
+`localhost`, comprobar primero la conexión local conservando la verificación TLS:
+
+~~~bash
+sudo curl --silent --show-error --output /dev/null \
+  --write-out 'HTTP %{http_code}\n' \
+  --cacert /var/ossec/api/configuration/ssl/server.crt \
+  https://localhost:55000/
+~~~
+
+Un `HTTP 401` sin error TLS confirma que se alcanzó la API sin autenticación; no valida
+las credenciales. Si esta prueba funciona, respaldar y editar la configuración:
+
+~~~bash
+sudo cp -a \
+  /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml \
+  "/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml.pre-localhost-$(date -u +%Y%m%dT%H%M%SZ)"
+
+sudo nano /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
+~~~
+
+En el registro del host existente, cambiar únicamente `url`:
+
+~~~yaml
+url: https://localhost
+~~~
+
+Conservar `port: 55000`, usuario, contraseña y `run_as: true`; no reemplazar todo el archivo
+ni agregar un segundo host. Reiniciar Dashboard y comprobar el servicio:
+
+~~~bash
+sudo systemctl restart wazuh-dashboard
+sudo systemctl is-active wazuh-dashboard
+~~~
+
+Después repetir el `apply` original con los mismos parámetros y el staging vigente.
+No borrar estados, repetir el branding ya completado ni reinicializar OpenBao.
+El helper vuelve a leer el destino desde `wazuh.yml`.
+
+Si Dashboard o el consumidor están en otro servidor, **no usar localhost**: apuntaría a ese
+otro equipo. Usar un FQDN interno que resuelva al Manager y coincida con los SAN, o emitir
+un certificado con los SAN correctos y configurar la CA confiable en cada consumidor.
+No usar `curl -k` ni desactivar la comprobación del nombre para ocultar el problema.
+
 ### Inicializar OpenBao y continuar la instalación
 
 En una instalación nueva, el estado esperado tras <code>apply</code> es
@@ -1431,8 +1519,15 @@ antes de reanudar.
 El instalador no modifica UFW. Después de crear la red:
 
 ~~~bash
-docker network inspect soc-operations_frontend
+sudo docker network inspect soc-operations-wa001_frontend
+
+sudo docker network inspect soc-operations-wa001_frontend \
+  --format '{{json .IPAM.Config}}'
 ~~~
+
+El nombre de red incluye el proyecto Compose fijo <code>soc-operations-wa001</code>,
+aunque el deployment sea <code>wa01</code>. Consultar <code>soc-operations_frontend</code>
+produce <code>network not found</code>; no crear otra red ni reinstalar el agente para resolverlo.
 
 El valor previsto es <code>172.19.0.0/16</code>, gateway <code>172.19.0.1</code>, pero se deben usar los valores reales:
 

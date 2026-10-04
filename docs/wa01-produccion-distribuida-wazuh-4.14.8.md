@@ -2,7 +2,7 @@
 
 > Estado: guía de preparación y despliegue para producción.
 > Revisión: 2026-10-04.
-> Alcance: Wazuh 4.14.8, tres Indexers, Manager, Dashboard, SOC Operations, HAProxy, Cloudflare, UFW y GeoIP MaxMind.
+> Alcance: Wazuh 4.14.8, tres Indexers, Manager, Dashboard, SOC Operations, HAProxy, Cloudflare, UFW, snapshots S3 y GeoIP MaxMind.
 > Bloqueo: SOC Operations no debe autorizarse para producción hasta superar completamente <code>docs/acceptance.md</code>.
 
 <a id="objetivo-y-orden-de-ejecución"></a>
@@ -15,6 +15,8 @@ La instalación se realiza en este orden:
 - Instalar los tres Wazuh Indexer y formar el clúster.
 - Dejar el Indexer central exclusivamente con rol <code>cluster_manager</code>.
 - Instalar Manager, Filebeat y Dashboard en el servidor central.
+- Ajustar los recursos de cada Indexer con `configurar_indexer.sh` y comprobarlos nodo por nodo.
+- Configurar el repositorio S3 de snapshots, probar un respaldo y aprobar su programación/retención.
 - Publicar servicios mediante Cloudflare, NAT y HAProxy.
 - Instalar y validar SOC Operations.
 - Distribuir GeoIP MaxMind y activarlo de forma rolling.
@@ -104,6 +106,7 @@ No publicar directamente 9200, 9300-9400, 55000, 8443, 8444, PostgreSQL, OpenBao
 | HAProxy <code>.50</code> | Indexers <code>.118/.119</code> | 9200 | API Indexer |
 | Central <code>.117</code> | Indexers <code>.118/.119</code> | 9200 | Filebeat, Dashboard y SOC |
 | Tres Indexers | Entre sí | 9300-9400 | Transporte |
+| Tres Indexers | Endpoint S3 aprobado | 443/TCP saliente o puerto TLS privado aprobado | Snapshots; no requiere NAT entrante |
 | Indexers <code>.118/.119</code> | Central <code>.117</code> | 8444 | GeoIP mTLS |
 | Bridge de SOC | Agente local | 8443 | Despliegue mTLS |
 
@@ -691,6 +694,819 @@ apt-mark showhold
 Aplicar el mismo ciclo individual a Manager, Dashboard o Filebeat cuando corresponda. Revisar
 periódicamente las correcciones de seguridad disponibles para programar su actualización.
 Referencia: [Ubuntu — apt-mark](https://manpages.ubuntu.com/manpages/noble/man8/apt-mark.8.html).
+
+<a id="ajustes-de-recursos-de-los-indexers"></a>
+
+### 7.9. Ajustes de recursos de los Indexers
+
+Utilizar el script existente `D:\WazuhDoc\Source_wazuh\scripts\wazuh-4.14.7\configurar_indexer.sh`
+en los tres servidores **después de instalar Wazuh Indexer y formar el clúster**. La carpeta
+`wazuh-4.14.7` identifica su ubicación histórica: el script no instala ni actualiza Wazuh,
+no cambia roles y no aprovisiona tenants. Antes de usarlo con `4.14.8-1`, comprobar los archivos
+y el resultado efectivo según los pasos siguientes; su nombre no constituye una validación
+de compatibilidad por sí solo.
+
+El script configura:
+
+- Heap fijo `Xms=Xmx`, con un valor entero en GiB que debe elegir el administrador.
+- `bootstrap.memory_lock: true` en `/etc/wazuh-indexer/opensearch.yml`.
+- `LimitMEMLOCK=infinity` en el override systemd `memory-lock.conf`.
+- `vm.max_map_count=262144` y `vm.swappiness=1` en `/etc/sysctl.d/99-wazuh-indexer.conf`.
+- Recarga de sysctl y systemd; reinicio del Indexer solo cuando se añade `--restart` a `--apply`.
+
+> **Antes de ejecutar:** no superar la mitad de la RAM detectada ni `31` GiB; esos son límites
+> del script, no un dimensionamiento automático. En `.117`, reservar además memoria para
+> Manager, Filebeat, Dashboard, PostgreSQL, SOC Operations, OpenBao, MinIO y el sistema.
+> En `.118` y `.119`, reservar memoria nativa y caché de archivos. No copiar el mismo heap
+> a todos los roles. No duplicar `-Xms/-Xmx` en variables de entorno u otros archivos JVM.
+> Referencia: [ajustes de OpenSearch 2.19](https://docs.opensearch.org/2.19/install-and-configure/install-opensearch/index/).
+
+#### 7.9.1. Copiar el script al home del usuario SSH
+
+Desde una estación administrativa Ubuntu con el checkout autorizado de `WazuhDoc`, ajustar
+la ruta y el usuario real. Se copia al home, nunca directamente a `/root`:
+
+~~~bash
+(
+set -euo pipefail
+SOC_WAZUHDOC_ROOT="$HOME/WazuhDoc"
+SOC_INDEXER_SCRIPT="$SOC_WAZUHDOC_ROOT/Source_wazuh/scripts/wazuh-4.14.7/configurar_indexer.sh"
+SOC_SSH_USER='cmedina'
+test -f "$SOC_INDEXER_SCRIPT"
+bash -n "$SOC_INDEXER_SCRIPT"
+printf '%s  %s\n' \
+  'b82dc0adbbc2312ecd1948ad31c90cd3c4502e2304842dceb943edbe3055a639' \
+  "$SOC_INDEXER_SCRIPT" | sha256sum --check --strict -
+for SOC_INDEXER_IP in 192.168.4.117 192.168.4.118 192.168.4.119; do
+  ssh -p 11050 -o StrictHostKeyChecking=yes "$SOC_SSH_USER@$SOC_INDEXER_IP" \
+    'install -d -m 0700 "$HOME/wazuh-indexer-tuning"'
+  scp -P 11050 -o StrictHostKeyChecking=yes "$SOC_INDEXER_SCRIPT" \
+    "$SOC_SSH_USER@$SOC_INDEXER_IP:wazuh-indexer-tuning/configurar_indexer.sh"
+done
+)
+~~~
+
+Verificar previamente las huellas SSH por un canal independiente. Si se modifica el script,
+revisarlo y aprobar otro hash: no sustituir el hash para ocultar una diferencia. Este archivo
+no forma parte del TAR de SOC Operations `0.1.159`; proviene del repositorio WazuhDoc indicado.
+
+**Alternativa desde Windows:** copiar el mismo archivo local al home con `scp.exe -P 11050`,
+por ejemplo para `.118`, y repetir para los demás nodos:
+
+~~~powershell
+scp.exe -P 11050 -o StrictHostKeyChecking=yes "D:\WazuhDoc\Source_wazuh\scripts\wazuh-4.14.7\configurar_indexer.sh" cmedina@192.168.4.118:configurar_indexer.sh
+~~~
+
+En ese caso, entrar por SSH y preparar la ubicación común antes de continuar:
+
+~~~bash
+install -d -m 0700 "$HOME/wazuh-indexer-tuning"
+mv -i -- "$HOME/configurar_indexer.sh" "$HOME/wazuh-indexer-tuning/configurar_indexer.sh"
+~~~
+
+#### 7.9.2. Revisar el heap y ejecutar el dry-run
+
+En **cada nodo**, con el usuario normal y `sudo`, comprobar el archivo y las condiciones
+del script. No ejecutar los bloques de los tres nodos en paralelo:
+
+~~~bash
+(
+set -euo pipefail
+cd "$HOME/wazuh-indexer-tuning"
+printf '%s  configurar_indexer.sh\n' \
+  'b82dc0adbbc2312ecd1948ad31c90cd3c4502e2304842dceb943edbe3055a639' \
+  | sha256sum --check --strict -
+bash -n configurar_indexer.sh
+test "$(dpkg-query -W -f='${Version}' wazuh-indexer)" = '4.14.8-1'
+sudo test -f /etc/wazuh-indexer/jvm.options
+sudo test ! -L /etc/wazuh-indexer/jvm.options
+sudo test -f /etc/wazuh-indexer/opensearch.yml
+sudo test ! -L /etc/wazuh-indexer/opensearch.yml
+test "$(sudo grep -cE '^-Xms[0-9]+[gGmM]([[:space:]]|$)' /etc/wazuh-indexer/jvm.options)" -eq 1
+test "$(sudo grep -cE '^-Xmx[0-9]+[gGmM]([[:space:]]|$)' /etc/wazuh-indexer/jvm.options)" -eq 1
+free -h
+sudo grep -nE '^-Xm[sx]|^[[:space:]]*bootstrap\.memory_lock:' \
+  /etc/wazuh-indexer/jvm.options /etc/wazuh-indexer/opensearch.yml
+read -r -p 'Heap aprobado para ESTE nodo, en GiB enteros: ' INDEXER_HEAP_GB
+bash configurar_indexer.sh --heap-gb "$INDEXER_HEAP_GB"
+)
+~~~
+
+El modo sin `--apply` no cambia archivos. Detenerse si faltan las líneas JVM esperadas, hay
+definiciones duplicadas, una versión distinta o un heap no aprobado. Revisar también posibles
+overrides de JVM y sysctl antes de aplicar; el script ejecuta `sysctl --system`, que carga
+**todas** las configuraciones sysctl, no solo la de Wazuh.
+
+#### 7.9.3. Respaldar y aplicar, un nodo cada vez
+
+> **Ventana controlada:** comenzar únicamente con tres nodos activos, clúster `green` y sin
+> recuperación pendiente. Reiniciar `.118`, comprobar su retorno y salud; después `.119`;
+> finalmente `.117`. No reiniciar dos votantes a la vez. En una plataforma con datos reales,
+> comprobar antes el respaldo y el procedimiento de mantenimiento aprobado.
+
+El script guarda copias `.pre-tuning-<fecha>` de `jvm.options` y `opensearch.yml`, pero **no**
+respalda los overrides systemd/sysctl existentes. Guardarlos y registrar sus valores antes
+de aplicar. Reintroducir el heap revisado, porque el bloque anterior usó una subshell:
+
+~~~bash
+(
+set -euo pipefail
+cd "$HOME/wazuh-indexer-tuning"
+printf '%s  configurar_indexer.sh\n' \
+  'b82dc0adbbc2312ecd1948ad31c90cd3c4502e2304842dceb943edbe3055a639' \
+  | sha256sum --check --strict -
+read -r -p 'Heap aprobado y revisado en dry-run para ESTE nodo: ' INDEXER_HEAP_GB
+bash configurar_indexer.sh --heap-gb "$INDEXER_HEAP_GB"
+SOC_TUNING_BACKUP="/var/backups/wazuh-indexer-tuning/$(date -u +%Y%m%dT%H%M%SZ)"
+sudo install -d -o root -g root -m 0700 "$SOC_TUNING_BACKUP"
+for SOC_TUNING_FILE in \
+  /etc/systemd/system/wazuh-indexer.service.d/memory-lock.conf \
+  /etc/sysctl.d/99-wazuh-indexer.conf; do
+  sudo test ! -L "$SOC_TUNING_FILE"
+  if sudo test -e "$SOC_TUNING_FILE"; then
+    sudo cp -a -- "$SOC_TUNING_FILE" "$SOC_TUNING_BACKUP/"
+  fi
+done
+sysctl vm.max_map_count vm.swappiness \
+  | sudo tee "$SOC_TUNING_BACKUP/kernel.before.txt" >/dev/null
+sudo bash configurar_indexer.sh --heap-gb "$INDEXER_HEAP_GB" --apply --restart
+sudo systemctl is-active wazuh-indexer
+sudo grep -nE '^-Xm[sx]' /etc/wazuh-indexer/jvm.options
+sudo grep -nE '^[[:space:]]*bootstrap\.memory_lock:' /etc/wazuh-indexer/opensearch.yml
+sudo systemctl show wazuh-indexer -p LimitMEMLOCK
+sudo sysctl vm.max_map_count vm.swappiness
+)
+~~~
+
+Para dejar el reinicio pendiente, omitir únicamente `--restart`; el heap y el bloqueo de
+memoria no se consideran activos hasta reiniciar el servicio y comprobarlos.
+
+#### 7.9.4. Validar los ajustes efectivos antes del siguiente nodo
+
+Desde `.117`, usar su endpoint LAN cubierto por el certificado. En una estación administrativa
+con `jq`, verificar el clúster y obtener heap y bloqueo efectivos de los tres nodos:
+
+~~~bash
+(
+set -euo pipefail
+sudo curl --fail-with-body --silent --show-error \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  'https://192.168.4.117:9200/_cluster/health?wait_for_status=green&wait_for_no_relocating_shards=true&wait_for_no_initializing_shards=true&timeout=120s' \
+  | jq -e '.status == "green" and .number_of_nodes == 3 and .timed_out == false and .relocating_shards == 0 and .initializing_shards == 0'
+sudo curl --fail-with-body --silent --show-error \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  'https://192.168.4.117:9200/_nodes?filter_path=nodes.*.name,nodes.*.process.mlockall,nodes.*.jvm.mem.heap_max_in_bytes&pretty'
+)
+~~~
+
+En el nodo recién reiniciado, `mlockall` debe ser `true` y `heap_max_in_bytes` debe ser el
+heap aprobado multiplicado por `1073741824`. Comprobar también `_cat/nodes` y los roles del
+apartado 7.4: el script no debe alterar `node.roles`. Si el servicio no vuelve, el clúster
+no recupera `green`, no se bloquea la memoria o el heap difiere, **no continuar con otro nodo**;
+revisar `journalctl -u wazuh-indexer` y restaurar la configuración en la ventana de rollback.
+Referencia: [Nodes Info API](https://docs.opensearch.org/latest/api-reference/nodes-apis/nodes-info/).
+
+<a id="limite-de-shards-para-despliegues-grandes"></a>
+
+### 7.10. Límite de shards para despliegues grandes
+
+En despliegues con muchos tenants, índices diarios o retención extensa, evaluar el ajuste
+`cluster.max_shards_per_node`. Es un **límite de admisión de shards del clúster**, no una
+ampliación de CPU, heap o disco. No aumenta `index.number_of_shards` de los índices existentes
+ni sustituye el dimensionamiento del apartado 7.9. `configurar_indexer.sh` no modifica este
+parámetro; se administra por separado mediante la API del Indexer.
+
+OpenSearch 2.19 define `1000` como valor predeterminado. El presupuesto nominal se calcula
+como el valor configurado multiplicado por los nodos de datos; cuenta primarios y réplicas
+de índices abiertos, incluidas las copias sin asignar. En WA01, `.118` y `.119` son los dos
+nodos de datos; `.117`, exclusivamente `cluster_manager`, no suma. Con `2000`, el presupuesto
+nominal es **`2000 × 2 = 4000`**, no 6000, sujeto a otros límites configurados.
+Referencias: [límite en OpenSearch 2.19](https://docs.opensearch.org/2.19/install-and-configure/configuring-opensearch/cluster-settings/)
+y [validación de shards](https://github.com/opensearch-project/OpenSearch/blob/2.19/server/src/main/java/org/opensearch/indices/ShardLimitValidator.java).
+
+> **Consideración de capacidad:** `2000` es un ejemplo que requiere aprobación, no el valor
+> obligatorio para cualquier Wazuh grande. Antes de elevarlo, revisar cantidad y tamaño de
+> shards, heap/GC, CPU, disco, latencia, retención y recuperación tras perder un nodo de datos.
+> Priorizar un diseño con menos índices/shards pequeños, rollover y ciclo de vida apropiados
+> o añadir nodos de datos. No reducir réplicas ni eliminar índices para sortear el límite sin
+> evaluar disponibilidad y conservación de datos. Este parámetro tampoco equivale a
+> `cluster.routing.allocation.total_shards_per_node`, que controla la asignación por nodo.
+
+#### 7.10.1. Registrar el estado y aprobar el presupuesto
+
+Ejecutar desde `.117` por la LAN, usando sus certificados administrativos locales y el
+endpoint `.118` cubierto por los SAN. Requiere `jq` y privilegios de administración del
+clúster; el rol `auditor` no debe poder ejecutar la mutación. No publicar este acceso
+administrativo ni copiar la clave privada al equipo cliente.
+
+~~~bash
+SOC_SHARD_BACKUP="/var/backups/wazuh-indexer-shards/$(date -u +%Y%m%dT%H%M%SZ)"
+(
+set -euo pipefail
+sudo install -d -o root -g root -m 0700 "$SOC_SHARD_BACKUP"
+sudo curl --fail-with-body --silent --show-error \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  'https://192.168.4.118:9200/_cluster/settings?include_defaults=true&flat_settings=true' \
+  | sudo tee "$SOC_SHARD_BACKUP/settings.before.json" >/dev/null
+sudo jq '{persistent: .persistent["cluster.max_shards_per_node"], transient: .transient["cluster.max_shards_per_node"], defaults: .defaults["cluster.max_shards_per_node"]}' \
+  "$SOC_SHARD_BACKUP/settings.before.json"
+sudo curl --fail-with-body --silent --show-error \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  'https://192.168.4.118:9200/_cluster/health?wait_for_status=green&timeout=120s' \
+  | jq -e '.status == "green" and .number_of_nodes == 3 and .number_of_data_nodes == 2 and .timed_out == false and .relocating_shards == 0 and .initializing_shards == 0'
+sudo curl --fail-with-body --silent --show-error \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  'https://192.168.4.118:9200/_cat/indices?v&h=health,status,index,pri,rep,store.size'
+sudo curl --fail-with-body --silent --show-error \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  'https://192.168.4.118:9200/_cat/allocation?v&h=node,shards,disk.percent,disk.avail'
+printf 'Respaldo del ajuste: %s/settings.before.json\n' "$SOC_SHARD_BACKUP"
+)
+~~~
+
+Estimar la demanda sumando, para cada índice abierto, `primarios × (1 + réplicas)`, incluyendo
+las familias de alertas, archives, estados y sistema. Ejemplo ilustrativo: 50 tenants con un
+índice diario de alertas durante 30 días, un primario y una réplica necesitan **3000 shards
+solo para alertas**, antes de sumar las demás familias. Verificar la creación de índices,
+restauraciones y recuperación dentro del presupuesto aprobado; no planificar hasta el límite.
+
+Revisar también los overrides y límites de asignación en el JSON respaldado. Un valor
+`transient` prevalece sobre `persistent`; si existe, detenerse y resolver explícitamente ese
+override antes de aplicar el ejemplo. No asumir que una respuesta HTTP 200 demuestra que
+el valor efectivo cambió. [Precedencia de ajustes](https://docs.opensearch.org/2.19/install-and-configure/configuring-opensearch/index/).
+
+#### 7.10.2. Aplicar 2000 y verificar el valor efectivo
+
+Solo después de aprobar la capacidad y las comprobaciones anteriores, ejecutar **una vez
+para todo el clúster**. Aunque se envíe a `.118`, también aplica a los otros nodos; no repetir
+en cada servidor ni añadirlo al script de heap. El ajuste es dinámico y persistente: no
+requiere reiniciar Indexers y permanece después de reiniciar el clúster.
+[Cluster Settings API](https://docs.opensearch.org/2.19/api-reference/cluster-api/cluster-settings/).
+
+~~~bash
+(
+set -euo pipefail
+sudo curl --fail-with-body --silent --show-error \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  -H 'Content-Type: application/json' \
+  -X PUT 'https://192.168.4.118:9200/_cluster/settings' \
+  -d '{"persistent":{"cluster.max_shards_per_node":2000}}' \
+  | jq -e '.acknowledged == true'
+sudo curl --fail-with-body --silent --show-error \
+  --cert /etc/wazuh-indexer/certs/admin.pem \
+  --key /etc/wazuh-indexer/certs/admin-key.pem \
+  --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  'https://192.168.4.118:9200/_cluster/settings?include_defaults=true&flat_settings=true' \
+  | jq -e '(.persistent["cluster.max_shards_per_node"] | tonumber) == 2000 and ((.transient["cluster.max_shards_per_node"] // .persistent["cluster.max_shards_per_node"] // .defaults["cluster.max_shards_per_node"]) | tonumber) == 2000'
+)
+~~~
+
+Si se prefiere autenticación con usuario en lugar del certificado administrativo, usar una
+cuenta autorizada y `curl --user admin --cacert /etc/wazuh-indexer/certs/root-ca.pem ...`;
+curl pedirá la contraseña, sin ponerla en el comando. No usar `-k`, no pegar contraseñas en
+la guía ni desactivar TLS para reproducir el ejemplo original.
+
+Registrar el cambio en la evidencia de despliegue. Comprobar después salud, ingestión de
+Filebeat, errores de creación de índices, heap/GC y latencia durante la ventana de observación.
+Si aparece `this action would add ... maximum shards open`, contrastar la demanda con el
+presupuesto efectivo; un clúster `red`, watermarks o un problema de asignación no se resuelven
+simplemente elevando este valor.
+
+#### 7.10.3. Revertir al valor registrado
+
+Antes de reducir el límite, revisar la cantidad de shards abiertos y el presupuesto resultante:
+el cambio no elimina shards existentes, pero puede impedir nuevas creaciones o aperturas de
+índices. No borrar datos automáticamente como parte del rollback. Conservar la ruta de respaldo;
+si se abre otra sesión SSH, definir `SOC_SHARD_BACKUP` con el directorio exacto generado en 7.10.1.
+
+El comando siguiente restaura **solo** `cluster.max_shards_per_node`, incluidos sus valores
+`persistent` y `transient` anteriores; no restaura otros ajustes del JSON. Un `null` elimina
+el override, dejando que se aplique el siguiente nivel de precedencia. Revisar y aprobar el
+payload antes de enviarlo, especialmente si hubo cambios concurrentes de otro administrador.
+[Restablecimiento de ajustes](https://docs.opensearch.org/latest/api-reference/cluster-api/cluster-settings/#example-resetting-a-setting).
+
+~~~bash
+(
+set -euo pipefail
+: "${SOC_SHARD_BACKUP:?Definir el directorio exacto del respaldo de 7.10.1}"
+sudo test -f "$SOC_SHARD_BACKUP/settings.before.json"
+sudo jq '{persistent: {"cluster.max_shards_per_node": .persistent["cluster.max_shards_per_node"]}, transient: {"cluster.max_shards_per_node": .transient["cluster.max_shards_per_node"]}}' \
+  "$SOC_SHARD_BACKUP/settings.before.json"
+read -r -p 'Para restaurar los valores mostrados, escribir REVERTIR SHARDS: ' SOC_SHARD_CONFIRM
+test "$SOC_SHARD_CONFIRM" = 'REVERTIR SHARDS'
+sudo jq '{persistent: {"cluster.max_shards_per_node": .persistent["cluster.max_shards_per_node"]}, transient: {"cluster.max_shards_per_node": .transient["cluster.max_shards_per_node"]}}' \
+  "$SOC_SHARD_BACKUP/settings.before.json" \
+  | sudo curl --fail-with-body --silent --show-error \
+      --cert /etc/wazuh-indexer/certs/admin.pem \
+      --key /etc/wazuh-indexer/certs/admin-key.pem \
+      --cacert /etc/wazuh-indexer/certs/root-ca.pem \
+      -H 'Content-Type: application/json' \
+      -X PUT 'https://192.168.4.118:9200/_cluster/settings' \
+      --data-binary @- \
+  | jq -e '.acknowledged == true'
+)
+~~~
+
+Repetir después el GET de ajustes y las consultas de salud/asignación de 7.10.1. Restaurar
+`null` no garantiza volver a `1000` si hay un valor local en `opensearch.yml`; verificar
+siempre el resultado efectivo.
+
+<a id="snapshots-indexer-s3"></a>
+
+### 7.11. Snapshots de los Indexers en S3
+
+> **Consideración — dos almacenamientos distintos:** el MinIO del apartado 9.5 almacena
+> evidencias de SOC Operations. No registra ni programa snapshots de Wazuh Indexer.
+> Para respaldos de producción, usar un bucket dedicado y almacenamiento independiente
+> del servidor `.117`. Perder ese servidor no debe destruir también la única copia recuperable.
+
+El repositorio pertenece al **clúster**, no a un Indexer individual: se registra una vez,
+pero el plugin y las credenciales deben estar disponibles en `.117`, `.118` y `.119`.
+Este procedimiento configura AWS S3 con HTTPS; la variante compatible está en 7.11.7.
+No monta el bucket como disco, no usa `path.repo` y no copia manualmente los archivos del data directory.
+
+#### 7.11.1. Aprobar el destino, el alcance y la red
+
+Antes de ejecutar, completar la ficha con el responsable de almacenamiento y de los datos:
+
+| Parámetro | Valor para WA01 / decisión pendiente |
+|---|---|
+| Repositorio lógico | `repository-s3-wa01` |
+| Cliente del plugin | `wa01snapshots`, separado de otros clientes S3 |
+| Bucket | Nombre real aprobado; todavía no se ha proporcionado |
+| Región | Región real del bucket; no asumir `us-east-1` |
+| `base_path` | `wazuh/wa01/production/repo-v1` para un repositorio nuevo |
+| Escritor | Solo el clúster WA01; un consumidor de restauración usa `readonly: true` |
+| Alcance | Allowlists por tenant y familia: alerts, archives y, si se aprueba, history/states |
+| Calendario y retención | UTC; intervalos, días y mínimo de copias aprobados por alcance |
+| Continuidad | RPO/RTO del Indexer, capacidad del bucket y prueba de restauración |
+| Credenciales | Identidad de servicio dedicada; referencia al secreto en el vault, nunca su valor |
+
+`repo-v1` es la generación del repositorio, no Wazuh 4.14.8. No reutilizar una ubicación de
+lab02 ni mover objetos de un repositorio existente para adoptar esta convención. El nombre
+lógico no aísla dos repositorios que apunten al mismo bucket y ruta. Un repositorio compartido
+no concede aislamiento S3 por tenant: sus objetos deben quedar fuera del acceso directo de
+analysts, managers y auditores tenant.
+
+Desde la consola AWS autorizada, crear o revisar un **bucket de propósito general**:
+
+- Activar las cuatro opciones de **Block Public Access**, conservar Object Ownership
+  **Bucket owner enforced** y exigir HTTPS mediante la política de seguridad aprobada.
+  [Bloqueo público](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html),
+  [propiedad del bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-ownership-new-bucket.html).
+- Configurar cifrado predeterminado, preferiblemente SSE-KMS con una CMK aprobada cuando
+  lo requiera la clasificación. Autorizar `kms:GenerateDataKey` y `kms:Decrypt` sobre esa
+  clave tanto en IAM como en su key policy según la cuenta; conservar acceso a la clave
+  durante toda la retención. El ejemplo de registro no envía `server_side_encryption: true`,
+  porque esa opción solicita SSE-S3, no SSE-KMS. [Cifrado SSE-KMS y permisos](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html).
+- Evaluar versionado, auditoría de operaciones de objetos y una copia independiente con
+  sus costes y recuperación. No asumir que versionado por sí solo protege de un compromiso
+  administrativo. [Seguridad y auditoría S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html).
+- No habilitar expiración de objetos actuales, transición a Glacier/Deep Archive ni Object
+  Lock sobre el repositorio operativo sin validar un diseño específico. La limpieza de
+  snapshots debe realizarla OpenSearch: comparten blobs y el borrado externo puede romper
+  copias vigentes. Una copia inmutable exige un flujo independiente probado.
+
+En los **tres nodos** comprobar DNS, NTP y salida TLS al endpoint S3. UFW de esta guía
+permite salida por defecto; no hace falta abrir un puerto entrante ni publicar S3 por
+HAProxy/Cloudflare. Si la salida está restringida, autorizar DNS/NTP y HTTPS según el
+proveedor o el proxy de egreso real. No confundir HAProxy `.50` con un proxy HTTP de salida
+ni fijar una sola IP de AWS como si fuera permanente.
+
+#### 7.11.2. Identidad de servicio y permisos del bucket
+
+Para estas VMs Proxmox, usar credenciales de una identidad dedicada al prefijo de WA01,
+con rotación definida. No usar las credenciales root de AWS/MinIO ni claves del operador.
+Si posteriormente se ejecuta en EC2, evaluar un instance profile en lugar de claves estáticas.
+Los dos campos secretos se cargarán interactivamente en el keystore de **cada nodo**.
+
+Aplicar al principal escritor la siguiente **plantilla de política IAM**, sustituyendo
+`REEMPLAZAR_BUCKET` por el bucket aprobado. No es una bucket policy y no crea recursos.
+Separar la ubicación del bucket de la condición `s3:prefix`: no aplicar esa condición
+a `GetBucketLocation` ni a operaciones que no la admiten.
+[Permisos de las operaciones S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-policy-actions.html).
+
+~~~json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BucketLocationAndMultipartInventory",
+      "Effect": "Allow",
+      "Action": ["s3:GetBucketLocation", "s3:ListBucketMultipartUploads"],
+      "Resource": "arn:aws:s3:::REEMPLAZAR_BUCKET"
+    },
+    {
+      "Sid": "ListWa01SnapshotPrefix",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::REEMPLAZAR_BUCKET",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": ["wazuh/wa01/production/repo-v1", "wazuh/wa01/production/repo-v1/*"]
+        }
+      }
+    },
+    {
+      "Sid": "ManageWa01SnapshotObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+        "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"
+      ],
+      "Resource": "arn:aws:s3:::REEMPLAZAR_BUCKET/wazuh/wa01/production/repo-v1/*"
+    },
+    {
+      "Sid": "CompatibleOwnerHeaderOnly",
+      "Effect": "Allow",
+      "Action": "s3:PutObjectAcl",
+      "Resource": "arn:aws:s3:::REEMPLAZAR_BUCKET/wazuh/wa01/production/repo-v1/*",
+      "Condition": {"StringEquals": {"s3:x-amz-acl": "bucket-owner-full-control"}}
+    }
+  ]
+}
+~~~
+
+El encabezado `bucket-owner-full-control` del registro evita enviar la ACL `private` a
+un bucket con ACLs deshabilitadas; el permiso correspondiente queda condicionado al
+encabezado y al prefijo. No habilitar ACLs ni acceso público para corregir un error.
+[Encabezado de propiedad y PutObject](https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html).
+
+`DeleteObject` permite verificar/limpiar el repositorio y aplicar retención; no permite
+borrar el bucket. Para un clúster restaurador independiente, emitir otra identidad **solo
+lectura**: `GetBucketLocation`, `ListBucket` limitado al prefijo y `GetObject` sobre sus
+objetos, además de `kms:Decrypt` si corresponde. No reutilizar las claves del escritor.
+Revisar también bucket policy, SCP, restricciones de red y key policy: una denegación
+explícita puede prevalecer sobre esta autorización.
+
+#### 7.11.3. Instalar el plugin y cargar el keystore, nodo por nodo
+
+> **Antes de ejecutar:** ventana de mantenimiento, clúster `green`, tres votantes presentes,
+> sin snapshots/restauraciones ni recuperación activa. Trabajar `.118` → `.119` → `.117`;
+> nunca detener dos votantes simultáneamente. No cambiar `node.roles` ni ejecutar de nuevo
+> `--start-cluster`. Si falla una comprobación, detener el procedimiento y conservar el respaldo.
+
+En una sesión de administración en `.117`, definir el cliente TLS para los comandos de
+este apartado. `wa01_indexer` es una función de esta sesión, no un programa instalado;
+si se abre otra sesión, volver a definirla. Usa la API **interna**, no el FQDN externo
+limitado a consultas, y no desactiva la verificación del certificado.
+Comprobar primero `command -v curl` y `command -v jq`; si falta alguno, instalar las
+dependencias en la ventana autorizada con `sudo apt-get update` y
+`sudo apt-get install -y curl jq ca-certificates`. No ejecutar las comprobaciones siguientes
+si esa preparación falla.
+
+~~~bash
+SOC_INDEXER_URL='https://192.168.4.118:9200'
+SOC_SNAPSHOT_REPOSITORY='repository-s3-wa01'
+SOC_SNAPSHOT_BASE_PATH='wazuh/wa01/production/repo-v1'
+wa01_indexer() {
+  sudo curl --fail-with-body --silent --show-error \
+    --connect-timeout 10 --max-time 180 \
+    --cert /etc/wazuh-indexer/certs/admin.pem \
+    --key /etc/wazuh-indexer/certs/admin-key.pem \
+    --cacert /etc/wazuh-indexer/certs/root-ca.pem "$@"
+}
+~~~
+
+**Antes de cada nodo**, desde esa sesión en `.117`:
+
+~~~bash
+(
+set -euo pipefail
+wa01_indexer "$SOC_INDEXER_URL/" | jq '{cluster_name, version}'
+wa01_indexer "$SOC_INDEXER_URL/_cluster/health" \
+  | jq -e '.status == "green" and .number_of_nodes == 3 and .number_of_data_nodes == 2 and .relocating_shards == 0 and .initializing_shards == 0 and .unassigned_shards == 0'
+wa01_indexer "$SOC_INDEXER_URL/_snapshot/_status" | jq -e '(.snapshots | length) == 0'
+wa01_indexer "$SOC_INDEXER_URL/_cat/recovery?active_only=true&format=json" | jq -e 'length == 0'
+)
+~~~
+
+Registrar la versión OpenSearch real del GET `/`. El plugin debe coincidir con esa versión,
+no con el número `4.14.8` de Wazuh ni con el de OpenSearch Dashboards. Usar el instalador
+incluido en el paquete; no forzar un ZIP de otra versión ni descargar `latest`.
+[Compatibilidad de plugins](https://docs.opensearch.org/2.19/install-and-configure/plugins/).
+
+En el **nodo que corresponde al turno**, con el usuario SSH normal y `sudo`, ejecutar:
+
+~~~bash
+(
+set -euo pipefail
+test "$(dpkg-query -W -f='${Version}' wazuh-indexer)" = '4.14.8-1'
+test "$(systemctl show wazuh-indexer -p User --value)" = 'wazuh-indexer'
+sudo test -x /usr/share/wazuh-indexer/bin/opensearch-plugin
+sudo test -x /usr/share/wazuh-indexer/bin/opensearch-keystore
+sudo test -f /etc/wazuh-indexer/opensearch.keystore
+SOC_S3_NODE_BACKUP=$(sudo mktemp -d /var/backups/wa01-indexer-s3.XXXXXXXX)
+sudo cp -a /etc/wazuh-indexer/opensearch.keystore /etc/wazuh-indexer/opensearch.yml "$SOC_S3_NODE_BACKUP/"
+printf 'Respaldo protegido del nodo: %s\n' "$SOC_S3_NODE_BACKUP"
+sudo systemctl stop wazuh-indexer
+SOC_S3_PLUGINS=$(sudo env OPENSEARCH_PATH_CONF=/etc/wazuh-indexer \
+  /usr/share/wazuh-indexer/bin/opensearch-plugin list)
+if ! grep -Fxq 'repository-s3' <<< "$SOC_S3_PLUGINS"; then
+  sudo env OPENSEARCH_PATH_CONF=/etc/wazuh-indexer \
+    /usr/share/wazuh-indexer/bin/opensearch-plugin install --batch repository-s3
+fi
+SOC_S3_KEY_NAMES=$(sudo env OPENSEARCH_PATH_CONF=/etc/wazuh-indexer \
+  /usr/share/wazuh-indexer/bin/opensearch-keystore list)
+for SOC_S3_SUFFIX in access_key secret_key; do
+  SOC_S3_SETTING="s3.client.wa01snapshots.$SOC_S3_SUFFIX"
+  if grep -Fxq "$SOC_S3_SETTING" <<< "$SOC_S3_KEY_NAMES"; then
+    printf '%s ya existe: conservar; una rotación requiere su procedimiento separado.\n' "$SOC_S3_SETTING"
+  else
+    sudo env OPENSEARCH_PATH_CONF=/etc/wazuh-indexer \
+      /usr/share/wazuh-indexer/bin/opensearch-keystore add "$SOC_S3_SETTING"
+  fi
+done
+sudo chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
+sudo chmod 0660 /etc/wazuh-indexer/opensearch.keystore
+sudo systemctl start wazuh-indexer
+sudo systemctl is-active --quiet wazuh-indexer
+sudo env OPENSEARCH_PATH_CONF=/etc/wazuh-indexer \
+  /usr/share/wazuh-indexer/bin/opensearch-keystore list \
+  | grep -E '^s3\.client\.wa01snapshots\.(access_key|secret_key|session_token)$'
+)
+~~~
+
+Introducir cada valor del vault **solo en el prompt del keystore**; el listado muestra
+nombres de claves, no valores. Con credenciales temporales también se necesita
+`s3.client.wa01snapshots.session_token` y renovación antes del vencimiento: no usarlas como
+si fueran permanentes. No ejecutar `keystore create` sobre el existente ni usar `--force`
+para sobrescribir entradas. Respaldar el keystore como material sensible, no publicarlo.
+
+**Después de arrancar cada nodo**, desde `.117`, esperar recuperación completa:
+
+~~~bash
+(
+set -euo pipefail
+wa01_indexer "$SOC_INDEXER_URL/_cluster/health?wait_for_status=green&wait_for_no_relocating_shards=true&wait_for_no_initializing_shards=true&timeout=120s" \
+  | jq -e '.timed_out == false and .status == "green" and .number_of_nodes == 3 and .number_of_data_nodes == 2 and .unassigned_shards == 0'
+wa01_indexer "$SOC_INDEXER_URL/_cat/plugins?v&h=name,component,version"
+)
+~~~
+
+Comprobar `repository-s3` en el nodo tratado y su versión antes del siguiente. Al terminar
+deben aparecer los tres nodos con ese plugin. Verificar también ingestión Filebeat y
+Dashboard; estar `active` en systemd por sí solo no acredita pertenencia al clúster.
+
+#### 7.11.4. Registrar el repositorio una vez y verificar los tres nodos
+
+Desde la misma sesión `.117`, indicar los parámetros **no secretos** del bucket AWS ya
+creado. El ejemplo usa el endpoint regional comercial de AWS; para otras particiones o
+S3 compatible usar el endpoint aprobado y adaptar 7.11.7 antes de registrar.
+
+~~~bash
+read -r -p 'Nombre real del bucket AWS aprobado: ' SOC_SNAPSHOT_BUCKET
+read -r -p 'Region real del bucket AWS: ' SOC_SNAPSHOT_REGION
+(
+set -euo pipefail
+: "${SOC_SNAPSHOT_REPOSITORY:?Definir la sesion de 7.11.3}"
+: "${SOC_SNAPSHOT_BASE_PATH:?Definir la sesion de 7.11.3}"
+[[ "$SOC_SNAPSHOT_BUCKET" =~ ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$ ]]
+[[ "$SOC_SNAPSHOT_REGION" =~ ^[a-z]{2}-[a-z]+-[0-9]+$ ]]
+wa01_indexer "$SOC_INDEXER_URL/_snapshot/_all" | jq .
+read -r -p 'Confirmar bucket/ruta sin otro escritor; escribir REGISTRAR S3 WA01: ' SOC_S3_CONFIRM
+test "$SOC_S3_CONFIRM" = 'REGISTRAR S3 WA01'
+jq -n --arg bucket "$SOC_SNAPSHOT_BUCKET" --arg region "$SOC_SNAPSHOT_REGION" \
+  --arg base_path "$SOC_SNAPSHOT_BASE_PATH" \
+  '{type:"s3",settings:{bucket:$bucket,base_path:$base_path,client:"wa01snapshots",region:$region,endpoint:("s3."+$region+".amazonaws.com"),protocol:"https",readonly:false,compress:true,storage_class:"standard",canned_acl:"bucket-owner-full-control"}}' \
+  | wa01_indexer -H 'Content-Type: application/json' -X PUT \
+      "$SOC_INDEXER_URL/_snapshot/$SOC_SNAPSHOT_REPOSITORY" --data-binary @- \
+  | jq -e '.acknowledged == true'
+wa01_indexer "$SOC_INDEXER_URL/_snapshot/$SOC_SNAPSHOT_REPOSITORY" | jq .
+wa01_indexer -X POST "$SOC_INDEXER_URL/_snapshot/$SOC_SNAPSHOT_REPOSITORY/_verify" \
+  | jq -e '([.nodes[].name] | sort) == (["wa01-indexer-manager","wa01-indexer01","wa01-indexer02"] | sort)'
+)
+~~~
+
+> **Detener si el repositorio ya existe con otra ubicación:** no ejecutar el PUT para
+> cambiarlo a ciegas. Comparar configuración, inventariar sus snapshots y aprobar una
+> migración independiente. Tampoco registrar otro nombre como escritor de la misma ruta.
+
+`bucket` no lleva `s3://`, ARN ni ruta; `base_path` no lleva barra inicial/final. Las
+credenciales no van en este JSON. El GET confirma configuración; `_verify` comprueba
+acceso de los nodos y debe devolver los **tres nombres** de WA01, incluido el manager-only.
+`acknowledged: true` no es una prueba de restauración.
+[Registro S3](https://docs.opensearch.org/2.19/api-reference/snapshots/create-repository/),
+[verificación del repositorio](https://docs.opensearch.org/2.19/api-reference/snapshots/verify-snapshot-repository/).
+
+#### 7.11.5. Primer snapshot y restauración piloto
+
+Con autorización de ingeniería, elegir un índice Wazuh **exacto, abierto, histórico y sin
+escrituras**. Consultar primero `_cat/indices?v` y confirmar propietario/familia; no usar
+`*` ni un índice de seguridad. En `.117`, con la función TLS anterior:
+
+~~~bash
+read -r -p 'Indice Wazuh historico EXACTO aprobado para el piloto: ' SOC_S3_PILOT_INDEX
+SOC_S3_PILOT_SNAPSHOT="wazuh-wa01-pilot-$(date -u +%Y%m%dt%H%M%Sz)"
+(
+set -euo pipefail
+[[ "$SOC_S3_PILOT_INDEX" =~ ^wazuh-[a-z0-9._-]+$ ]]
+wa01_indexer "$SOC_INDEXER_URL/_cluster/health" | jq -e '.status == "green"'
+wa01_indexer "$SOC_INDEXER_URL/_snapshot/_status" | jq -e '(.snapshots | length) == 0'
+wa01_indexer "$SOC_INDEXER_URL/_cat/indices/$SOC_S3_PILOT_INDEX?format=json" \
+  | jq -e --arg index "$SOC_S3_PILOT_INDEX" 'length == 1 and (.[0].index == $index) and (.[0].status == "open")'
+wa01_indexer "$SOC_INDEXER_URL/$SOC_S3_PILOT_INDEX/_count" \
+  | jq -e 'select(._shards.failed == 0) | {count, _shards}'
+printf 'Registrar conteo anterior, indice=%s, snapshot=%s, repository=%s\n' \
+  "$SOC_S3_PILOT_INDEX" "$SOC_S3_PILOT_SNAPSHOT" "$SOC_SNAPSHOT_REPOSITORY"
+jq -n --arg indices "$SOC_S3_PILOT_INDEX" \
+  '{indices:$indices,ignore_unavailable:false,include_global_state:false,partial:false,metadata:{deployment_id:"wa01",purpose:"restore-pilot"}}' \
+  | wa01_indexer -H 'Content-Type: application/json' -X PUT \
+      "$SOC_INDEXER_URL/_snapshot/$SOC_SNAPSHOT_REPOSITORY/$SOC_S3_PILOT_SNAPSHOT?wait_for_completion=false" --data-binary @- \
+  | jq -e '.accepted == true'
+)
+~~~
+
+La aceptación inicia una operación asíncrona. Repetir esta consulta hasta su finalización;
+no crear otro snapshot por perder la sesión. Si se vuelve a conectar, definir los nombres
+**exactos ya registrados**, no generar un timestamp nuevo:
+
+~~~bash
+(
+set -euo pipefail
+: "${SOC_S3_PILOT_SNAPSHOT:?Definir el nombre del snapshot ya solicitado}"
+wa01_indexer "$SOC_INDEXER_URL/_snapshot/$SOC_SNAPSHOT_REPOSITORY/$SOC_S3_PILOT_SNAPSHOT" \
+  | jq -e --arg index "$SOC_S3_PILOT_INDEX" '.snapshots | length == 1 and (.[0].state == "SUCCESS") and (.[0].shards.failed == 0) and (.[0].include_global_state == false) and (.[0].indices == [$index])'
+)
+~~~
+
+**Solo `SUCCESS` con cero shards fallidos permite continuar**; un resultado en progreso
+puede hacer fallar esta comprobación sin que haya fallado el snapshot. Conservar el JSON
+final, UUID, índices, versión OpenSearch, fechas y conteos. Los snapshots no representan
+una transacción global instantánea y no incluyen PostgreSQL, evidencias ni configuración
+completa de Manager/Dashboard. [Creación de snapshot](https://docs.opensearch.org/2.19/api-reference/snapshots/create-snapshot/),
+[funcionamiento y exclusión de seguridad](https://docs.opensearch.org/2.19/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/).
+
+El piloto selecciona únicamente ese índice concreto: no incluye `.opendistro_security`
+ni otros índices de sistema. La verificación compara la lista real con el índice aprobado;
+no ampliar la selección a `*` para corregir un índice inexistente.
+
+Ensayar preferentemente en un **clúster aislado compatible**, con su propio plugin/keystore,
+identidad S3 de lectura y registro del mismo bucket/base_path con `readonly: true`.
+No probar compatibilidad deduciéndola solamente del número de Wazuh.
+Si se autoriza un piloto en WA01, reservar capacidad adicional y un nombre nuevo; no borrar,
+cerrar ni sobrescribir un índice productivo para liberar su nombre.
+
+En **Dev Tools del Dashboard conectado al clúster elegido**, con un administrador autorizado,
+sustituir los tres marcadores siguientes por snapshot, índice exacto y destino temporal
+aprobados. En el clúster de ensayo registrar el repositorio con el mismo nombre lógico
+de este ejemplo y solo lectura. No pegar los marcadores literalmente:
+
+~~~http
+POST /_snapshot/repository-s3-wa01/SNAPSHOT_APROBADO/_restore
+{
+  "indices": "INDICE_EXACTO_APROBADO",
+  "ignore_unavailable": false,
+  "include_global_state": false,
+  "include_aliases": false,
+  "partial": false,
+  "rename_pattern": "(.+)",
+  "rename_replacement": "restore-check-wa01-DESTINO_UNICO",
+  "index_settings": {"index.blocks.write": true},
+  "ignore_index_settings": [
+    "index.plugins.index_state_management.policy_id",
+    "index.opendistro.index_state_management.policy_id"
+  ]
+}
+~~~
+
+Antes del POST comprobar que el destino no existe y revisar plantillas/ISM: el prefijo
+temporal no debe entrar en enrutamiento productivo ni en políticas de eliminación. Ignorar
+IDs de políticas copiados no sustituye revisar cualquier asociación automática del destino.
+Después, usando el **mismo nombre temporal real** en todas las consultas:
+
+~~~http
+GET /_cat/recovery/restore-check-wa01-DESTINO_UNICO?v&active_only=true
+GET /_cluster/health/restore-check-wa01-DESTINO_UNICO?level=indices
+GET /_plugins/_ism/explain/restore-check-wa01-DESTINO_UNICO?show_policy=true
+GET /restore-check-wa01-DESTINO_UNICO/_count
+GET /restore-check-wa01-DESTINO_UNICO/_mapping
+~~~
+
+Exigir recuperación terminada, salud `green`, cero shards fallidos y conteo/mapping/rango
+temporal equivalentes al piloto sin escrituras. Comprobar `tenant.id`, muestras y aislamiento
+RBAC antes de cualquier publicación. Medir RTO real. Un POST aceptado o una lista de
+recuperación vacía no prueban por sí solos que los datos estén completos.
+[Parámetros de restauración](https://docs.opensearch.org/2.19/api-reference/snapshots/restore-snapshot/).
+Mantener snapshot y piloto hasta aceptación; esta guía no ordena eliminar datos.
+
+#### 7.11.6. Programar, integrar con SOC Operations y controlar retención
+
+Registrar un repositorio no instala una política ni inicia respaldos automáticos. Después
+del piloto, comprobar que **Snapshot Management / Index Management** está disponible.
+Ingeniería administra el repositorio; no conceder gestión de snapshots a un rol auditor
+tenant por el hecho de tener permiso de lectura de índices.
+
+En SOC Operations, **al dar de alta un tenant con snapshots habilitados**, seleccionar
+`repository-s3-wa01`, aprobar `snapshot_interval_hours` y `snapshot_retention_days`, y
+comprobar que completa el job de aprovisionamiento. La implementación actual admite
+intervalos de `1, 2, 3, 4, 6, 8, 12 o 24` horas y crea la política
+`soc-<tenant_id>-snapshots` para alerts/archives de su `index_prefix`.
+El inventario nativo `GET /api/v1/admin/snapshot-repositories` exige rol global admin o
+`soc_engineering`; no es una ruta de la API Indexer.
+
+> **Consideración — alcance y RPO:** esa política tenant no cubre automáticamente Global,
+> cuarentena, history, states ni todos los índices operativos. Crear políticas independientes
+> aprobadas para las familias necesarias. El mínimo actual de una hora de SOC Operations
+> no demuestra un RPO de 15 minutos para el Indexer; el WAL de PostgreSQL es otro respaldo.
+> No aceptar el valor predeterminado de 365 días sin la aprobación de retención correspondiente.
+
+Verificar en Dev Tools, sustituyendo `TENANT_REAL` por el ID y revisando el contenido,
+no solo la existencia de la política:
+
+~~~http
+GET /_plugins/_sm/policies/soc-TENANT_REAL-snapshots
+GET /_plugins/_sm/policies/soc-TENANT_REAL-snapshots/_explain
+~~~
+
+Validar repositorio, prefijos de índices, UTC, creación, eliminación, últimos resultados
+y duración. El código actual conserva un mínimo de **un snapshot** al aplicar su retención:
+pueden quedar copias más antiguas que `max_age`. No editar una política gestionada por SOC
+por fuera sin coordinar la reconciliación, ni crear otra política con el mismo alcance/horario.
+
+Para un alcance **no gestionado por SOC**, crear una política propia mediante Snapshot
+Management → Snapshot Policies → Create policy. Elegir el repositorio verificado, una
+allowlist aprobada y cron UTC con carga escalonada. Guardar primero deshabilitada, revisar
+su JSON y aprobar su activación. Si la UI no ofrece esa opción, usar la API SM con
+`enabled: false`, no crear una tarea activa sin revisión. La configuración debe incluir `include_global_state: false`
+y `partial: false`; acordar el comportamiento si un patrón no tiene índices. Programar y
+probar explícitamente la eliminación por edad/mínimo de copias, sin `snapshot_pattern: "*"`
+que pueda alcanzar respaldos ajenos o manuales.
+[Programación, roles y seguimiento SM](https://docs.opensearch.org/2.19/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-management/).
+
+Operación y aceptación del respaldo:
+
+- Alertar por fallo, resultado parcial, incumplimiento de RPO, aumento de duración,
+  falta de espacio, vencimiento de claves y fallo del repositorio en cualquier nodo.
+- Si el respaldo requerido falla, **suspender la retirada de índices** y escalar; un cron
+  periódico independiente no garantiza copia válida antes de un borrado ISM.
+- Eliminar snapshots únicamente mediante OpenSearch/SM y la política aprobada; no `aws s3 rm`,
+  borrado manual ni Lifecycle de objetos actuales del repositorio.
+- Auditar llamadas de repositorio/snapshot/restore y operaciones S3 sin registrar secretos;
+  conservar aprobaciones, UTC, operador, tenant/familia, estado y evidencia de restauración.
+- Rotar claves con copia protegida del keystore, distribución a los tres nodos, activación
+  rolling y `_verify`; revocar las antiguas solo tras probar la nueva identidad. No asumir
+  que añadir una clave al vault actualiza automáticamente el keystore del Indexer.
+- Ensayar restauración periódica —como mínimo la revisión trimestral definida para el
+  proyecto— y antes de aceptar una actualización de Indexer/plugin. Respaldar separadamente
+  configuraciones Wazuh, certificados, keystores, configuración Security, PostgreSQL y evidencias.
+  [Respaldo de componentes Wazuh](https://documentation.wazuh.com/current/migration-guide/creating/wazuh-central-components.html).
+
+#### 7.11.7. S3 compatible y diagnóstico
+
+Si se elige MinIO u otro S3 compatible, aprobar primero endpoint, versión, disponibilidad,
+cifrado, retención y restauración con el plugin instalado. **No asumir compatibilidad por
+exponer una API S3 ni usar el MinIO local `.117` como único respaldo de producción.**
+
+- Mantener nombre de cliente y entradas del keystore; usar otra identidad/bucket dedicado,
+  no credenciales root ni las del almacenamiento de evidencias.
+- En el JSON de registro reemplazar `endpoint` por el FQDN/puerto TLS real, `region` por
+  la región de firma del proveedor y agregar `path_style_access: true` si lo exige.
+  Ajustar `canned_acl` a lo admitido por ese proveedor; no trasladar sin prueba la opción
+  AWS de propiedad del bucket. No incluir una ruta de consola web en `endpoint`.
+- Verificar DNS y SAN desde los tres nodos; la JVM incluida también debe confiar en la CA.
+  Con una CA privada, configurar su confianza mediante un procedimiento aprobado para
+  ese JDK y conservar la configuración tras upgrades. Que curl confíe en la CA no prueba
+  que Java confíe; nunca resolverlo con HTTP o verificación TLS deshabilitada.
+- En un proveedor no EC2, si hay intentos de consultar metadatos AWS, añadir
+  `Environment=AWS_EC2_METADATA_DISABLED=true` en un drop-in `[Service]` propio de
+  `wazuh-indexer.service`; no basta exportarlo en una sesión SSH. Ejecutar daemon-reload
+  y reinicio rolling. Si existe proxy de egreso, configurar los parámetros `s3.client.wa01snapshots.proxy.*`
+  correspondientes, con usuario/contraseña en keystore; no asumir que `HTTPS_PROXY` de la
+  shell configura el servicio Java.
+  [Configuración del cliente S3](https://github.com/opensearch-project/OpenSearch/blob/2.19/plugins/repository-s3/src/main/java/org/opensearch/repositories/s3/S3ClientSettings.java),
+  [metadatos y configuración S3](https://docs.opensearch.org/2.19/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/#amazon-s3).
+- Repetir `_verify`, snapshot y restauración antes de habilitar calendarios o borrado.
+
+| Error | Comprobación segura |
+|---|---|
+| `repository type [s3] does not exist` | Plugin instalado y cargado tras reinicio en los tres nodos; misma versión OpenSearch |
+| `_verify` devuelve menos de tres nodos | Credenciales, CA Java, salida/DNS, plugin y estado del nodo ausente |
+| S3 `403 AccessDenied` | IAM, bucket policy, prefijo real, KMS, SCP y origen permitido; no cambiar a permisos `*` |
+| `AccessControlListNotSupported` | Propiedad/ACL del bucket y encabezado enviado; no habilitar ACLs públicas |
+| `SignatureDoesNotMatch` o `AuthorizationHeaderMalformed` | Región, endpoint, NTP y pareja de claves; no mostrar valores |
+| `PKIX`, SAN o handshake TLS | Confianza de la JVM y nombre del endpoint; no desactivar TLS |
+| Snapshot `FAILED`/`PARTIAL` o restore incompatible | Detalle de fallos, salud/recuperación, capacidad y versión real del Indexer |
+
+Conservar las respuestas sanitizadas y revisar `journalctl -u wazuh-indexer` en el nodo
+afectado. Para rollback de esta preparación, detener únicamente ese nodo, restaurar su
+keystore/configuración desde la copia exacta de 7.11.3 y reiniciarlo; no retirar un plugin
+usado por repositorios activos ni borrar sus objetos. Repetir salud y verificación antes
+de continuar; cambios de bucket/políticas IAM requieren su reversión aprobada aparte.
 
 <a id="haproxy"></a>
 
@@ -1745,6 +2561,63 @@ El estado debe mostrar <code>phase=complete</code>, <code>topology=distributed</
 del bundle y firewall antes de repetir <code>resume</code>. Completar después las pruebas de
 aceptación; el estado técnico <code>complete</code> no sustituye la validación de producción.
 
+<a id="aprovisionamiento-rechazado-por-entorno"></a>
+
+#### 9.13.1. Aprovisionamiento rechazado por entorno
+
+El error `tenant provisioning agent rejected the operation: manifest targets another environment`
+no es un fallo de red: el agente rechaza correctamente un manifiesto destinado a otro entorno.
+En los instaladores hasta `0.1.159`, el helper de OpenBao fija `lab` para el worker incluso en
+topología distribuida. Para WA01, worker y agente deben coincidir en **`production` / `wa01`**:
+
+~~~bash
+sudo grep -E '^SOC_PROVISIONING_(ENVIRONMENT|CLUSTER_ID)=' /etc/soc-operations-lab/runtime.env
+sudo grep -E '^SOC_DEPLOY_(ENVIRONMENT|CLUSTER_ID)=' /etc/soc-deploy-agent/agent.env
+sudo docker exec soc-operations-wa001-worker-1 python -c \
+  'from soc_operations.config import get_settings; s=get_settings(); print("environment="+s.provisioning_environment); print("cluster_id="+s.provisioning_cluster_id)'
+~~~
+
+> **Corrección del instalador:** la versión local `0.1.160` deriva `production` para
+> `distributed` y conserva `lab` para `aio`. `upgrade` y `resume` comprueban el worker aunque
+> OpenBao figure como configurado. Solo recrean el worker cuando su destino efectivo difiere;
+> no rotan tokens, no cambian el clúster, las aprobaciones ni la configuración del agente.
+> La publicación de `0.1.160` en GitHub está pendiente: los enlaces de descarga de esta guía
+> permanecen en el release publicado `0.1.159` hasta distribuir el nuevo artefacto verificado.
+
+Después de disponer del staging **verificado** de `0.1.160` en el servidor `.117`, se puede
+aplicar únicamente esta reparación con el helper corregido, sin reinstalar los servicios:
+
+~~~bash
+(
+set -euo pipefail
+SOC_TARGET_RELEASE='/root/soc-operations-release-0.1.160'
+cd "$SOC_TARGET_RELEASE"
+test -f soc-operations-install
+test -f soc-lab-openbao-operator
+sha256sum --check --strict SHA256SUMS
+grep -Fqx 'readonly INSTALLER_VERSION="0.1.160"' soc-operations-install
+sudo install -o root -g root -m 0755 \
+  soc-lab-openbao-operator /usr/local/sbin/soc-lab-openbao-operator
+sudo /usr/local/sbin/soc-lab-openbao-operator reconcile-provisioning-target
+sudo docker exec soc-operations-wa001-worker-1 python -c \
+  'from soc_operations.config import get_settings; s=get_settings(); print("environment="+s.provisioning_environment); print("cluster_id="+s.provisioning_cluster_id)'
+)
+~~~
+
+El staging bajo `/root` requiere una sesión administrativa `sudo -i`; si se transfiere por
+SSH con un usuario normal, recibir primero el release en su home y llevarlo al staging root
+con `sudo`, como en el apartado 9.4. El helper no pide el token root de OpenBao para esta
+reparación y detiene la operación si el clúster no coincide con la topología persistida.
+Si falla la recreación/verificación, restaura `runtime.env` e intenta recuperar el worker previo.
+
+Los jobs `pending` se vuelven a intentar cuando vence su espera; los nuevos intentos generan
+y firman un manifiesto con el entorno corregido. El backoff llega a 60 minutos y tras ocho
+intentos un job pasa a `failed`: no se reencola automáticamente con esta corrección. En ese
+caso detenerse y preparar una recuperación autorizada y auditada, conservando las aprobaciones;
+no editar SQL, recrear el tenant ni borrar su trazabilidad.
+No cambiar `SOC_ENVIRONMENT`, no sustituir `wa01` por `wa001` por el nombre histórico del
+proyecto Docker y no hacer que el agente de producción acepte `lab`.
+
 <a id="bloqueo-de-certificados"></a>
 
 ### 9.14. Bloqueo de certificados
@@ -2353,7 +3226,7 @@ sudo journalctl -u soc-geoip-indexer --since '-7 days' --no-pager
 ~~~
 
 Antes de actualizar SOC Operations o Wazuh, consultar la sección de actualizaciones de
-[la referencia GeoIP del proyecto](maxmind-geoip.md). Sus ejemplos se escribieron
+[la referencia GeoIP del proyecto](https://github.com/devsecops-kriptome/soc-operations-installer/blob/main/docs/maxmind-geoip.md). Sus ejemplos se escribieron
 para Wazuh 4.14.7; para WA01 conservar los overrides de versión y los controles de esta guía.
 Después de un upgrade, comparar los hashes reales de las bases con el release aprobado;
 el identificador `active_release` por sí solo no prueba que el paquete no haya repuesto
@@ -2449,6 +3322,10 @@ Los logs sirven como diagnóstico; sanitizarlos antes de compartirlos.
 - Filebeat y Dashboard siguen operativos al detener individualmente <code>.118</code> o <code>.119</code>.
 - Un agente sintético se enrola por el FQDN público y envía eventos por 1514.
 - La API 55000 no es pública.
+- Heap efectivo por rol, `mlockall=true`, límites systemd/sysctl y reinicios rolling validados
+  según el apartado 7.9, sin modificar roles ni perder quorum.
+- Si se eleva el límite de shards, presupuesto y capacidad aprobados, valor efectivo verificado,
+  respaldo/rollback documentados y observación de ingestión/recuperación según 7.10.
 
 <a id="publicación"></a>
 
@@ -2468,6 +3345,8 @@ Los logs sirven como diagnóstico; sanitizarlos antes de compartirlos.
 - Dos tenants superan pruebas positivas y negativas de aislamiento.
 - OpenBao, PostgreSQL, S3, SMTP y auditoría funcionan de extremo a extremo.
 - El agente privilegiado acepta solo mTLS y operaciones allowlist.
+- Worker y agente coinciden en `production` / `wa01`; el agente rechaza un manifiesto `lab`
+  o de otro clúster y el aprovisionamiento válido completa sus jobs con trazabilidad.
 - La rotación de certificados se prueba antes de 30 días.
 - La API externa presenta <code>soc-external-api-wa01</code>.
 
@@ -2485,6 +3364,10 @@ Los logs sirven como diagnóstico; sanitizarlos antes de compartirlos.
 - No aprobar la actualización automática del distribuidor con la mitigación temporal
   de `0.1.159`; exige corregir y validar los permisos de publicación en el helper.
 - Snapshot OpenSearch y restauración probados.
+- Repositorio `repository-s3-wa01` verificado en los tres nodos, S3 independiente de `.117`,
+  cifrado/permisos comprobados y piloto `SUCCESS` restaurado con nombre temporal según 7.11.
+- Allowlists, programación/retención UTC y alertas de backup aprobadas por tenant/familia;
+  `.opendistro_security` y estado global excluidos, sin borrado externo de blobs.
 - PostgreSQL demuestra RPO 15 minutos y el conjunto RTO 4 horas.
 - Cada nodo puede reiniciarse de forma ordenada sin pérdida de quorum.
 
@@ -2509,6 +3392,8 @@ Conservar como evidencia:
 - Pruebas internas y públicas de HAProxy.
 - Resultados de aislamiento, failover y restauración.
 - Hashes y pruebas GeoIP.
+- Repositorio/bucket/base_path, identidad S3 sin secretos, políticas sanitizadas, resultado
+  `_verify`, snapshot/UUID, índices, conteos y tiempos de restauración del apartado 7.11.
 - Ticket, aprobaciones, operador, hora y rollback.
 
 <a id="pendientes-previos-a-producción"></a>
@@ -2520,6 +3405,8 @@ Conservar como evidencia:
 - Proporcionar una dirección interna estable para Indexer.
 - Automatizar rotación mTLS de SOC Operations.
 - Dimensionar con EPS, agentes y retención reales.
+- Aprobar bucket/endpoint/región, identidad S3, RPO/RTO del Indexer y retención por familia;
+  completar snapshot/restore y políticas automáticas del apartado 7.11 antes de borrar índices.
 - Aprobar <code>docs/acceptance.md</code>.
 - Corregir el modo del manifiesto GeoIP antes de publicarlo, probar ambas descargas mTLS
   y distribuir un helper nuevo verificado antes de rehabilitar el timer del distribuidor.
@@ -2534,6 +3421,7 @@ Conservar como evidencia:
 - Instalación Server: https://documentation.wazuh.com/current/installation-guide/wazuh-server/step-by-step.html
 - Instalación Dashboard: https://documentation.wazuh.com/current/installation-guide/wazuh-dashboard/step-by-step.html
 - Puertos proxy Cloudflare: https://developers.cloudflare.com/fundamentals/reference/network-ports/
-- GeoIP del proyecto: <code>docs/maxmind-geoip.md</code>
-- Compatibilidad: <code>docs/compatibility.md</code>
+- GeoIP del proyecto: [guía GeoIP publicada](https://github.com/devsecops-kriptome/soc-operations-installer/blob/main/docs/maxmind-geoip.md).
+- Snapshots S3, permisos y restauración: referencias oficiales enlazadas en el apartado 7.11.
+- Compatibilidad: [matriz publicada](https://github.com/devsecops-kriptome/soc-operations-installer/blob/main/docs/compatibility.md).
 - Aceptación: <code>docs/acceptance.md</code>

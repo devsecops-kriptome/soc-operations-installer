@@ -1660,14 +1660,38 @@ El aprovisionador actual genera certificados mTLS del agente válidos por 30 dí
 
 ### Distribuidor en 192.168.4.117
 
+Las plantillas del TAR `0.1.158` están en la raíz del release. La ruta
+`deploy/geoip/manager.env.example` pertenece al repositorio fuente y **no existe** en el
+paquete extraído. Usar el staging verificado, sin depender del directorio actual.
+Si aparece `install: cannot stat 'deploy/geoip/manager.env.example'`, no descargar otra
+plantilla: comprobar `/root/soc-operations-release-0.1.158/manager.env.example`.
+
 ~~~bash
-sudo apt-get install -y geoipupdate curl jq openssl
-sudo install -d -m 0750 /etc/soc-geoip-manager
-sudo install -m 0640 deploy/geoip/manager.env.example /etc/soc-geoip-manager/manager.env
-sudo install -m 0600 /dev/null /etc/soc-geoip-manager/GeoIP.conf
+SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.158'
+sudo test -f "$SOC_GEOIP_RELEASE/manager.env.example"
+sudo test -f "$SOC_GEOIP_RELEASE/GeoIP.conf.example"
+# Continuar solo si ambas comprobaciones terminan sin error.
+sudo apt-get install -y geoipupdate libmaxminddb-bin curl jq nginx openssl util-linux
+sudo install -d -o root -g root -m 0700 /etc/soc-geoip-manager
+
+if sudo test -e /etc/soc-geoip-manager/manager.env; then
+  printf '%s\n' 'manager.env ya existe: conservar y revisar, no sobrescribir.'
+else
+  sudo install -o root -g root -m 0600 \
+    "$SOC_GEOIP_RELEASE/manager.env.example" /etc/soc-geoip-manager/manager.env
+fi
+
+if sudo test -e /etc/soc-geoip-manager/GeoIP.conf; then
+  printf '%s\n' 'GeoIP.conf ya existe: conservar sus credenciales, no sobrescribir.'
+else
+  sudo install -o root -g root -m 0600 \
+    "$SOC_GEOIP_RELEASE/GeoIP.conf.example" /etc/soc-geoip-manager/GeoIP.conf
+fi
+
+sudo nano /etc/soc-geoip-manager/manager.env
 ~~~
 
-Configurar:
+Configurar en `manager.env`:
 
 ~~~text
 SOC_GEOIP_MANAGER_LISTEN_IP=192.168.4.117
@@ -1677,17 +1701,40 @@ SOC_GEOIP_MANAGER_MAXMIND_CONFIG=/etc/soc-geoip-manager/GeoIP.conf
 SOC_GEOIP_MANAGER_KEEP_RELEASES=4
 ~~~
 
-En <code>GeoIP.conf</code> agregar las credenciales de MaxMind y:
+Editar `GeoIP.conf` sin imprimirlo en logs o chats:
+
+~~~bash
+sudo nano /etc/soc-geoip-manager/GeoIP.conf
+sudo chown root:root /etc/soc-geoip-manager/manager.env /etc/soc-geoip-manager/GeoIP.conf
+sudo chmod 0600 /etc/soc-geoip-manager/manager.env /etc/soc-geoip-manager/GeoIP.conf
+~~~
+
+Sustituir `YOUR_MAXMIND_ACCOUNT_ID` y `YOUR_MAXMIND_LICENSE_KEY` de la plantilla por los
+valores del gestor de secretos autorizado y conservar:
 
 ~~~text
 EditionIDs GeoLite2-City GeoLite2-Country GeoLite2-ASN
 ~~~
 
 Mantenerlo <code>root:root 0600</code>; nunca guardar la licencia en Git o evidencia.
+No ejecutar `install /dev/null .../GeoIP.conf` sobre un archivo existente: lo vaciaría.
+`libmaxminddb-bin` proporciona `mmdblookup`, requerido para validar las bases descargadas.
+
+**Limitación detectada en los helpers del release 0.1.158:** las comprobaciones de
+herramientas invocan `/usr/bin/command`, aunque `command` es un builtin de Bash. Si ese
+ejecutable no existe en Ubuntu, el preflight se detiene. No crear un alias o ejecutable para
+saltarse el control ni continuar con `install`: hace falta corregir y publicar el helper.
+Esta actualización de documentación no modifica el instalador ni acredita GeoIP end-to-end.
+
+Instalar el ejecutable verificado y pasar el staging explícitamente: copiar el helper a
+`/usr/local/sbin` no copia su plantilla Nginx ni sus unidades systemd.
 
 ~~~bash
-sudo soc-geoip-manager preflight
-sudo soc-geoip-manager install
+sudo install -o root -g root -m 0755 \
+  "$SOC_GEOIP_RELEASE/soc-geoip-manager" /usr/local/sbin/soc-geoip-manager
+sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" soc-geoip-manager preflight
+# Ejecutar install únicamente después de un preflight satisfactorio.
+sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" soc-geoip-manager install
 sudo soc-geoip-manager update
 sudo soc-geoip-manager issue-client wa01-indexer01 /root/geoip-wa01-indexer01
 sudo soc-geoip-manager issue-client wa01-indexer02 /root/geoip-wa01-indexer02
@@ -1698,35 +1745,86 @@ Transferir cada bundle solo a su nodo y eliminar las copias temporales.
 
 ### Workers en 192.168.4.118 y 192.168.4.119
 
+Preparar en **cada nodo** el mismo release verificado y el bundle mTLS de ese nodo mediante
+el canal SSH autorizado. No transferir `GeoIP.conf`, la licencia MaxMind ni la clave privada
+de la CA del distribuidor. Los archivos del release están en su raíz, no en `deploy/geoip/`.
+El helper lee `/etc/soc-geoip-indexer/worker.env`: `indexer.env.example` es solo el nombre de
+la plantilla.
+
 ~~~bash
-sudo install -d -m 0750 /etc/soc-geoip-indexer
-sudo install -m 0640 deploy/geoip/indexer.env.example /etc/soc-geoip-indexer/indexer.env
+SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.158'
+sudo test -f "$SOC_GEOIP_RELEASE/indexer.env.example"
+# Continuar solo si la plantilla está presente y se verificó SHA256SUMS.
+sudo install -d -o root -g root -m 0700 /etc/soc-geoip-indexer
+if sudo test -e /etc/soc-geoip-indexer/worker.env; then
+  printf '%s\n' 'worker.env ya existe: conservar y revisar, no sobrescribir.'
+else
+  sudo install -o root -g root -m 0600 \
+    "$SOC_GEOIP_RELEASE/indexer.env.example" /etc/soc-geoip-indexer/worker.env
+fi
+sudo nano /etc/soc-geoip-indexer/worker.env
 ~~~
 
 Base para cada nodo:
 
 ~~~text
-SOC_GEOIP_SOURCE_URL=https://wa01-dashboard.corp.atg:8444
-SOC_GEOIP_SOURCE_SERVER_NAME=wa01-dashboard.corp.atg
-SOC_GEOIP_SELF_INDEXER_URL=https://127.0.0.1:9200
-SOC_GEOIP_EXPECTED_NODES=3
+SOC_GEOIP_SOURCE_URL=https://wa01-dashboard.corp.atg:8444/geoip/v1
+SOC_GEOIP_CLIENT_CERT=/etc/soc-geoip-indexer/client.crt
+SOC_GEOIP_CLIENT_KEY=/etc/soc-geoip-indexer/client.key
+SOC_GEOIP_CA_BUNDLE=/etc/soc-geoip-indexer/ca.crt
+# En .119, sustituir esta IP por 192.168.4.119; debe coincidir con los SAN.
+SOC_GEOIP_INDEXER_URL=https://192.168.4.118:9200
+SOC_GEOIP_INDEXER_ADMIN_CERT=/etc/wazuh-indexer/certs/admin.pem
+SOC_GEOIP_INDEXER_ADMIN_KEY=/etc/wazuh-indexer/certs/admin-key.pem
+SOC_GEOIP_INDEXER_CA_BUNDLE=/etc/wazuh-indexer/certs/root-ca.pem
+SOC_GEOIP_EXPECTED_INDEXER_NODES=3
 SOC_GEOIP_AUTO_ACTIVATE=false
+SOC_GEOIP_INDEXER_SERVICE=wazuh-indexer.service
 ~~~
 
 Configurar las rutas a CA del distribuidor, certificado y clave cliente propios, CA del Indexer, certificado administrativo y clave administrativa. Claves y entorno deben ser 0600.
+Instalar `ca.crt`, `client.crt` y `client.key` del bundle del nodo en las rutas anteriores
+antes del preflight. No usar el certificado cliente del otro Indexer.
+
+Los nombres anteriores son los que lee el helper; no usar `SOC_GEOIP_SELF_INDEXER_URL`,
+`SOC_GEOIP_EXPECTED_NODES` ni `SOC_GEOIP_SOURCE_SERVER_NAME`, que no son sus parámetros.
+
+Para el timer de Wazuh 4.14.8, la unidad necesita también el override de versión:
+el helper resuelve `SOC_EXPECTED_WAZUH_VERSION` antes de leer `worker.env`.
+Antes de instalar/activar el worker, preparar el drop-in:
 
 ~~~bash
-sudo soc-geoip-indexer preflight
-sudo soc-geoip-indexer install
-sudo soc-geoip-indexer sync
-sudo soc-geoip-indexer status
+sudo install -d -o root -g root -m 0755 /etc/systemd/system/soc-geoip-indexer.service.d
+sudo nano /etc/systemd/system/soc-geoip-indexer.service.d/wazuh-version.conf
+~~~
+
+Contenido del drop-in, conservando otros overrides existentes:
+
+~~~ini
+[Service]
+Environment=SOC_EXPECTED_WAZUH_VERSION=4.14.8-1
+~~~
+
+Después ejecutar `sudo systemctl daemon-reload`. No confiar en que una variable de la
+sesión SSH se transfiera automáticamente a los timers de systemd.
+
+~~~bash
+sudo install -o root -g root -m 0755 \
+  "$SOC_GEOIP_RELEASE/soc-geoip-indexer" /usr/local/sbin/soc-geoip-indexer
+sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 \
+  soc-geoip-indexer preflight
+# No continuar si falla el preflight, incluida la limitación /usr/bin/command indicada arriba.
+sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 \
+  soc-geoip-indexer install
+sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer sync
+sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer status
 ~~~
 
 Activar primero en Indexer 1:
 
 ~~~bash
-sudo soc-geoip-indexer activate
-sudo soc-geoip-indexer status
+sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer activate
+sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer status
 ~~~
 
 Esperar estado green, verificar pipelines y simular una IP pública. Después repetir en Indexer 2. Comparar SHA-256 de City, Country y ASN entre distribuidor y receptores.

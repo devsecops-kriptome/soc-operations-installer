@@ -5,7 +5,9 @@
 > Alcance: Wazuh 4.14.8, tres Indexers, Manager, Dashboard, SOC Operations, HAProxy, Cloudflare, UFW y GeoIP MaxMind.
 > Bloqueo: SOC Operations no debe autorizarse para producción hasta superar completamente <code>docs/acceptance.md</code>.
 
-## Objetivo y orden de ejecución
+<a id="objetivo-y-orden-de-ejecución"></a>
+
+## 1. Objetivo y orden de ejecución
 
 La instalación se realiza en este orden:
 
@@ -18,7 +20,9 @@ La instalación se realiza en este orden:
 - Distribuir GeoIP MaxMind y activarlo de forma rolling.
 - Ejecutar pruebas de seguridad, failover, restauración y aceptación.
 
-## Arquitectura
+<a id="arquitectura"></a>
+
+## 2. Arquitectura
 
 ~~~text
 Internet
@@ -46,7 +50,9 @@ HAProxy 192.168.4.50
   Indexer cluster_manager + data + ingest
 ~~~
 
-### Servicios públicos
+<a id="servicios-públicos"></a>
+
+### 2.1. Servicios públicos
 
 | Servicio | FQDN | Puerto | Acceso |
 |---|---|---:|---|
@@ -56,7 +62,9 @@ HAProxy 192.168.4.50
 | Eventos de agentes | <code>wa01-agents.kriptome.com</code> | 1514/TCP | Público |
 | Enrolamiento | <code>wa01-agents.kriptome.com</code> | 1515/TCP | Público |
 
-### Límites de disponibilidad
+<a id="límites-de-disponibilidad"></a>
+
+### 2.2. Límites de disponibilidad
 
 - Los tres Indexers votan como <code>cluster_manager</code>.
 - Solo <code>.118</code> y <code>.119</code> almacenan datos y ejecutan ingest pipelines.
@@ -64,7 +72,9 @@ HAProxy 192.168.4.50
 - El servidor <code>.117</code> es todavía un punto único para Manager, Dashboard, SOC Operations y agentes.
 - La redundancia no reemplaza los respaldos.
 
-## Cloudflare, NAT y certificados
+<a id="cloudflare-nat-y-certificados"></a>
+
+## 3. Cloudflare, NAT y certificados
 
 - Los tres FQDN HTTPS pueden usar el proxy de Cloudflare.
 - <code>wa01-agents.kriptome.com</code> debe quedar como DNS only, excepto si se contrata Cloudflare Spectrum. El proxy estándar no transporta 1514/1515.
@@ -81,7 +91,9 @@ NAT requerido:
 
 No publicar directamente 9200, 9300-9400, 55000, 8443, 8444, PostgreSQL, OpenBao ni S3.
 
-## Matriz de red
+<a id="matriz-de-red"></a>
+
+## 4. Matriz de red
 
 | Origen | Destino | Puerto | Uso |
 |---|---|---:|---|
@@ -95,7 +107,9 @@ No publicar directamente 9200, 9300-9400, 55000, 8443, 8444, PostgreSQL, OpenBao
 | Indexers <code>.118/.119</code> | Central <code>.117</code> | 8444 | GeoIP mTLS |
 | Bridge de SOC | Agente local | 8443 | Despliegue mTLS |
 
-## Preparación
+<a id="preparación"></a>
+
+## 5. Preparación
 
 En DNS interno crear los registros indicados. Temporalmente:
 
@@ -125,7 +139,9 @@ Requisitos:
 - Discos de Indexer con monitoreo de watermarks.
 - Proxy interno <code>192.168.4.50</code> solo si realmente presta salida HTTP.
 
-### CPU de las máquinas virtuales para MinIO
+<a id="cpu-de-las-máquinas-virtuales-para-minio"></a>
+
+### 5.1. CPU de las máquinas virtuales para MinIO
 
 El servidor central <code>192.168.4.117</code>, donde se ejecuta MinIO, requiere una CPU visible
 <code>x86_64</code> compatible con <code>x86-64-v2</code>. La imagen utiliza UBI 9; una VM con
@@ -179,7 +195,9 @@ La prueba manual anterior complementa ese control, pero no acredita la salud com
 Referencias: [CPU de Proxmox](https://github.com/proxmox/pve-docs/blob/master/qm.adoc)
 y [requisito de CPU de UBI 9](https://access.redhat.com/solutions/7057314).
 
-## UFW por servidor
+<a id="ufw-por-servidor"></a>
+
+## 6. UFW por servidor
 
 Antes de habilitarlo, mantener una segunda sesión SSH abierta. Sustituir <code>ADMIN_CIDR</code> y <code>SSH_PORT</code>. No ejecutar <code>ufw reset</code> en equipos ya administrados.
 
@@ -194,7 +212,9 @@ sudo ufw allow from ADMIN_CIDR to any port SSH_PORT proto tcp comment 'SSH admin
 sudo ufw logging medium
 ~~~
 
-### Central 192.168.4.117
+<a id="central-1921684117"></a>
+
+### 6.1. Central 192.168.4.117
 
 ~~~bash
 sudo ufw allow from 192.168.4.50 to 192.168.4.117 port 443 proto tcp comment 'HAProxy Dashboard'
@@ -210,7 +230,9 @@ sudo ufw enable
 
 No abrir 55000 a Internet. Dashboard y SOC Operations consumen la API local.
 
-### Indexer 1 192.168.4.118
+<a id="indexer-1-1921684118"></a>
+
+### 6.2. Indexer 1 192.168.4.118
 
 ~~~bash
 sudo ufw allow from 192.168.4.117 to 192.168.4.118 port 9200 proto tcp comment 'Central a Indexer API'
@@ -220,7 +242,9 @@ sudo ufw allow from 192.168.4.119 to 192.168.4.118 port 9300:9400 proto tcp comm
 sudo ufw enable
 ~~~
 
-### Indexer 2 192.168.4.119
+<a id="indexer-2-1921684119"></a>
+
+### 6.3. Indexer 2 192.168.4.119
 
 ~~~bash
 sudo ufw allow from 192.168.4.117 to 192.168.4.119 port 9200 proto tcp comment 'Central a Indexer API'
@@ -240,9 +264,13 @@ sudo journalctl -k --grep='UFW BLOCK' --since '-15 minutes'
 
 Probar cada flujo permitido y al menos uno denegado. UFW no sustituye al firewall perimetral.
 
-## Instalación de Wazuh 4.14.8
+<a id="instalación-de-wazuh-4148"></a>
 
-### Preparar artefactos
+## 7. Instalación de Wazuh 4.14.8
+
+<a id="preparar-artefactos"></a>
+
+### 7.1. Preparar artefactos
 
 ~~~bash
 mkdir -p /root/wa01-deploy
@@ -283,7 +311,9 @@ tar -tf wazuh-install-files.tar
 
 Verificar hashes después de cada copia.
 
-### Indexers
+<a id="indexers"></a>
+
+### 7.2. Indexers
 
 En <code>.117</code>:
 
@@ -313,7 +343,9 @@ Inicializar el clúster una sola vez, sin cambiar todavía los roles:
 sudo bash wazuh-install.sh --start-cluster
 ~~~
 
-### Validar el clúster inicial
+<a id="validar-el-clúster-inicial"></a>
+
+### 7.3. Validar el clúster inicial
 
 Antes de convertir <code>.117</code>, comprobar que los tres nodos están activos y el clúster está
 green. Desde un nodo con el certificado administrativo:
@@ -341,7 +373,9 @@ sudo curl --fail-with-body --silent --show-error \
 En este momento es normal que los tres nodos todavía tengan los roles predeterminados y que
 <code>wa01-indexer-manager</code> contenga shards.
 
-### Convertir 192.168.4.117 en cluster manager exclusivo
+<a id="convertir-1921684117-en-cluster-manager-exclusivo"></a>
+
+### 7.4. Convertir 192.168.4.117 en cluster manager exclusivo
 
 Esta conversión elimina del nodo central sus copias locales de shards, pero no elimina índices del
 clúster. Antes de continuar:
@@ -473,7 +507,9 @@ Los nodos que conservan roles predeterminados también pueden mostrar <code>mast
 <code>node.roles</code> y la abreviatura <code>m</code> en <code>node.role</code>; en esta versión
 es la representación heredada de su capacidad <code>cluster_manager</code>.
 
-### Diagnóstico si el nodo central no arranca
+<a id="diagnóstico-si-el-nodo-central-no-arranca"></a>
+
+### 7.5. Diagnóstico si el nodo central no arranca
 
 No borrar <code>/var/lib/wazuh-indexer</code>. Recopilar primero:
 
@@ -494,7 +530,9 @@ sudo grep -nE '^[[:space:]]*(node\.roles|node\.data|node\.master):' \
 - Si informa que no descubre cluster manager, revisar 9300-9400, DNS,
   <code>discovery.seed_hosts</code>, nombres de nodo y certificados.
 
-### Manager y Filebeat
+<a id="manager-y-filebeat"></a>
+
+### 7.6. Manager y Filebeat
 
 En <code>.117</code>:
 
@@ -549,7 +587,9 @@ sudo /var/ossec/bin/wazuh-control status
 sudo systemctl restart wazuh-manager filebeat
 ~~~
 
-### Dashboard
+<a id="dashboard"></a>
+
+### 7.7. Dashboard
 
 ~~~bash
 sudo bash wazuh-install.sh --wazuh-dashboard wa01-dashboard
@@ -590,7 +630,9 @@ sudo systemctl restart wazuh-dashboard
 sudo journalctl -u wazuh-dashboard -n 100 --no-pager
 ~~~
 
-### Bloquear actualizaciones automáticas de Wazuh con APT
+<a id="bloquear-actualizaciones-automáticas-de-wazuh-con-apt"></a>
+
+### 7.8. Bloquear actualizaciones automáticas de Wazuh con APT
 
 Aplicar el bloqueo después de instalar los paquetes y comprobar sus versiones, antes de ejecutar
 un <code>apt upgrade</code> general. Si el stack ya está instalado, ejecutar este paso ahora en los
@@ -650,7 +692,9 @@ Aplicar el mismo ciclo individual a Manager, Dashboard o Filebeat cuando corresp
 periódicamente las correcciones de seguridad disponibles para programar su actualización.
 Referencia: [Ubuntu — apt-mark](https://manpages.ubuntu.com/manpages/noble/man8/apt-mark.8.html).
 
-## HAProxy
+<a id="haproxy"></a>
+
+## 8. HAProxy
 
 En <code>D:\GPT\Haproxy\Estructura</code>, agregar los tres FQDN HTTPS a:
 
@@ -743,13 +787,17 @@ sudo systemctl status haproxy --no-pager
 sudo ss -lntp | grep -E ':443|:1514|:1515'
 ~~~
 
-### Validación desde una fuente externa permitida
+<a id="validación-desde-una-fuente-externa-permitida"></a>
+
+### 8.1. Validación desde una fuente externa permitida
 
 La prueba debe ejecutarse desde una conexión que salga a Internet con una IP pública incluida en
 la whitelist. No usar la misma LAN de HAProxy ni resolución DNS interna, porque eso no valida
 Cloudflare, NAT ni el trayecto público.
 
-#### Confirmar la IP de origen
+<a id="confirmar-la-ip-de-origen"></a>
+
+#### 8.1.1. Confirmar la IP de origen
 
 Desde PowerShell en el equipo externo:
 
@@ -766,7 +814,9 @@ Confirmar fuera de banda que esa IP, o el CIDR que la contiene, esté autorizada
 
 No ampliar temporalmente la whitelist a <code>0.0.0.0/0</code>.
 
-#### Validar DNS público
+<a id="validar-dns-público"></a>
+
+#### 8.1.2. Validar DNS público
 
 ~~~powershell
 $HttpsNames = @(
@@ -790,7 +840,9 @@ Resultados esperados:
   <code>181.65.251.75</code>.
 - No debe existir AAAA para agentes mientras IPv6 no esté publicado de extremo a extremo.
 
-#### Validar conectividad TCP
+<a id="validar-conectividad-tcp"></a>
+
+#### 8.1.3. Validar conectividad TCP
 
 ~~~powershell
 Test-NetConnection 'wa01-dashboard.kriptome.com' -Port 443
@@ -803,7 +855,9 @@ Test-NetConnection 'wa01-agents.kriptome.com' -Port 1515
 Cada prueba aplicable debe mostrar <code>TcpTestSucceeded : True</code>. Si SOC Operations todavía
 no está instalado, la prueba de su puerto o health se registra como pendiente, no como aprobada.
 
-#### Validar HTTPS, certificados y routing
+<a id="validar-https-certificados-y-routing"></a>
+
+#### 8.1.4. Validar HTTPS, certificados y routing
 
 Usar <code>curl.exe</code> para evitar el alias histórico de PowerShell:
 
@@ -839,7 +893,9 @@ No incluir credenciales en la línea de comandos ni en la evidencia. Las consult
 Indexer y SOC Operations se ejecutan posteriormente con cuentas sintéticas y secretos introducidos
 de forma interactiva.
 
-#### Correlacionar la prueba en los servidores
+<a id="correlacionar-la-prueba-en-los-servidores"></a>
+
+#### 8.1.5. Correlacionar la prueba en los servidores
 
 Mientras se repiten las conexiones externas, en HAProxy:
 
@@ -865,7 +921,9 @@ En los Indexers:
 sudo journalctl -u wazuh-indexer --since '-10 minutes' --no-pager
 ~~~
 
-#### Prueba negativa obligatoria
+<a id="prueba-negativa-obligatoria"></a>
+
+#### 8.1.6. Prueba negativa obligatoria
 
 Después de la prueba positiva, repetir únicamente los tres accesos HTTPS desde una IP pública no
 incluida en la whitelist. Deben ser rechazados por Cloudflare o HAProxy. No se espera rechazo por
@@ -882,9 +940,13 @@ Registrar como evidencia:
 - Backend seleccionado en HAProxy.
 - Identificador del cambio, operador y resultado, sin tokens ni contraseñas.
 
-## SOC Operations
+<a id="soc-operations"></a>
 
-### Topología declarada
+## 9. SOC Operations
+
+<a id="topología-declarada"></a>
+
+### 9.1. Topología declarada
 
 ~~~json
 {
@@ -915,7 +977,7 @@ Registrar como evidencia:
 ~~~
 
 Guardar este contenido como <code>/root/wa01-soc-topology.json</code>, propiedad
-<code>root:root</code> y modo <code>0600</code>. El release <code>0.1.158</code> valida
+<code>root:root</code> y modo <code>0600</code>. El release <code>0.1.159</code> valida
 exactamente este esquema y utiliza únicamente el primer elemento de <code>indexer.urls</code> como
 endpoint operativo. Es recomendable reemplazarlo más adelante por una dirección interna estable
 con health checks. Mientras no exista, se usa <code>.118</code> y se documenta el cambio manual a
@@ -925,7 +987,9 @@ Los tres archivos <code>deployment_*</code> no existen en el primer preflight. S
 instalar el agente mTLS después de inicializar OpenBao; es válido que estén ausentes hasta ese
 punto.
 
-### Instalación y seguridad
+<a id="instalación-y-seguridad"></a>
+
+### 9.2. Instalación y seguridad
 
 - Instalar el artefacto <code>socOperations-2.19.6.zip</code>, compatible con Wazuh 4.14.8.
 - Verificar firma y SHA-256.
@@ -936,7 +1000,9 @@ punto.
 - Inicializar OpenBao y reanudar solo cuando esté operativo y desbloqueado.
 - No pasar secretos persistentes por argumentos ni historial.
 
-### Puerta posterior al snapshot
+<a id="puerta-posterior-al-snapshot"></a>
+
+### 9.3. Puerta posterior al snapshot
 
 Registrar los identificadores de los snapshots de los tres servidores y comprobar que terminaron
 correctamente. El snapshot no sustituye el respaldo consistente requerido antes de producción,
@@ -972,17 +1038,21 @@ sudo curl --fail-with-body --silent --show-error \
 No iniciar SOC Operations si falta un servicio, el clúster no está green o no aparecen exactamente
 tres Indexers.
 
-### Preparar el release fijo
+<a id="preparar-el-release-fijo"></a>
+
+### 9.4. Preparar el release fijo
 
 El release aprobado se publica cifrado en:
 
-<code>https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.158</code>
+<code>https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.159</code>
 
 La identidad privada <code>age</code> se obtiene exclusivamente del gestor de secretos autorizado,
 entrada <strong>SOC Operations Installer Descifrado</strong>. Para este procedimiento se utiliza
 temporalmente en el servidor de instalación. No publicarla en GitHub, la guía, chats o tickets.
 
-#### Preparación principal desde Ubuntu
+<a id="preparación-principal-desde-ubuntu"></a>
+
+#### 9.4.1. Preparación principal desde Ubuntu
 
 Ejecutar directamente en el servidor central Ubuntu <code>192.168.4.117</code>, donde se instalará
 SOC Operations. No se necesita otro equipo: descargar, descifrar y preparar el release en ese
@@ -1029,16 +1099,16 @@ Crear un directorio privado separado y descargar el manifiesto y el activo cifra
 
 ~~~bash
 umask 077
-install -d -m 0700 /root/soc-operations-0.1.158-download
-cd /root/soc-operations-0.1.158-download
+install -d -m 0700 /root/soc-operations-0.1.159-download
+cd /root/soc-operations-0.1.159-download
 
 curl --fail --location --proto '=https' --tlsv1.2 \
   --output SHA256SUMS \
-  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.158/SHA256SUMS'
+  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.159/SHA256SUMS'
 
 curl --fail --location --proto '=https' --tlsv1.2 \
-  --output soc-operations-0.1.158.tar.gz.age \
-  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.158/soc-operations-0.1.158.tar.gz.age'
+  --output soc-operations-0.1.159.tar.gz.age \
+  'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.159/soc-operations-0.1.159.tar.gz.age'
 ~~~
 
 Verificar primero el manifiesto descargado y después el activo cifrado contra las huellas fijadas
@@ -1046,12 +1116,12 @@ en esta guía:
 
 ~~~bash
 printf '%s  %s\n' \
-  'fa18226838c6960ca00d7b50a6ce1de5347ede6983fd71596cc36f86d8fe7d45' \
+  '65d74c87037c1570492c8e4cff17717ac4dfd3c340b2fcf9eeb192c667d34e29' \
   'SHA256SUMS' | sha256sum --check --strict -
 
 printf '%s  %s\n' \
-  'fe75e13514fb00314a14bea6e2e28a15d5b20d303e521408efcd7ca994625d68' \
-  'soc-operations-0.1.158.tar.gz.age' | sha256sum --check --strict -
+  'e0e843927a843af01e3bb4198199827886213f3ee9e909f91968b9eb2ec0ab1e' \
+  'soc-operations-0.1.159.tar.gz.age' | sha256sum --check --strict -
 ~~~
 
 Descifrar con la identidad temporal, verificar el TAR y extraerlo. Después de comprobar los
@@ -1060,15 +1130,15 @@ hashes, retirar la copia temporal de la clave; la identidad original permanece e
 ~~~bash
 age --decrypt \
   --identity "$SOC_AGE_IDENTITY" \
-  --output soc-operations-release-0.1.158.tar.gz \
-  soc-operations-0.1.158.tar.gz.age
+  --output soc-operations-release-0.1.159.tar.gz \
+  soc-operations-0.1.159.tar.gz.age
 
 printf '%s  %s\n' \
-  'c8b4c3d3cfe37a2aecc175bf95c5153fcc1a9e0b727cc8c64a981810428f2764' \
-  'soc-operations-release-0.1.158.tar.gz' | sha256sum --check --strict -
+  'b395f84f9ec4e68c72f182145e2c9d06dea9fd3305185c641cf504122f4ff6dc' \
+  'soc-operations-release-0.1.159.tar.gz' | sha256sum --check --strict -
 
-tar --extract --gzip --file soc-operations-release-0.1.158.tar.gz
-cd release-0.1.158
+tar --extract --gzip --file soc-operations-release-0.1.159.tar.gz
+cd release-0.1.159
 sha256sum --check --strict SHA256SUMS
 test "$(find . -type f | wc -l)" -eq 49
 
@@ -1086,20 +1156,22 @@ Dejar el release en su ubicación definitiva en este mismo servidor. El bloque s
 existe el destino, para revisar una preparación anterior antes de reemplazarla:
 
 ~~~bash
-cd /root/soc-operations-0.1.158-download
-if [ -e /root/soc-operations-release-0.1.158 ]; then
+cd /root/soc-operations-0.1.159-download
+if [ -e /root/soc-operations-release-0.1.159 ]; then
   printf '%s\n' 'El destino ya existe: revisar y verificar el release anterior antes de continuar.' >&2
   exit 1
 fi
-mv -T -- release-0.1.158 /root/soc-operations-release-0.1.158
-chmod 0700 /root/soc-operations-release-0.1.158
+mv -T -- release-0.1.159 /root/soc-operations-release-0.1.159
+chmod 0700 /root/soc-operations-release-0.1.159
 ~~~
 
 Si trabajaste directamente en <code>.117</code>, continuar en
 **Verificar el release e instalar el comando**. Las dos alternativas siguientes solo aplican
 cuando se prepara el release en otro equipo.
 
-#### Solo si se prepara en otro servidor Ubuntu
+<a id="solo-si-se-prepara-en-otro-servidor-ubuntu"></a>
+
+#### 9.4.2. Solo si se prepara en otro servidor Ubuntu
 
 Si ejecutaste la preparación anterior en un servidor Ubuntu distinto de <code>.117</code>,
 copiar el directorio completo al servidor central mediante la red administrativa. Instalar
@@ -1109,55 +1181,59 @@ forma controlada:
 
 ~~~bash
 rsync --archive --protect-args \
-  /root/soc-operations-release-0.1.158/ \
-  '<USUARIO_ADMIN>@192.168.4.117:/var/tmp/soc-operations-release-0.1.158/'
+  /root/soc-operations-release-0.1.159/ \
+  '<USUARIO_ADMIN>@192.168.4.117:/var/tmp/soc-operations-release-0.1.159/'
 ~~~
 
 En <code>192.168.4.117</code>, copiar el directorio recibido a su ubicación definitiva. La
 transferencia incluye solo el release; la identidad <code>age</code> ya se retiró del equipo de origen:
 
 ~~~bash
-sudo install -d -o root -g root -m 0700 /root/soc-operations-release-0.1.158
+sudo install -d -o root -g root -m 0700 /root/soc-operations-release-0.1.159
 sudo rsync --archive --chown=root:root \
-  /var/tmp/soc-operations-release-0.1.158/ \
-  /root/soc-operations-release-0.1.158/
+  /var/tmp/soc-operations-release-0.1.159/ \
+  /root/soc-operations-release-0.1.159/
 ~~~
 
-#### Alternativa desde Windows
+<a id="alternativa-desde-windows"></a>
+
+#### 9.4.3. Alternativa desde Windows
 
 Windows se conserva únicamente como estación administrativa alternativa. Con <code>age</code>
 instalado:
 
 ~~~powershell
-$ReleaseDownload = Join-Path $env:USERPROFILE 'Downloads\soc-operations-0.1.158'
+$ReleaseDownload = Join-Path $env:USERPROFILE 'Downloads\soc-operations-0.1.159'
 New-Item -ItemType Directory -Force -Path $ReleaseDownload | Out-Null
 Set-Location $ReleaseDownload
 
-curl.exe --fail --location --proto '=https' --tlsv1.2 --output SHA256SUMS 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.158/SHA256SUMS'
-curl.exe --fail --location --proto '=https' --tlsv1.2 --output soc-operations-0.1.158.tar.gz.age 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.158/soc-operations-0.1.158.tar.gz.age'
+curl.exe --fail --location --proto '=https' --tlsv1.2 --output SHA256SUMS 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.159/SHA256SUMS'
+curl.exe --fail --location --proto '=https' --tlsv1.2 --output soc-operations-0.1.159.tar.gz.age 'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.159/soc-operations-0.1.159.tar.gz.age'
 
-$ExpectedManifest = 'fa18226838c6960ca00d7b50a6ce1de5347ede6983fd71596cc36f86d8fe7d45'
+$ExpectedManifest = '65d74c87037c1570492c8e4cff17717ac4dfd3c340b2fcf9eeb192c667d34e29'
 $ActualManifest = (Get-FileHash -LiteralPath '.\SHA256SUMS' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualManifest -ne $ExpectedManifest) { throw 'SHA-256 invalido para SHA256SUMS' }
 
-$ExpectedEncrypted = 'fe75e13514fb00314a14bea6e2e28a15d5b20d303e521408efcd7ca994625d68'
-$ActualEncrypted = (Get-FileHash -LiteralPath '.\soc-operations-0.1.158.tar.gz.age' -Algorithm SHA256).Hash.ToLowerInvariant()
+$ExpectedEncrypted = 'e0e843927a843af01e3bb4198199827886213f3ee9e909f91968b9eb2ec0ab1e'
+$ActualEncrypted = (Get-FileHash -LiteralPath '.\soc-operations-0.1.159.tar.gz.age' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualEncrypted -ne $ExpectedEncrypted) { throw 'SHA-256 invalido para el activo cifrado' }
 
-age --decrypt --identity 'RUTA_SEGURA\identity.txt' --output 'soc-operations-release-0.1.158.tar.gz' 'soc-operations-0.1.158.tar.gz.age'
+age --decrypt --identity 'RUTA_SEGURA\identity.txt' --output 'soc-operations-release-0.1.159.tar.gz' 'soc-operations-0.1.159.tar.gz.age'
 
-$ExpectedPlain = 'c8b4c3d3cfe37a2aecc175bf95c5153fcc1a9e0b727cc8c64a981810428f2764'
-$ActualPlain = (Get-FileHash -LiteralPath '.\soc-operations-release-0.1.158.tar.gz' -Algorithm SHA256).Hash.ToLowerInvariant()
+$ExpectedPlain = 'b395f84f9ec4e68c72f182145e2c9d06dea9fd3305185c641cf504122f4ff6dc'
+$ActualPlain = (Get-FileHash -LiteralPath '.\soc-operations-release-0.1.159.tar.gz' -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($ActualPlain -ne $ExpectedPlain) { throw 'SHA-256 invalido para el TAR descifrado' }
 
-tar -xzf '.\soc-operations-release-0.1.158.tar.gz'
+tar -xzf '.\soc-operations-release-0.1.159.tar.gz'
 ~~~
 
-Transferir después <code>release-0.1.158</code> completo por el canal administrativo y ejecutar en
+Transferir después <code>release-0.1.159</code> completo por el canal administrativo y ejecutar en
 Ubuntu la verificación interna con <code>sha256sum --check --strict SHA256SUMS</code>. Dejar el
-directorio en <code>/root/soc-operations-release-0.1.158</code>, como en la alternativa anterior.
+directorio en <code>/root/soc-operations-release-0.1.159</code>, como en la alternativa anterior.
 
-#### Verificar el release e instalar el comando
+<a id="verificar-el-release-e-instalar-el-comando"></a>
+
+#### 9.4.4. Verificar el release e instalar el comando
 
 En el servidor central <code>192.168.4.117</code>, ejecutar como root. Si llegas desde una de las
 alternativas, abrir antes una sesión con <code>sudo -i</code>:
@@ -1166,7 +1242,7 @@ No copiar únicamente el ZIP del plugin: el instalador verifica el orquestador, 
 locks, unidades y plantillas mediante hashes fijos.
 
 ~~~bash
-cd /root/soc-operations-release-0.1.158
+cd /root/soc-operations-release-0.1.159
 sha256sum --check SHA256SUMS
 sudo install -o root -g root -m 0755 soc-operations-install \
   /usr/local/sbin/soc-operations-install
@@ -1180,7 +1256,9 @@ sudo test -r /var/ossec/api/configuration/ssl/server.crt
 No continuar si un hash falla o si el release no contiene
 <code>socOperations-2.19.6.zip</code>.
 
-### Almacenamiento interno de evidencias y copia recuperada de MinIO
+<a id="almacenamiento-interno-de-evidencias-y-copia-recuperada-de-minio"></a>
+
+### 9.5. Almacenamiento interno de evidencias y copia recuperada de MinIO
 
 SOC Operations utiliza MinIO como almacenamiento interno compatible con S3. No requiere
 contratar Amazon S3 ni preparar un servicio externo para esta instalación. Se configura
@@ -1203,7 +1281,9 @@ certifican ausencia de vulnerabilidades, aislamiento de tenants, custodia de cla
 y restauración. Se mantiene la configuración de cifrado existente; recuperar la imagen no
 sustituye la evaluación de ese diseño para producción.
 
-### Preflight sin cambios
+<a id="preflight-sin-cambios"></a>
+
+### 9.6. Preflight sin cambios
 
 Ejecutar primero solo:
 
@@ -1211,7 +1291,7 @@ Ejecutar primero solo:
 sudo /usr/local/sbin/soc-operations-install preflight \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
-  --staging-root /root/soc-operations-release-0.1.158
+  --staging-root /root/soc-operations-release-0.1.159
 ~~~
 
 El resultado debe identificar <code>topology=distributed</code>, Wazuh
@@ -1219,18 +1299,22 @@ El resultado debe identificar <code>topology=distributed</code>, Wazuh
 plataforma, credenciales administrativas, número exacto de nodos y hashes, pero no instala el
 producto. Conservar su salida y no ejecutar <code>apply</code> hasta resolver cualquier error.
 
-### Instalar SOC Operations con apply
+<a id="instalar-soc-operations-con-apply"></a>
+
+### 9.7. Instalar SOC Operations con apply
 
 Después de un preflight satisfactorio, ejecutar en <code>192.168.4.117</code> durante la ventana
 de instalación. <code>apply</code> vuelve a ejecutar el preflight y realiza cambios: instala
 helpers, plugin, runtime y dependencias, y configura branding y RBAC de Wazuh. Puede reiniciar
 servicios y afectar temporalmente el acceso al Dashboard.
 
-Antes de ejecutar: si Dashboard, Manager y helper comparten servidor y el certificado de la API
-incluye `DNS:localhost`, el host existente de `wazuh.yml` debe usar `url: https://localhost`.
-Si aparece `[soc-wazuh-rbac] ERROR: Wazuh API request failed for POST /security/user/authenticate`,
-seguir [el diagnóstico TLS y cambio a localhost](#error-de-conexión-con-la-api-wazuh-durante-rbac).
-No usar esta dirección para una API ubicada en otro servidor ni desactivar la verificación TLS.
+> [!IMPORTANT]
+> **Antes de ejecutar:** si Dashboard, Manager y helper comparten servidor y el certificado
+> de la API incluye `DNS:localhost`, el host existente de `wazuh.yml` debe usar
+> `url: https://localhost`. Si aparece
+> `[soc-wazuh-rbac] ERROR: Wazuh API request failed for POST /security/user/authenticate`,
+> seguir [el diagnóstico TLS y cambio a localhost](#error-de-conexión-con-la-api-wazuh-durante-rbac).
+> No usar esta dirección para una API ubicada en otro servidor ni desactivar la verificación TLS.
 
 Reemplazar el correo y el nombre del ejemplo por los del primer ingeniero antes de ejecutar:
 
@@ -1242,7 +1326,7 @@ sudo /usr/local/sbin/soc-operations-install apply \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
   --external-proxy-cidr 192.168.4.50/32 \
-  --staging-root /root/soc-operations-release-0.1.158
+  --staging-root /root/soc-operations-release-0.1.159
 ~~~
 
 | Parámetro | Uso en WA01 |
@@ -1266,15 +1350,17 @@ y del agente que se describen a continuación son estados previstos; no signific
 instalación esté completa. Conservar los parámetros originales si se necesita repetir
 <code>apply</code>; <code>resume</code> recupera los datos persistidos y no recibe estos argumentos.
 
-#### Retomar el fallo de descarga de MinIO del release 0.1.154
+<a id="retomar-el-fallo-de-descarga-de-minio-del-release-01154"></a>
+
+#### 9.7.1. Retomar el fallo de descarga de MinIO del release 0.1.154
 
 Si <code>apply</code> completó <code>runtime</code> y se detuvo en <code>dependencies</code>
 con <code>401 UNAUTHORIZED</code> al descargar MinIO desde Quay, descargar y verificar el
-release <code>0.1.158</code> según **Preparar el release fijo**. No modificar el paquete
+release <code>0.1.159</code> según **Preparar el release fijo**. No modificar el paquete
 anterior, las marcas de instalación ni los volúmenes de PostgreSQL, MinIO u OpenBao.
 
 Instalar el orquestador del staging nuevo y repetir los comandos de preflight y apply de
-esta guía con <code>--staging-root /root/soc-operations-release-0.1.158</code>.
+esta guía con <code>--staging-root /root/soc-operations-release-0.1.159</code>.
 Conservar exactamente el correo, el nombre, la URL pública y la topología del primer intento.
 Por ejemplo, si se utilizó <code>cmedina@kriptome.com</code>, conservar esa identidad en vez
 de cambiarla por el correo de ejemplo de la guía.
@@ -1285,15 +1371,17 @@ El resto de la instalación conserva sus pausas previstas para la custodia de Op
 activación del primer ingeniero. <code>resume</code> se ejecuta en esas etapas; primero se debe
 repetir <code>apply</code> para instalar los helpers nuevos y completar las dependencias.
 
-#### Retomar el fallo de conexión del release 0.1.153
+<a id="retomar-el-fallo-de-conexión-del-release-01153"></a>
 
-El release <code>0.1.158</code> corrige las direcciones loopback fijas del helper del plugin:
+#### 9.7.2. Retomar el fallo de conexión del release 0.1.153
+
+El release <code>0.1.159</code> corrige las direcciones loopback fijas del helper del plugin:
 usa el Indexer y los certificados declarados en la topología y la IP de servicio del Dashboard
 para sus comprobaciones de salud. También corrige esas comprobaciones en runtime y status.
 
 Si <code>0.1.153</code> se detuvo en <code>dashboard-plugin</code> con
 <code>Failed to connect to 127.0.0.1 port 9200</code>, descargar y verificar el release
-<code>0.1.158</code> siguiendo **Preparar el release fijo**. Conservar el directorio anterior y
+<code>0.1.159</code> siguiendo **Preparar el release fijo**. Conservar el directorio anterior y
 los estados de <code>/var/lib/soc-operations-installer</code>: foundation ya aplicó cambios y
 no es necesario borrar sus marcas ni volver a desplegar Wazuh.
 
@@ -1301,16 +1389,16 @@ Instalar el nuevo orquestador y repetir el preflight:
 
 ~~~bash
 sudo install -o root -g root -m 0755 \
-  /root/soc-operations-release-0.1.158/soc-operations-install \
+  /root/soc-operations-release-0.1.159/soc-operations-install \
   /usr/local/sbin/soc-operations-install
 sudo /usr/local/sbin/soc-operations-install preflight \
   --topology-file /root/wa01-soc-topology.json \
   --service-address 192.168.4.117 \
-  --staging-root /root/soc-operations-release-0.1.158
+  --staging-root /root/soc-operations-release-0.1.159
 ~~~
 
 Después ejecutar el comando <code>apply</code> anterior, conservando exactamente el correo,
-nombre y URL usados en el primer intento, y usando el staging <code>0.1.158</code>. El instalador
+nombre y URL usados en el primer intento, y usando el staging <code>0.1.159</code>. El instalador
 reinstala los helpers verificados y omite los pasos ya completados, incluidos root-preflight y
 foundation en este caso. Debe avanzar más allá de <code>dashboard-plugin</code>; después seguir
 la acción indicada para OpenBao. <code>resume</code> no reemplaza esta repetición de
@@ -1320,14 +1408,16 @@ Esta recuperación corresponde al fallo reportado antes de instalar el plugin. S
 el error son distintos, revisarlos antes de continuar. No modificar manualmente los hashes ni
 los archivos del release anterior.
 
-### Bloqueo del branding en Wazuh 4.14.8
+<a id="bloqueo-del-branding-en-wazuh-4148"></a>
+
+### 9.8. Bloqueo del branding en Wazuh 4.14.8
 
 Si `apply` termina con `el overlay fue validado para 4.14.7; paquete detectado: 4.14.8-1`,
 el problema es la comprobación antigua del script incluido en el TAR de branding, no las
 dependencias ni OpenBao. No cambiar la versión detectada ni editar el TAR publicado:
 el instalador verifica su SHA-256.
 
-La corrección se distribuye en el release `0.1.158` de GitHub. Acepta únicamente Dashboard 4.14.7 y 4.14.8 y conserva la
+La corrección se distribuye en el release `0.1.159` de GitHub. Acepta únicamente Dashboard 4.14.7 y 4.14.8 y conserva la
 comprobación de destinos, hashes, respaldo y rollback. Las pruebas locales de versiones
 no sustituyen la validación de salud y visual en WA01.
 
@@ -1335,17 +1425,19 @@ Una vez recibido y verificado el release corregido, instalar su ejecutable:
 
 ~~~bash
 sudo install -o root -g root -m 0755 \
-  /root/soc-operations-release-0.1.158/soc-operations-install \
+  /root/soc-operations-release-0.1.159/soc-operations-install \
   /usr/local/sbin/soc-operations-install
 ~~~
 
 Repetir el comando `apply` anterior con los mismos parámetros de identidad, topología
 y publicación, sustituyendo únicamente `--staging-root` por
-`/root/soc-operations-release-0.1.158`. No borrar los estados ni los volúmenes; el
+`/root/soc-operations-release-0.1.159`. No borrar los estados ni los volúmenes; el
 instalador debe reconocer los pasos completados. Inicializar OpenBao solo después de
 que `apply` finalice correctamente.
 
-### Error de conexión con la API Wazuh durante RBAC
+<a id="error-de-conexión-con-la-api-wazuh-durante-rbac"></a>
+
+### 9.9. Error de conexión con la API Wazuh durante RBAC
 
 Si `apply` se detiene en `wazuh-rbac` con este mensaje:
 
@@ -1417,7 +1509,9 @@ otro equipo. Usar un FQDN interno que resuelva al Manager y coincida con los SAN
 un certificado con los SAN correctos y configurar la CA confiable en cada consumidor.
 No usar `curl -k` ni desactivar la comprobación del nombre para ocultar el problema.
 
-### Inicializar OpenBao y continuar la instalación
+<a id="inicializar-openbao-y-continuar-la-instalación"></a>
+
+### 9.10. Inicializar OpenBao y continuar la instalación
 
 En una instalación nueva, el estado esperado tras <code>apply</code> es
 <code>waiting_for_openbao_custody</code>. Solo si OpenBao aún no está inicializado, ejecutar:
@@ -1426,7 +1520,7 @@ En una instalación nueva, el estado esperado tras <code>apply</code> es
 sudo /usr/local/sbin/soc-operations-install openbao-init
 ~~~
 
-El helper del release <code>0.1.158</code> solicita literalmente <code>INIT WA001</code>.
+El helper del release <code>0.1.159</code> solicita literalmente <code>INIT WA001</code>.
 Ese texto es una confirmación interna del instalador, aunque el deployment se llame
 <code>wa01</code>. La inicialización muestra una sola vez cinco recovery shares, con umbral de
 tres, y el token root inicial. Guardarlos con la custodia indicada por el comando, incluyendo
@@ -1457,21 +1551,25 @@ oculta. En la topología distribuida, si el agente todavía no existe, se detien
 <code>waiting_for_manager_agent</code>. Continuar con el apartado siguiente; no repetir la
 inicialización de OpenBao.
 
-### Instalar el agente en el Manager de WA01
+<a id="instalar-el-agente-en-el-manager-de-wa01"></a>
 
-#### Retomar el error de versión del paquete del agente
+### 9.11. Instalar el agente en el Manager de WA01
+
+<a id="retomar-el-error-de-versión-del-paquete-del-agente"></a>
+
+#### 9.11.1. Retomar el error de versión del paquete del agente
 
 Los instaladores hasta `0.1.157` consultaban `soc_operations.__version__`, cuyo valor
 interno quedó en `0.1.112`, aunque el wheel y sus metadatos de distribución son `0.1.113`.
 Esto provoca `installed agent package version is invalid` después de que pip informe éxito.
-El instalador `0.1.158` consulta los metadatos mediante `importlib.metadata` en modo aislado
+El instalador `0.1.159` consulta los metadatos mediante `importlib.metadata` en modo aislado
 y los verifica tanto después de instalar como antes de reutilizar un entorno existente.
 No cambia el wheel ni desactiva su verificación SHA-256.
 
 Para una instalación parcial, preparar y verificar el release nuevo con el procedimiento
 anterior; instalar su ejecutable `soc-operations-install` y repetir el `apply` original
 con los mismos parámetros de identidad, topología y publicación, usando el staging
-`/root/soc-operations-release-0.1.158`. Esto actualiza los helpers y registra el nuevo staging
+`/root/soc-operations-release-0.1.159`. Esto actualiza los helpers y registra el nuevo staging
 sin borrar los pasos completados. No usar `upgrade` para este caso ni reinicializar OpenBao.
 Después repetir el comando de instalación del agente que sigue y ejecutar `resume`
 cuando la instalación del agente finalice correctamente. No borrar el venv ni los volúmenes.
@@ -1487,7 +1585,7 @@ sudo test -x /usr/local/sbin/soc-lab-tenant-provisioner
 
 sudo env \
   SOC_DEPLOYMENT_ID=wa01 \
-  SOC_STAGING_ROOT=/root/soc-operations-release-0.1.158 \
+  SOC_STAGING_ROOT=/root/soc-operations-release-0.1.159 \
   SOC_AIO_SERVICE_ADDRESS=192.168.4.117 \
   SOC_EXTERNAL_API_PROXY_CIDR=127.0.0.1/32 \
   SOC_WAZUH_TOPOLOGY=distributed \
@@ -1514,7 +1612,9 @@ El nombre TLS debe coincidir con un SAN. El agente genera el bundle cliente en
 al Dashboard. Si se eligieron otras rutas, ajustarlas mediante el procedimiento de topología
 antes de reanudar.
 
-### UFW y contenedores
+<a id="ufw-y-contenedores"></a>
+
+### 9.12. UFW y contenedores
 
 El instalador no modifica UFW. Después de crear la red:
 
@@ -1529,7 +1629,9 @@ El nombre de red incluye el proyecto Compose fijo <code>soc-operations-wa001</co
 aunque el deployment sea <code>wa01</code>. Consultar <code>soc-operations_frontend</code>
 produce <code>network not found</code>; no crear otra red ni reinstalar el agente para resolverlo.
 
-#### Obtener la interfaz, subred y gateway reales
+<a id="obtener-la-interfaz-subred-y-gateway-reales"></a>
+
+#### 9.12.1. Obtener la interfaz, subred y gateway reales
 
 Ejecutar estos comandos en `.117`, en la misma sesión Bash. Las variables se calculan;
 no escribir `SOC_BRIDGE` como nombre literal de interfaz:
@@ -1559,7 +1661,9 @@ Gateway: 172.19.0.1
 Detenerse si falla la inspección, la interfaz no existe o la subred/gateway difieren del
 perfil esperado `172.19.0.0/16` y `172.19.0.1`. No copiar el bridge ilustrativo.
 
-#### Confirmar el destino del agente desde el contenedor
+<a id="confirmar-el-destino-del-agente-desde-el-contenedor"></a>
+
+#### 9.12.2. Confirmar el destino del agente desde el contenedor
 
 En modo distribuido, el FQDN del agente de WA01 resuelve a la IP LAN `.117`, no al gateway
 Docker. La comprobación mTLS hecha desde el host no garantiza acceso desde el contenedor.
@@ -1582,7 +1686,9 @@ Si la búsqueda en `runtime.env` no devuelve una URL después de un rollback, re
 valor persistido en `topology.env`; no inventar un nuevo endpoint. La resolución correcta
 no demuestra por sí sola que firewall y mTLS funcionen.
 
-#### Regla UFW para el agente local de WA01
+<a id="regla-ufw-para-el-agente-local-de-wa01"></a>
+
+#### 9.12.3. Regla UFW para el agente local de WA01
 
 Solo después de comprobar los datos anteriores: si API y agente comparten `.117`, el FQDN
 resuelve a `192.168.4.117` y la API pertenece al bridge indicado, permitir el tráfico del
@@ -1616,7 +1722,9 @@ esperado por UFW. Verificar además la cadena <code>DOCKER-USER</code>, el bindi
 puertos publicados y una prueba desde la LAN. La condición de aceptación es que 8443 solo sea
 alcanzable desde el bridge autorizado.
 
-### Reanudación final y primer acceso
+<a id="reanudación-final-y-primer-acceso"></a>
+
+### 9.13. Reanudación final y primer acceso
 
 Después de instalar el agente y comprobar la conectividad del bridge, ejecutar en <code>.117</code>:
 
@@ -1637,7 +1745,9 @@ El estado debe mostrar <code>phase=complete</code>, <code>topology=distributed</
 del bundle y firewall antes de repetir <code>resume</code>. Completar después las pruebas de
 aceptación; el estado técnico <code>complete</code> no sustituye la validación de producción.
 
-### Bloqueo de certificados
+<a id="bloqueo-de-certificados"></a>
+
+### 9.14. Bloqueo de certificados
 
 El aprovisionador actual genera certificados mTLS del agente válidos por 30 días y no existe rotación automática documentada. Antes de producción se debe implementar y probar:
 
@@ -1647,9 +1757,13 @@ El aprovisionador actual genera certificados mTLS del agente válidos por 30 dí
 - Revocación y recuperación.
 - Prueba incorporada a aceptación.
 
-## GeoIP MaxMind
+<a id="geoip-maxmind"></a>
 
-### Diseño
+## 10. GeoIP MaxMind
+
+<a id="diseño"></a>
+
+### 10.1. Diseño
 
 - <code>.117</code> descarga GeoLite2 City, Country y ASN.
 - Publica releases por mTLS en 8444.
@@ -1658,16 +1772,30 @@ El aprovisionador actual genera certificados mTLS del agente válidos por 30 dí
 - La sincronización es automática y la activación manual, rolling.
 - Se conservan cuatro releases.
 
-### Distribuidor en 192.168.4.117
+<a id="distribuidor-en-1921684117"></a>
 
-Las plantillas del TAR `0.1.158` están en la raíz del release. La ruta
+### 10.2. Distribuidor en 192.168.4.117
+
+Las plantillas del TAR `0.1.159` están en la raíz del release. La ruta
 `deploy/geoip/manager.env.example` pertenece al repositorio fuente y **no existe** en el
 paquete extraído. Usar el staging verificado, sin depender del directorio actual.
 Si aparece `install: cannot stat 'deploy/geoip/manager.env.example'`, no descargar otra
-plantilla: comprobar `/root/soc-operations-release-0.1.158/manager.env.example`.
+plantilla: comprobar `/root/soc-operations-release-0.1.159/manager.env.example`.
+
+> [!IMPORTANT]
+> **Para GeoIP, usar los helpers corregidos 0.1.159.** El staging indicado abajo corresponde
+> al paquete corregido distribuido en GitHub. No basta con
+> reinstalar los helpers de 0.1.158. Preparar y verificar el paquete corregido antes de continuar.
+
+Si SOC Operations ya está instalado y se creó el primer ingeniero, para esta corrección basta
+con preparar/verificar el release 0.1.159 e instalar sus helpers mediante los bloques GeoIP
+siguientes. No repetir `apply` ni `upgrade`, reinstalar la aplicación o reinicializar OpenBao
+solo para corregir GeoIP. Conservar `manager.env`, `worker.env`, `GeoIP.conf` y cualquier PKI existente.
 
 ~~~bash
-SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.158'
+SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.159'
+(
+set -euo pipefail
 sudo test -f "$SOC_GEOIP_RELEASE/manager.env.example"
 sudo test -f "$SOC_GEOIP_RELEASE/GeoIP.conf.example"
 # Continuar solo si ambas comprobaciones terminan sin error.
@@ -1689,6 +1817,7 @@ else
 fi
 
 sudo nano /etc/soc-geoip-manager/manager.env
+)
 ~~~
 
 Configurar en `manager.env`:
@@ -1720,30 +1849,38 @@ Mantenerlo <code>root:root 0600</code>; nunca guardar la licencia en Git o evide
 No ejecutar `install /dev/null .../GeoIP.conf` sobre un archivo existente: lo vaciaría.
 `libmaxminddb-bin` proporciona `mmdblookup`, requerido para validar las bases descargadas.
 
-**Limitación detectada en los helpers del release 0.1.158:** las comprobaciones de
-herramientas invocan `/usr/bin/command`, aunque `command` es un builtin de Bash. Si ese
-ejecutable no existe en Ubuntu, el preflight se detiene. No crear un alias o ejecutable para
-saltarse el control ni continuar con `install`: hace falta corregir y publicar el helper.
-Esta actualización de documentación no modifica el instalador ni acredita GeoIP end-to-end.
+> [!WARNING]
+> **Corrección GeoIP:** los helpers de `0.1.158` invocaban `/usr/bin/command`, que no existe
+> en Ubuntu. Los helpers corregidos tienen versión `0.1.159` y usan el builtin `command -v`.
+> El paquete corregido se distribuye en el release 0.1.159 de GitHub. No continuar GeoIP
+> con el TAR antiguo ni crear un ejecutable `/usr/bin/command` para evitar el error.
+> Conservar credenciales y PKI existentes. Las pruebas locales no acreditan GeoIP end-to-end.
 
 Instalar el ejecutable verificado y pasar el staging explícitamente: copiar el helper a
 `/usr/local/sbin` no copia su plantilla Nginx ni sus unidades systemd.
 
 ~~~bash
+(
+set -euo pipefail
+: "${SOC_GEOIP_RELEASE:?Definir primero el staging verificado del release corregido}"
+sudo grep -Fqx 'readonly VERSION="0.1.159"' "$SOC_GEOIP_RELEASE/soc-geoip-manager"
 sudo install -o root -g root -m 0755 \
   "$SOC_GEOIP_RELEASE/soc-geoip-manager" /usr/local/sbin/soc-geoip-manager
 sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" soc-geoip-manager preflight
-# Ejecutar install únicamente después de un preflight satisfactorio.
+# set -e detiene este bloque si falla preflight; no se crean certificados después del fallo.
 sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" soc-geoip-manager install
 sudo soc-geoip-manager update
 sudo soc-geoip-manager issue-client wa01-indexer01 /root/geoip-wa01-indexer01
 sudo soc-geoip-manager issue-client wa01-indexer02 /root/geoip-wa01-indexer02
 sudo soc-geoip-manager status
+)
 ~~~
 
 Transferir cada bundle solo a su nodo y eliminar las copias temporales.
 
-### Workers en 192.168.4.118 y 192.168.4.119
+<a id="workers-en-1921684118-y-1921684119"></a>
+
+### 10.3. Workers en 192.168.4.118 y 192.168.4.119
 
 Preparar en **cada nodo** el mismo release verificado y el bundle mTLS de ese nodo mediante
 el canal SSH autorizado. No transferir `GeoIP.conf`, la licencia MaxMind ni la clave privada
@@ -1752,7 +1889,9 @@ El helper lee `/etc/soc-geoip-indexer/worker.env`: `indexer.env.example` es solo
 la plantilla.
 
 ~~~bash
-SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.158'
+SOC_GEOIP_RELEASE='/root/soc-operations-release-0.1.159'
+(
+set -euo pipefail
 sudo test -f "$SOC_GEOIP_RELEASE/indexer.env.example"
 # Continuar solo si la plantilla está presente y se verificó SHA256SUMS.
 sudo install -d -o root -g root -m 0700 /etc/soc-geoip-indexer
@@ -1763,6 +1902,7 @@ else
     "$SOC_GEOIP_RELEASE/indexer.env.example" /etc/soc-geoip-indexer/worker.env
 fi
 sudo nano /etc/soc-geoip-indexer/worker.env
+)
 ~~~
 
 Base para cada nodo:
@@ -1809,22 +1949,30 @@ Después ejecutar `sudo systemctl daemon-reload`. No confiar en que una variable
 sesión SSH se transfiera automáticamente a los timers de systemd.
 
 ~~~bash
+(
+set -euo pipefail
+: "${SOC_GEOIP_RELEASE:?Definir primero el staging verificado del release corregido}"
+sudo grep -Fqx 'readonly VERSION="0.1.159"' "$SOC_GEOIP_RELEASE/soc-geoip-indexer"
 sudo install -o root -g root -m 0755 \
   "$SOC_GEOIP_RELEASE/soc-geoip-indexer" /usr/local/sbin/soc-geoip-indexer
 sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 \
   soc-geoip-indexer preflight
-# No continuar si falla el preflight, incluida la limitación /usr/bin/command indicada arriba.
+# set -e detiene este bloque si falla preflight.
 sudo env SOC_GEOIP_STAGING_ROOT="$SOC_GEOIP_RELEASE" SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 \
   soc-geoip-indexer install
 sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer sync
 sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer status
+)
 ~~~
 
 Activar primero en Indexer 1:
 
 ~~~bash
+(
+set -euo pipefail
 sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer activate
 sudo env SOC_EXPECTED_WAZUH_VERSION=4.14.8-1 soc-geoip-indexer status
+)
 ~~~
 
 Esperar estado green, verificar pipelines y simular una IP pública. Después repetir en Indexer 2. Comparar SHA-256 de City, Country y ASN entre distribuidor y receptores.
@@ -1844,9 +1992,13 @@ sudo journalctl -u soc-geoip-indexer --since '-7 days' --no-pager
 
 Antes de actualizar SOC Operations, seguir la preparación de upgrade de <code>docs/maxmind-geoip.md</code>.
 
-## Pruebas de aceptación
+<a id="pruebas-de-aceptación"></a>
 
-### Plataforma
+## 11. Pruebas de aceptación
+
+<a id="plataforma"></a>
+
+### 11.1. Plataforma
 
 - Tres Indexers visibles, estado green y dos nodos de datos.
 - Ningún shard en el Indexer central.
@@ -1854,7 +2006,9 @@ Antes de actualizar SOC Operations, seguir la preparación de upgrade de <code>d
 - Un agente sintético se enrola por el FQDN público y envía eventos por 1514.
 - La API 55000 no es pública.
 
-### Publicación
+<a id="publicación"></a>
+
+### 11.2. Publicación
 
 - Los tres servicios HTTPS rechazan IP no autorizada.
 - Una IP permitida accede con certificado válido.
@@ -1862,7 +2016,9 @@ Antes de actualizar SOC Operations, seguir la preparación de upgrade de <code>d
 - 1514/1515 funcionan con el registro Cloudflare en DNS only.
 - HAProxy audita origen, destino, resultado y latencia sin credenciales.
 
-### SOC Operations
+<a id="soc-operations-1"></a>
+
+### 11.3. SOC Operations
 
 - Todas las pruebas de <code>docs/acceptance.md</code> pasan.
 - Dos tenants superan pruebas positivas y negativas de aislamiento.
@@ -1871,7 +2027,9 @@ Antes de actualizar SOC Operations, seguir la preparación de upgrade de <code>d
 - La rotación de certificados se prueba antes de 30 días.
 - La API externa presenta <code>soc-external-api-wa01</code>.
 
-### GeoIP y continuidad
+<a id="geoip-y-continuidad"></a>
+
+### 11.4. GeoIP y continuidad
 
 - Los hashes City, Country y ASN coinciden.
 - Los pipelines enriquecen documentos en ambos nodos.
@@ -1880,7 +2038,9 @@ Antes de actualizar SOC Operations, seguir la preparación de upgrade de <code>d
 - PostgreSQL demuestra RPO 15 minutos y el conjunto RTO 4 horas.
 - Cada nodo puede reiniciarse de forma ordenada sin pérdida de quorum.
 
-## Rollback y evidencia
+<a id="rollback-y-evidencia"></a>
+
+## 12. Rollback y evidencia
 
 Para cambios de Indexer:
 
@@ -1901,7 +2061,9 @@ Conservar como evidencia:
 - Hashes y pruebas GeoIP.
 - Ticket, aprobaciones, operador, hora y rollback.
 
-## Pendientes previos a producción
+<a id="pendientes-previos-a-producción"></a>
+
+## 13. Pendientes previos a producción
 
 - Definir <code>ADMIN_CIDR</code> y <code>SSH_PORT</code>.
 - Confirmar SAN antes de configurar <code>verifyhost</code>.
@@ -1911,7 +2073,9 @@ Conservar como evidencia:
 - Aprobar <code>docs/acceptance.md</code>.
 - Evaluar separar el Indexer manager-only del servidor central en una evolución futura.
 
-## Referencias
+<a id="referencias"></a>
+
+## 14. Referencias
 
 - Arquitectura y puertos Wazuh: https://documentation.wazuh.com/current/getting-started/architecture.html
 - Instalación Indexer: https://documentation.wazuh.com/current/installation-guide/wazuh-indexer/installation-assistant.html

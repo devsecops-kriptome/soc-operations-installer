@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "mode": "distributed",
+  "deployment_id": "wazuh-prod",
+  "dashboard": { "expected_nodes": 1 },
+  "manager": {
+    "expected_nodes": 3,
+    "api_ca_bundle": "/etc/soc-operations/topology/wazuh-api-ca.pem",
+    "deployment_agent_url": "https://wazuh-manager-master.example.com:8443",
+    "deployment_client_cert": "/etc/soc-operations/topology/deploy-client.crt",
+    "deployment_client_key": "/etc/soc-operations/topology/deploy-client.key",
+    "deployment_ca_bundle": "/etc/soc-operations/topology/deploy-ca.crt"
+  },
+  "indexer": {
+    "urls": ["https://wazuh-indexer-lb.example.com:9200"],
+    "tls_server_name": "wazuh-indexer-lb.example.com",
+    "expected_nodes": 3,
+    "admin_cert": "/etc/soc-operations/topology/indexer-admin.pem",
+    "admin_key": "/etc/soc-operations/topology/indexer-admin-key.pem",
+    "ca_bundle": "/etc/soc-operations/topology/indexer-root-ca.pem"
+  }
+}

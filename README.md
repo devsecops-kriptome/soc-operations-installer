@@ -9,45 +9,43 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.163`
-- Instalador: `0.1.163`
-- API, worker y agente: `0.1.114`
-- Plugin: `socOperations@0.1.94`
-- Perfiles soportados: Wazuh `4.14.7-1` con OSD `2.19.5`, o Wazuh `4.14.8-1` con OSD `2.19.6`
+- Release e instalador: `0.1.164`
+- API, worker y agente: `0.1.115`
+- Plugin: `socOperations@0.1.95`
+- Perfiles: Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`
 
-`0.1.163` corrige el upgrade de `0.1.162` que fallaba con una referencia al wheel anterior
-`0.1.113` durante la adopción de pasos. Valida el contrato del wheel esperado antes de
-modificar servicios. Registra `upgrade_incomplete` y exige todos los pasos antes de declarar
-`complete`; un componente que falla deja su marcador pendiente, no conserva un éxito anterior.
+Corrige la conexión TLS Nginx → Indexer que podía devolver 502 al consultar eventos y
+vulnerabilidades cuando la URL era una IP y `proxy_ssl_name` no coincidía con el certificado.
+Persiste `indexer.tls_server_name` por instalación, verifica cadena y hostname antes de cambiar
+el agente y repara configuración antigua aunque el wheel ya esté instalado. Si no hay nombre
+explícito, primero autentica el origen configurado (SAN de IP si la URL usa IP) y solo acepta
+candidatos del certificado con cadena confiable que superan la misma
+verificación de hostname usada por Nginx. No desactiva TLS ni amplía reglas WAF.
 
-Para recuperar ese intento, conservar estados y respaldos, verificar todo el release nuevo y
-seguir [el apartado 9.15.6 de WA01](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#recuperar-upgrade-interrumpido-01162).
-No repetir el upgrade defectuoso de `0.1.162` ni editar sus hashes. No usar `apply`, inicializar
-OpenBao o borrar volúmenes. El upgrade no es una transacción global con rollback automático.
+Una vez habilitado el agente, la readiness de la API prueba el gateway mTLS con el lector de OpenSearch y una búsqueda
+`match_none`, tamaño cero y sin documentos. Un 502, 403, JSON inválido, timeout o shards fallidos
+impide declarar disponibilidad. El instalador verifica esta ruta antes de completar el upgrade.
+No cambia permisos del lector, filtros tenant ni credenciales.
 
-Se conservan byte a byte los otros 47 artefactos de `0.1.162`: API/agente `0.1.114`, plugin
-`0.1.94` para ambas plataformas, imágenes, MinIO, branding y helpers. No se reconstruyen ni
-se cambian esos binarios en este release. No añade migraciones respecto a API `0.1.113`.
+El plugin elimina fondos claros fijos de las tarjetas de la Bandeja de alertas y eventos y del
+resumen de casos, así como de filas seleccionadas. Usa el tema nativo de Dashboard. Renderizado
+local en Edge con EUI real: contraste mínimo 11.87:1 en claro y 13.13:1 en oscuro.
 
-Incluye la funcionalidad de snapshots introducida en `0.1.162`: editar activación/repositorio
-de un tenant existente y reconciliar políticas separadas para alertas y archives, con estado
-real, alcance tenant y rollback de definiciones sin borrar snapshots. No activa todos los
-tenants automáticamente. Después del upgrade, usar **Guardar y reconciliar** según
-[el apartado 7.11.6.1](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#habilitar-snapshots-en-un-tenant-existente).
+Validación: 497 pruebas aprobadas, 5 omitidas por requerir PostgreSQL de integración;
+prueba TLS real con SAN solo de IP y CN, rechazos explícitos, correspondencia wheel/imagen/fuentes,
+migraciones sin cambios, hashes y Bash verificados. Ruff pasó en código de producción y pruebas
+nuevas/modificadas; existen cinco avisos E501 previos en un test de branding ajeno a esta corrección.
+Los dos plugins compilaron con sus SDK respectivos. Aceptación funcional en WA01 pendiente del upgrade.
 
-Validación de `0.1.163`: 466 pruebas locales aprobadas y 5 omitidas porque requieren
-PostgreSQL de integración. Las pruebas ejecutables nuevas reprodujeron el fallo anterior y
-comprueban adopción, estado, errores y orden agente → runtime. Ruff, sintaxis Bash, hashes y
-conservación de artefactos verificados. La validación real end-to-end en WA01 sigue pendiente.
+Conserva los datos y las correcciones de adopción/estado de `0.1.163`, snapshots de `0.1.162`,
+API externa de `0.1.161` y destino de aprovisionamiento de `0.1.160`. No activa snapshots o API
+externa automáticamente. Los otros 39 artefactos de `0.1.163` se conservan byte a byte, incluyendo
+MinIO, dependencias, branding y GeoIP `0.1.159`. No reinstala ni actualiza Wazuh.
 
-El agente local se actualiza antes del runtime y se comprueba por mTLS. Conserva las opciones
-operativas y credenciales adicionales de `agent.env`. Para un Manager realmente remoto,
-actualizar primero su agente desde el mismo release verificado.
-
-Conserva las correcciones de `0.1.161` de API externa y `0.1.160` de destino de aprovisionamiento
-(`distributed` usa `production`; `aio` conserva `lab`). No activa la API por defecto, no cambia
-credenciales ni reinstala Wazuh. Los helpers GeoIP siguen en `0.1.159`; el defecto independiente
-de permisos del manifiesto conserva la mitigación documentada y no se corrige en este release.
+Para una instalación existente, usar [upgrade WA01](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#actualizar-soc-operations-sin-reinstalar-wa01),
+no `apply`, inicialización de OpenBao ni borrado de volúmenes. El upgrade no ofrece rollback
+global automático. Actualizar primero el agente si el Manager está en otro servidor.
+Conservar respaldos y releases anteriores. La guía incorpora la parada SIGINT verificada en WA01.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.

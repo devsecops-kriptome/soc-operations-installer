@@ -9,43 +9,45 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release: `v0.1.162`
-- Instalador: `0.1.162`
+- Release: `v0.1.163`
+- Instalador: `0.1.163`
 - API, worker y agente: `0.1.114`
 - Plugin: `socOperations@0.1.94`
 - Perfiles soportados: Wazuh `4.14.7-1` con OSD `2.19.5`, o Wazuh `4.14.8-1` con OSD `2.19.6`
 
-`0.1.162` permite habilitar o deshabilitar snapshots y seleccionar un repositorio writable
-al editar un tenant existente. Reconcilia políticas separadas para alertas y archives, muestra
-su estado real y detiene la política mixta anterior únicamente después de verificar las nuevas.
-No borra snapshots, no recrea tenants y no habilita automáticamente todos los tenants.
+`0.1.163` corrige el upgrade de `0.1.162` que fallaba con una referencia al wheel anterior
+`0.1.113` durante la adopción de pasos. Valida el contrato del wheel esperado antes de
+modificar servicios. Registra `upgrade_incomplete` y exige todos los pasos antes de declarar
+`complete`; un componente que falla deja su marcador pendiente, no conserva un éxito anterior.
 
-Actualiza el agente local antes de iniciar el runtime nuevo, incluso con Indexers distribuidos;
-comprueba por mTLS su versión y capacidad. Conserva credenciales opcionales y flags operativos
-del `agent.env`. Para un Manager remoto, actualizar primero su agente desde el mismo release.
-El árbol de migraciones coincide con `0.1.113`: esta corrección no añade migraciones.
+Para recuperar ese intento, conservar estados y respaldos, verificar todo el release nuevo y
+seguir [el apartado 9.15.6 de WA01](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#recuperar-upgrade-interrumpido-01162).
+No repetir el upgrade defectuoso de `0.1.162` ni editar sus hashes. No usar `apply`, inicializar
+OpenBao o borrar volúmenes. El upgrade no es una transacción global con rollback automático.
 
-Para una instalación existente, verificar el release y seguir el
-[upgrade seguro de WA01, apartado 9.15](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#actualizar-soc-operations-sin-reinstalar-wa01).
-Requiere respaldo actual, ventana y `upgrade`, no repetir `apply`, inicializar OpenBao ni borrar
-volúmenes. El upgrade no es una transacción global; conservar el release anterior.
-Después, usar **Guardar y reconciliar** según
-[snapshots por familia, apartado 7.11.6.1](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#habilitar-snapshots-en-un-tenant-existente).
+Se conservan byte a byte los otros 47 artefactos de `0.1.162`: API/agente `0.1.114`, plugin
+`0.1.94` para ambas plataformas, imágenes, MinIO, branding y helpers. No se reconstruyen ni
+se cambian esos binarios en este release. No añade migraciones respecto a API `0.1.113`.
 
-Validación de `0.1.162`: 450 pruebas locales aprobadas y 5 omitidas por requisitos
-de integración, Ruff, sintaxis Bash, dos builds de plugin y verificación de los 48 artefactos.
-No se ha aplicado ni validado end-to-end en WA01. La restauración y el primer snapshot real
-deben probarse allí antes de dar el respaldo por aceptado.
+Incluye la funcionalidad de snapshots introducida en `0.1.162`: editar activación/repositorio
+de un tenant existente y reconciliar políticas separadas para alertas y archives, con estado
+real, alcance tenant y rollback de definiciones sin borrar snapshots. No activa todos los
+tenants automáticamente. Después del upgrade, usar **Guardar y reconciliar** según
+[el apartado 7.11.6.1](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#habilitar-snapshots-en-un-tenant-existente).
 
-Conserva la corrección de `0.1.161` de API externa: reconcilia el flag persistido y el servicio
-cuando Manager y runtime comparten servidor, recrea únicamente `external-api` cuando corresponde
-y verifica 401/503. No activa la API por defecto, no cambia credenciales y no reinstala Wazuh.
-Consultar el [apartado 9.13.2](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#activacion-api-externa-y-runtime-desactualizado).
+Validación de `0.1.163`: 466 pruebas locales aprobadas y 5 omitidas porque requieren
+PostgreSQL de integración. Las pruebas ejecutables nuevas reprodujeron el fallo anterior y
+comprueban adopción, estado, errores y orden agente → runtime. Ruff, sintaxis Bash, hashes y
+conservación de artefactos verificados. La validación real end-to-end en WA01 sigue pendiente.
 
-Incluye la corrección de `0.1.160`: `distributed` usa `production` y `aio` conserva `lab`.
-No cambia el clúster ni permite al agente de producción aceptar manifiestos de laboratorio.
-Los helpers GeoIP siguen en `0.1.159`; el defecto independiente de permisos del manifiesto
-conserva la mitigación descrita en la guía y no se corrige en este release.
+El agente local se actualiza antes del runtime y se comprueba por mTLS. Conserva las opciones
+operativas y credenciales adicionales de `agent.env`. Para un Manager realmente remoto,
+actualizar primero su agente desde el mismo release verificado.
+
+Conserva las correcciones de `0.1.161` de API externa y `0.1.160` de destino de aprovisionamiento
+(`distributed` usa `production`; `aio` conserva `lab`). No activa la API por defecto, no cambia
+credenciales ni reinstala Wazuh. Los helpers GeoIP siguen en `0.1.159`; el defecto independiente
+de permisos del manifiesto conserva la mitigación documentada y no se corrige en este release.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.

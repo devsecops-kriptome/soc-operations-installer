@@ -9,43 +9,39 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release e instalador: `0.1.164`
-- API, worker y agente: `0.1.115`
-- Plugin: `socOperations@0.1.95`
+- Release e instalador: `0.1.165`
+- API, worker y agente: `0.1.116`
+- Plugin: `socOperations@0.1.96`
 - Perfiles: Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`
 
-Corrige la conexión TLS Nginx → Indexer que podía devolver 502 al consultar eventos y
-vulnerabilidades cuando la URL era una IP y `proxy_ssl_name` no coincidía con el certificado.
-Persiste `indexer.tls_server_name` por instalación, verifica cadena y hostname antes de cambiar
-el agente y repara configuración antigua aunque el wheel ya esté instalado. Si no hay nombre
-explícito, primero autentica el origen configurado (SAN de IP si la URL usa IP) y solo acepta
-candidatos del certificado con cadena confiable que superan la misma
-verificación de hostname usada por Nginx. No desactiva TLS ni amplía reglas WAF.
+Corrige **Nivel mínimo** vacío en la búsqueda de eventos: el API deja de aplicar un
+nivel 10 oculto cuando se omite el parámetro. Incluye archivados sin `rule.level` y
+conserva los filtros de tenant, período, permisos y límites. El contexto de auditoría
+admite nivel omitido o nulo; un cero explícito sigue siendo un filtro `>= 0`.
+La importación desde Discover tampoco añade un nivel si no estaba especificado.
 
-Una vez habilitado el agente, la readiness de la API prueba el gateway mTLS con el lector de OpenSearch y una búsqueda
-`match_none`, tamaño cero y sin documentos. Un 502, 403, JSON inválido, timeout o shards fallidos
-impide declarar disponibilidad. El instalador verifica esta ruta antes de completar el upgrade.
-No cambia permisos del lector, filtros tenant ni credenciales.
+La **Bandeja de alertas y eventos**, **Casos e incidentes** y **Dashboard de Casos**
+comparten el mismo componente de tarjetas y paleta. Fijan texto blanco y fondos
+degradados sombreados en ambos temas. Contraste mínimo conservador de etiquetas
+validado con EUI real en Edge: **4.82:1**, con 16 tarjetas por tema y sin desbordamientos.
+Se actualiza el identificador de build de la interfaz para invalidar caché anterior.
 
-El plugin elimina fondos claros fijos de las tarjetas de la Bandeja de alertas y eventos y del
-resumen de casos, así como de filas seleccionadas. Usa el tema nativo de Dashboard. Renderizado
-local en Edge con EUI real: contraste mínimo 11.87:1 en claro y 13.13:1 en oscuro.
+Validación: 519 pruebas aprobadas, 5 omitidas por requisitos de PostgreSQL
+de integración; 10 casos de normalización frontend; compilación de ambos plugins,
+correspondencia wheel/imagen/fuentes, migraciones sin cambios y hashes/Bash verificados.
+La aceptación funcional en WA01 permanece pendiente del upgrade y de las pruebas de UI.
 
-Validación: 497 pruebas aprobadas, 5 omitidas por requerir PostgreSQL de integración;
-prueba TLS real con SAN solo de IP y CN, rechazos explícitos, correspondencia wheel/imagen/fuentes,
-migraciones sin cambios, hashes y Bash verificados. Ruff pasó en código de producción y pruebas
-nuevas/modificadas; existen cinco avisos E501 previos en un test de branding ajeno a esta corrección.
-Los dos plugins compilaron con sus SDK respectivos. Aceptación funcional en WA01 pendiente del upgrade.
+Conserva la corrección TLS y readiness `opensearch_query` de `0.1.164`, y las correcciones
+de adopción/estado, snapshots, API externa y aprovisionamiento anteriores. No desactiva
+TLS, no amplía excepciones WAF ni activa snapshots/API externa automáticamente. Los otros
+40 artefactos de `0.1.164` se conservan byte a byte.
+No reinstala ni actualiza Wazuh. El release `0.1.164` y sus activos no se reemplazan.
 
-Conserva los datos y las correcciones de adopción/estado de `0.1.163`, snapshots de `0.1.162`,
-API externa de `0.1.161` y destino de aprovisionamiento de `0.1.160`. No activa snapshots o API
-externa automáticamente. Los otros 39 artefactos de `0.1.163` se conservan byte a byte, incluyendo
-MinIO, dependencias, branding y GeoIP `0.1.159`. No reinstala ni actualiza Wazuh.
-
-Para una instalación existente, usar [upgrade WA01](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#actualizar-soc-operations-sin-reinstalar-wa01),
-no `apply`, inicialización de OpenBao ni borrado de volúmenes. El upgrade no ofrece rollback
-global automático. Actualizar primero el agente si el Manager está en otro servidor.
-Conservar respaldos y releases anteriores. La guía incorpora la parada SIGINT verificada en WA01.
+Para una instalación existente, seguir [upgrade WA01](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#actualizar-soc-operations-sin-reinstalar-wa01),
+no `apply`, inicialización de OpenBao ni borrado de volúmenes. Reservar una ventana:
+Dashboard reinicia y se recrean los servicios SOC. No hay rollback global automático.
+Conservar releases y respaldos anteriores; si no hubo cambios de datos, el responsable
+puede reutilizar el checkpoint anterior verificado según la guía.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.

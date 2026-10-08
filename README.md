@@ -9,9 +9,9 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release e instalador: `0.1.167`
+- Release e instalador: `0.1.168`
 - API, worker y agente: `0.1.118`
-- Plugin: `socOperations@0.1.98`
+- Plugin: `socOperations@0.1.99`
 - Perfiles: Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`
 
 Protege la cuenta inicial como **administración institucional y contingencia**, no como
@@ -22,7 +22,7 @@ No se elige otro ingeniero por antigüedad ni se reactiva automáticamente una c
 o inactiva. Un correo personal requiere una migración de custodia separada.
 
 El helper verifica todos los assets públicos instalados contra el ZIP, incluidos JS.gz.
-El build `0.1.98-global-engineer-workforce` se muestra en cada pantalla y en About.
+El build `0.1.99-vulnerability-cursor-pagination` se muestra en cada pantalla y en About.
 Un popup avisa de cambios de versión instalada y ofrece **Limpiar caché y recargar** o
 **Más tarde**. Comprueba el servidor al abrir y cada 60 s con la pestaña visible, sin instalar
 releases automáticamente. No recarga sin consentimiento; conserva sesión y preferencias.
@@ -38,24 +38,31 @@ e Ingeniería con invitación pendiente pueden programarse; no se activa su cuen
 permite login antes de aceptar. Los auditores quedan excluidos. Desactivar o bloquear una
 cuenta oculta la agenda futura y conserva el historial concluido.
 
-Validación: 564 pruebas backend aprobadas, cinco omitidas por requisitos de integración y
-dos avisos de deprecación; 21 pruebas frontend aprobadas con EUI real. Incluye cinco pruebas
-PostgreSQL de planificación global y cinco de protección institucional con RLS forzada y
-usuario sin BYPASSRLS. Ambos plugins compilados con SDK exacto, JS/JS.gz, correspondencia
-fuentes/wheel/imagen y 48 hashes internos verificados. Publicar no implica desplegar en
-LAUFEY. Consultar [cambios y huellas de 0.1.167](docs/release-0.1.167.md).
+Vulnerability Triage consulta una sola página de 25, 50 o 100 hallazgos (50 por defecto),
+con Anterior/Siguiente y el total del tenant. No descarga todo el inventario con
+`all_current=true`. La selección se limita a la página visible; Actualizar vuelve a la
+primera. El refresco automático no se solapa y se pausa al seleccionar o ejecutar acciones.
+
+Validación: 562 pruebas backend aprobadas, 15 omitidas por requisitos de integración y
+dos avisos de deprecación; 31 pruebas frontend aprobadas con EUI real. Ambos plugins
+compilados con SDK exacto, JS/JS.gz y 48 hashes internos verificados. El chequeo global
+de tipos mantiene nueve diagnósticos en código ajeno a la paginación; no es un chequeo
+completamente limpio. Publicar no implica desplegar en LAUFEY.
+Consultar [cambios, límites y huellas de 0.1.168](docs/release-0.1.168.md).
 
 Conserva la corrección TLS y readiness `opensearch_query` de `0.1.164`, y las correcciones
 de adopción/estado, snapshots, API externa y aprovisionamiento anteriores. No desactiva
 TLS, no amplía excepciones WAF ni activa snapshots/API externa automáticamente. Los otros
-39 artefactos de `0.1.166` se conservan byte a byte.
-No reinstala ni actualiza Wazuh. El release `0.1.166` y sus activos no se reemplazan.
+43 artefactos de `0.1.167`, incluidos imagen y wheel de API/agente, se conservan byte a byte.
+No reinstala ni actualiza Wazuh. El release `0.1.167` y sus activos no se reemplazan.
 
-Para una instalación existente, seguir [upgrade a 0.1.167 en WA01](docs/upgrade-0.1.167-laufey.md),
+Para una instalación existente, seguir [upgrade a 0.1.168 en WA01](docs/upgrade-0.1.168-laufey.md),
 no `apply`, inicialización de OpenBao ni borrado de volúmenes. Reservar una ventana:
 Dashboard reinicia y se recrean los servicios SOC. No hay rollback global automático.
-Conservar releases y respaldos anteriores. Esta versión añade una migración PostgreSQL:
-exige un checkpoint NUEVO del estado 0.1.166; el respaldo previo a esa versión no sustituye el actual.
+Conservar releases y respaldos anteriores. Desde 0.1.167 no añade una migración PostgreSQL:
+mantiene el esquema `a2c8e4f719b6`. Exige un checkpoint NUEVO del estado 0.1.167;
+el respaldo previo a esa versión no sustituye el actual. El 401 de `/api/request`
+y los avisos CSP/telemetría son diagnósticos independientes, no corregidos por esta release.
 No existe downgrade automático que retire la protección.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
@@ -131,7 +138,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.167.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.168.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

@@ -22,12 +22,18 @@ No se elige otro ingeniero por antigüedad ni se reactiva automáticamente una c
 o inactiva. Un correo personal requiere una migración de custodia separada.
 
 El helper verifica todos los assets públicos instalados contra el ZIP, incluidos JS.gz.
-El build `0.1.97-primary-admin-verified-bundles` se muestra en cada pantalla y en About.
+El build `0.1.97-primary-admin-version-popup` se muestra en cada pantalla y en About.
+Un popup avisa de cambios de versión instalada y ofrece **Limpiar caché y recargar** o
+**Más tarde**. Comprueba el servidor al abrir y cada 60 s con la pestaña visible, sin instalar
+releases automáticamente. No recarga sin consentimiento; conserva sesión y preferencias.
+Guardar los cambios pendientes antes de pulsar el botón. La primera actualización desde
+0.1.96 requiere recargar para recibir el código que implementa este aviso.
 Conserva los filtros opcionales y las tarjetas de contraste de 0.1.165; el operador confirmó
 que los colores funcionan en WA01 después de reiniciar desde About. No se modifican CSP ni WAF.
 
 Validación: 541 pruebas generales aprobadas, 10 omitidas por requisitos de integración;
-cinco pruebas PostgreSQL adicionales aprobadas desde la imagen construida. Ambos plugins
+cinco pruebas PostgreSQL adicionales aprobadas desde la imagen construida y 17 pruebas
+frontend del popup, estado, limpieza y rutas autenticadas con EUI real. Ambos plugins
 compilados con los SDK exactos, 16 tarjetas EUI por tema, JS/JS.gz, correspondencia
 wheel/imagen/fuentes y 48 hashes internos verificados. La protección en WA01 requiere
 aceptación después del upgrade; publicar el release no implica desplegarlo en ese servidor.

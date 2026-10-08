@@ -319,7 +319,7 @@ test "$INSTALLED_INSTALLER_SHA256" = "$EXPECTED_INSTALLER_SHA256"
 Para el release `0.1.166` publicado, ambas huellas deben ser:
 
 ```text
-59c07e395ffac30456660f8159af6c949ebe5a254cf4dbd2938ce7cdb4eab20f
+960ee8994bf3a3c75bcc778df3335c2ab70b0fd501ce3937dbc0902690ac12f6
 ```
 
 La comparación contra el `SHA256SUMS` interno es la validación autoritativa.

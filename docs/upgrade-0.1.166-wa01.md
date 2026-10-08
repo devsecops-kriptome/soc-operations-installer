@@ -103,10 +103,10 @@ curl --fail --location --proto '=https' --tlsv1.2 --output SHA256SUMS \
 curl --fail --location --proto '=https' --tlsv1.2 --output soc-operations-0.1.166.tar.gz.age \
   'https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.166/soc-operations-0.1.166.tar.gz.age'
 printf '%s  %s\n' \
-  '1e8478833773589f6767917fb991d3f84d6f54d3c2e318c1b5a982a2488c711a' \
+  '9f3235fac72652355a2534057cab50c965fefb2a55765d5e7697dc4dfa76a19e' \
   SHA256SUMS | sha256sum --check --strict -
 printf '%s  %s\n' \
-  '56241dfb2110ae35cd2305936ff205536e73e03b2a4bf5e34c3f72b2af1909eb' \
+  '707fed1999b60a9b0984b9de784cf7e67fee08164ee73a8d3ebded8323256fd3' \
   soc-operations-0.1.166.tar.gz.age | sha256sum --check --strict -
 printf 'Descarga verificada: %s\n' "$SOC_DOWNLOAD"
 )
@@ -136,7 +136,7 @@ set -euo pipefail
 age --decrypt --identity "$SOC_AGE_IDENTITY" \
   --output soc-operations-0.1.166.tar.gz soc-operations-0.1.166.tar.gz.age
 printf '%s  %s\n' \
-  'b24797ebeafc4c8f6d2edbc677c77ec645f92bd9c3b5011b2edf0feeb0e390f6' \
+  'ae5c8fd39a71dbbd9e8b47b7d525c5901e910a5b363118c7526d7e4909bec6cd' \
   soc-operations-0.1.166.tar.gz | sha256sum --check --strict -
 tar --extract --gzip --file soc-operations-0.1.166.tar.gz
 cd release-0.1.166
@@ -172,7 +172,7 @@ sha256sum --check --strict SHA256SUMS
 test "$(find . -maxdepth 1 -type f | wc -l)" -eq 49
 grep -Fqx 'readonly INSTALLER_VERSION="0.1.166"' soc-operations-install
 printf '%s  %s\n' \
-  '59c07e395ffac30456660f8159af6c949ebe5a254cf4dbd2938ce7cdb4eab20f' \
+  '960ee8994bf3a3c75bcc778df3335c2ab70b0fd501ce3937dbc0902690ac12f6' \
   soc-operations-install | sha256sum --check --strict -
 bash ./soc-operations-install preflight --staging-root "$SOC_NEW_RELEASE"
 SOC_WORKER=soc-operations-wa001-worker-1
@@ -221,7 +221,12 @@ str(user.is_primary_admin).lower())` dentro del bloque `with`. Debe mostrar el *
 activo, Ingeniería y `primary_admin_protected=true`. Confirmar en Administración → Usuarios
 la etiqueta **Administración institucional · Protegida**; no probar una eliminación real.
 En About usar **Reiniciar caché y recargar** y verificar
-`0.1.97-primary-admin-verified-bundles`. Revisar login, permisos tenant, tarjetas y consultas.
+`0.1.97-primary-admin-version-popup`. Revisar login, permisos tenant, tarjetas y consultas.
+Desde esta versión aparece un popup cuando el servidor dispone de un build diferente o al
+primer acceso tras una actualización. Ofrece **Limpiar caché y recargar** y **Más tarde**;
+guardar primero los cambios pendientes. La recarga es voluntaria y conserva sesión,
+preferencias y datos. Comprueba la versión instalada, no la disponibilidad de releases en
+GitHub. La primera actualización desde 0.1.96 requiere recargar para recibir esta función.
 
 ## 6. Si falla
 

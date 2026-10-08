@@ -9,61 +9,37 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release e instalador: `0.1.168`
-- API, worker y agente: `0.1.118`
-- Plugin: `socOperations@0.1.99`
+- Release e instalador: `0.1.169`
+- API, worker y agente: `0.1.119`
+- Plugin: `socOperations@0.1.100`
+- Build de navegador: `0.1.100-case-guidance-selection-contrast`
 - Perfiles: Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`
 
-Protege la cuenta inicial como **administración institucional y contingencia**, no como
-cuenta personal ni identidad de ejecución de API/worker. Su UUID no puede eliminarse,
-deshabilitarse ni perder Ingeniería mediante la API o mutaciones SQL normales. Las altas
-nuevas requieren `--institutional-admin-account`; los upgrades conservan correo y contraseña.
-No se elige otro ingeniero por antigüedad ni se reactiva automáticamente una cuenta ausente
-o inactiva. Un correo personal requiere una migración de custodia separada.
+Corrige cierre de casos bloqueado por tareas de guía, checks de selección múltiple de eventos
+y contraste de texto en tarjetas Kanban. Se aplica también a casos existentes sin borrar ni
+completar artificialmente sus tareas. Mantiene motivo/resultado de cierre, permisos y revisión
+de Analista Junior; la automatización de vulnerabilidades conserva verificaciones de inventario,
+observación sin recurrencia y cierre opcional solo en baja/media.
 
-El helper verifica todos los assets públicos instalados contra el ZIP, incluidos JS.gz.
-El build `0.1.99-vulnerability-cursor-pagination` se muestra en cada pantalla y en About.
-Un popup avisa de cambios de versión instalada y ofrece **Limpiar caché y recargar** o
-**Más tarde**. Comprueba el servidor al abrir y cada 60 s con la pestaña visible, sin instalar
-releases automáticamente. No recarga sin consentimiento; conserva sesión y preferencias.
-Guardar los cambios pendientes antes de pulsar el botón. La primera actualización desde
-0.1.96 requiere recargar para recibir el código que implementa este aviso.
-Conserva los filtros opcionales y las tarjetas de contraste de 0.1.165; el operador confirmó
-que los colores funcionan en WA01 después de reiniciar desde About. No se modifican CSP ni WAF.
+La cuenta inicial sigue siendo administración institucional protegida y de contingencia:
+no cambia UUID, correo o contraseña. Se conservan tenants, casos, evidencias, TLS y custodia
+OpenBao. No hay migración nueva desde 0.1.168: esquema `a2c8e4f719b6`.
 
-Ingeniería global (L3) aparece en Programación de todos los tenants. SOC Manager e
-ingenieros gestionan su disponibilidad compartida desde su ámbito autorizado, sin recibir
-permisos sobre sus cuentas o credenciales. Los perfiles Analista, Analista Junior, SOC Manager
-e Ingeniería con invitación pendiente pueden programarse; no se activa su cuenta ni se
-permite login antes de aceptar. Los auditores quedan excluidos. Desactivar o bloquear una
-cuenta oculta la agenda futura y conserva el historial concluido.
+Para una instalación existente, seguir [actualizar LAUFEY de 0.1.168 a 0.1.169](docs/upgrade-0.1.169-laufey.md).
+Crear un checkpoint NUEVO; no reutilizar el respaldo previo a 0.1.168 como estado actual.
+No ejecutar instalación limpia, `apply`, inicialización OpenBao ni borrado de volúmenes.
+La guía arranca y comprueba el agente existente por mTLS antes del upgrade.
 
-Vulnerability Triage consulta una sola página de 25, 50 o 100 hallazgos (50 por defecto),
-con Anterior/Siguiente y el total del tenant. No descarga todo el inventario con
-`all_current=true`. La selección se limita a la página visible; Actualizar vuelve a la
-primera. El refresco automático no se solapa y se pausa al seleccionar o ejecutar acciones.
+Validación: 569 pruebas backend aprobadas, 15 omitidas y dos avisos de deprecación;
+38 pruebas frontend aprobadas con EUI real. Ambos plugins compilados con SDK exacto;
+JS/JS.gz, wheel, fuente instalada en imagen y 48 artefactos internos verificados.
+El chequeo global de tipos mantiene nueve diagnósticos preexistentes, sin nuevos en esta corrección.
+Vista sintética revisada en ambos temas; aceptación real en LAUFEY todavía pendiente.
+Ver [cambios, límites y huellas](docs/release-0.1.169.md).
 
-Validación: 562 pruebas backend aprobadas, 15 omitidas por requisitos de integración y
-dos avisos de deprecación; 31 pruebas frontend aprobadas con EUI real. Ambos plugins
-compilados con SDK exacto, JS/JS.gz y 48 hashes internos verificados. El chequeo global
-de tipos mantiene nueve diagnósticos en código ajeno a la paginación; no es un chequeo
-completamente limpio. Publicar no implica desplegar en LAUFEY.
-Consultar [cambios, límites y huellas de 0.1.168](docs/release-0.1.168.md).
-
-Conserva la corrección TLS y readiness `opensearch_query` de `0.1.164`, y las correcciones
-de adopción/estado, snapshots, API externa y aprovisionamiento anteriores. No desactiva
-TLS, no amplía excepciones WAF ni activa snapshots/API externa automáticamente. Los otros
-43 artefactos de `0.1.167`, incluidos imagen y wheel de API/agente, se conservan byte a byte.
-No reinstala ni actualiza Wazuh. El release `0.1.167` y sus activos no se reemplazan.
-
-Para una instalación existente, seguir [upgrade a 0.1.168 en WA01](docs/upgrade-0.1.168-laufey.md),
-no `apply`, inicialización de OpenBao ni borrado de volúmenes. Reservar una ventana:
-Dashboard reinicia y se recrean los servicios SOC. No hay rollback global automático.
-Conservar releases y respaldos anteriores. Desde 0.1.167 no añade una migración PostgreSQL:
-mantiene el esquema `a2c8e4f719b6`. Exige un checkpoint NUEVO del estado 0.1.167;
-el respaldo previo a esa versión no sustituye el actual. El 401 de `/api/request`
-y los avisos CSP/telemetría son diagnósticos independientes, no corregidos por esta release.
-No existe downgrade automático que retire la protección.
+Publicar no instala en LAUFEY. No reinstala Wazuh, no cambia Coraza, HAProxy/CSP, no activa
+API externa ni configura continuidad automáticamente. `/api/request` 401 y caché persistente
+de CDN requieren diagnóstico independiente. El release 0.1.168 y todos sus activos se conservan.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.
@@ -138,7 +114,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.168.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.169.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

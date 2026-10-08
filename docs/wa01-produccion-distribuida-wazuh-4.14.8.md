@@ -1,5 +1,12 @@
 # Instalación distribuida WA01 con Wazuh 4.14.8 y SOC Operations
 
+> [!IMPORTANT]
+> Para actualizar una instalación completa de `0.1.165` a **0.1.166**, seguir
+> [el procedimiento específico de upgrade](upgrade-0.1.166-wa01.md).
+> Los comandos y hashes de 0.1.165 conservados aquí son referencia histórica;
+> no mezclarlos con el staging 0.1.166. Esta actualización incorpora una migración
+> PostgreSQL y exige un checkpoint vigente, sin aplicar la excepción histórica de respaldo.
+
 > Estado: guía de preparación y despliegue para producción.
 > Revisión: 2026-10-04.
 > Alcance: Wazuh 4.14.8, tres Indexers, Manager, Dashboard, SOC Operations, HAProxy, Cloudflare, UFW, snapshots S3 y GeoIP MaxMind.

@@ -9,39 +9,41 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release e instalador: `0.1.165`
-- API, worker y agente: `0.1.116`
-- Plugin: `socOperations@0.1.96`
+- Release e instalador: `0.1.166`
+- API, worker y agente: `0.1.117`
+- Plugin: `socOperations@0.1.97`
 - Perfiles: Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`
 
-Corrige **Nivel mínimo** vacío en la búsqueda de eventos: el API deja de aplicar un
-nivel 10 oculto cuando se omite el parámetro. Incluye archivados sin `rule.level` y
-conserva los filtros de tenant, período, permisos y límites. El contexto de auditoría
-admite nivel omitido o nulo; un cero explícito sigue siendo un filtro `>= 0`.
-La importación desde Discover tampoco añade un nivel si no estaba especificado.
+Protege la cuenta inicial como **administración institucional y contingencia**, no como
+cuenta personal ni identidad de ejecución de API/worker. Su UUID no puede eliminarse,
+deshabilitarse ni perder Ingeniería mediante la API o mutaciones SQL normales. Las altas
+nuevas requieren `--institutional-admin-account`; los upgrades conservan correo y contraseña.
+No se elige otro ingeniero por antigüedad ni se reactiva automáticamente una cuenta ausente
+o inactiva. Un correo personal requiere una migración de custodia separada.
 
-La **Bandeja de alertas y eventos**, **Casos e incidentes** y **Dashboard de Casos**
-comparten el mismo componente de tarjetas y paleta. Fijan texto blanco y fondos
-degradados sombreados en ambos temas. Contraste mínimo conservador de etiquetas
-validado con EUI real en Edge: **4.82:1**, con 16 tarjetas por tema y sin desbordamientos.
-Se actualiza el identificador de build de la interfaz para invalidar caché anterior.
+El helper verifica todos los assets públicos instalados contra el ZIP, incluidos JS.gz.
+El build `0.1.97-primary-admin-verified-bundles` se muestra en cada pantalla y en About.
+Conserva los filtros opcionales y las tarjetas de contraste de 0.1.165; el operador confirmó
+que los colores funcionan en WA01 después de reiniciar desde About. No se modifican CSP ni WAF.
 
-Validación: 519 pruebas aprobadas, 5 omitidas por requisitos de PostgreSQL
-de integración; 10 casos de normalización frontend; compilación de ambos plugins,
-correspondencia wheel/imagen/fuentes, migraciones sin cambios y hashes/Bash verificados.
-La aceptación funcional en WA01 permanece pendiente del upgrade y de las pruebas de UI.
+Validación: 541 pruebas generales aprobadas, 10 omitidas por requisitos de integración;
+cinco pruebas PostgreSQL adicionales aprobadas desde la imagen construida. Ambos plugins
+compilados con los SDK exactos, 16 tarjetas EUI por tema, JS/JS.gz, correspondencia
+wheel/imagen/fuentes y 48 hashes internos verificados. La protección en WA01 requiere
+aceptación después del upgrade; publicar el release no implica desplegarlo en ese servidor.
 
 Conserva la corrección TLS y readiness `opensearch_query` de `0.1.164`, y las correcciones
 de adopción/estado, snapshots, API externa y aprovisionamiento anteriores. No desactiva
 TLS, no amplía excepciones WAF ni activa snapshots/API externa automáticamente. Los otros
-40 artefactos de `0.1.164` se conservan byte a byte.
-No reinstala ni actualiza Wazuh. El release `0.1.164` y sus activos no se reemplazan.
+39 artefactos de `0.1.165` se conservan byte a byte.
+No reinstala ni actualiza Wazuh. El release `0.1.165` y sus activos no se reemplazan.
 
-Para una instalación existente, seguir [upgrade WA01](docs/wa01-produccion-distribuida-wazuh-4.14.8.md#actualizar-soc-operations-sin-reinstalar-wa01),
+Para una instalación existente, seguir [upgrade a 0.1.166 en WA01](docs/upgrade-0.1.166-wa01.md),
 no `apply`, inicialización de OpenBao ni borrado de volúmenes. Reservar una ventana:
 Dashboard reinicia y se recrean los servicios SOC. No hay rollback global automático.
-Conservar releases y respaldos anteriores; si no hubo cambios de datos, el responsable
-puede reutilizar el checkpoint anterior verificado según la guía.
+Conservar releases y respaldos anteriores. Esta versión añade una migración PostgreSQL:
+exige un checkpoint recuperable actual; no omitirlo reutilizando el respaldo anterior a 0.1.164.
+No existe downgrade automático que retire la protección.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.
@@ -116,7 +118,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.161.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.166.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o
@@ -136,7 +138,8 @@ antes de extraerlo.
 
 ## Modelo de seguridad
 
-- El primer `soc_engineering` define su contraseña mediante un prompt oculto durante `resume`.
+- La cuenta inicial `soc_engineering` es institucional y protegida, no personal. Define su
+  contraseña mediante un prompt oculto durante `resume`; las cuentas individuales se usan a diario.
 - No se genera un correo de activación inicial.
 - SMTP se configura después desde la interfaz para los usuarios posteriores.
 - El instalador no abre puertos ni modifica UFW, nftables o iptables.

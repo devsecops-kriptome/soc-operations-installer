@@ -9,7 +9,7 @@ fi
 asset=$1
 identity=$2
 output_directory=$3
-repository_root=$(cd -- "$(diname -- "${BASH_SOURCE[0]}")/.." && pwd)
+repository_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 checksums="${repository_root}/SHA256SUMS"
 encrypted_name=$(basename -- "${asset}")
 plain_name=${encrypted_name%.age}
@@ -21,14 +21,16 @@ plain_path="${output_directory}/${plain_name}"
 
 mkdir -p -- "${output_directory}"
 (
-  cd -- "$(diname -- "${asset}")"
-  grep -F "  ${encrypted_name}" "${checksums}" | sha256sum --check --strict
+  cd -- "$(dirname -- "${asset}")"
+  awk -v expected_name="${encrypted_name}" '$2 == expected_name {print}' \
+    "${checksums}" | sha256sum --check --strict
 )
 
 age --decrypt --identity "${identity}" --output "${plain_path}" "${asset}"
 (
   cd -- "${output_directory}"
-  grep -F "  ${plain_name}" "${checksums}" | sha256sum --check --strict
+  awk -v expected_name="${plain_name}" '$2 == expected_name {print}' \
+    "${checksums}" | sha256sum --check --strict
 )
 tar -xzf "${plain_path}" -C "${output_directory}"
 echo "Verified and extracted release into ${output_directory}"

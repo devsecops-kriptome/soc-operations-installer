@@ -1,7 +1,7 @@
-# Instalación distribuida de SOC Operations 0.1.165
+# Instalación distribuida de SOC Operations 0.1.166
 
 > **Instalación existente:** conservar la topología y los datos; usar el
-> [procedimiento de upgrade](wa01-produccion-distribuida-wazuh-4.14.8.md#actualizar-soc-operations-sin-reinstalar-wa01),
+> [procedimiento de upgrade 0.1.166](upgrade-0.1.166-wa01.md),
 > no repetir `apply` ni la inicialización de OpenBao. Actualizar primero el agente si el Manager es remoto.
 
 ## Topología admitida
@@ -68,7 +68,7 @@ de datos ni lo cuente para calcular réplicas. El clúster debe estar `green`, s
 
 Descargue, verifique, descifre y extraiga el release siguiendo la sección 3 de la
 [guía AIO](installation.md). El resultado debe ser
-`$HOME/soc-installer/release-0.1.165` con 49 archivos y `SHA256SUMS` válido.
+`$HOME/soc-installer/release-0.1.166` con 49 archivos y `SHA256SUMS` válido.
 
 La identidad privada `age` requerida en ese paso se recupera únicamente desde el gestor de
 secretos autorizado, entrada `SOC Operations Installer Descifrado`. No copie su valor al archivo
@@ -95,7 +95,7 @@ Copie [la plantilla pública de topología](distributed-topology.example.json) a
 - endpoint del agente en el manager master;
 - rutas root-only de certificados.
 
-`0.1.165` persiste el nombre TLS por instalación y lo valida antes de reconfigurar Nginx.
+`0.1.166` persiste el nombre TLS por instalación y lo valida antes de reconfigurar Nginx.
 La IP de conexión no es necesariamente el nombre del certificado. Si se omite el campo,
 se selecciona un candidato del certificado con cadena confiable que supera la validación
 de hostname; un valor explícito incorrecto detiene el proceso, no desactiva TLS.
@@ -107,7 +107,7 @@ Los archivos `deployment_*` todavía no existen: se generarán en la etapa del m
 ## Etapa 1: Dashboard
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.165"
+cd "$HOME/soc-installer/release-0.1.166"
 sudo install -o root -g root -m 0755 ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
@@ -117,8 +117,9 @@ sudo /usr/local/sbin/soc-operations-install preflight \
 
 sudo /usr/local/sbin/soc-operations-install apply \
   --topology-file /root/soc-topology.json \
-  --email INGENIERO@EMPRESA.COM \
-  --display-name "Primer ingeniero SOC" \
+  --email ADMINISTRACION-SOC@EMPRESA.COM \
+  --display-name "Administración institucional SOC" \
+  --institutional-admin-account \
   --public-url https://dashboard.example.com \
   --external-proxy-cidr IP_HAPROXY/32 \
   --staging-root "$PWD"
@@ -126,6 +127,12 @@ sudo /usr/local/sbin/soc-operations-install apply \
 sudo /usr/local/sbin/soc-operations-install openbao-init
 sudo /usr/local/sbin/soc-operations-install resume
 ```
+
+La cuenta inicial debe tener correo y custodia institucionales: no es personal ni una identidad
+de ejecución para API/worker. No debe eliminarse, deshabilitarse ni perder Ingeniería. Se protege
+su UUID en la API y PostgreSQL; el flag confirma su uso institucional, no verifica al dueño del
+correo. Los upgrades conservan identidad y contraseña; un correo personal exige un cambio de
+custodia separado. Use cuentas individuales para las actividades diarias.
 
 Custodie las recovery shares, el token root y `auto-unseal.key` como explica la guía AIO. El
 primer `resume` distribuido debe quedar en `waiting_for_manager_agent`. Para entonces el Dashboard
@@ -142,7 +149,7 @@ Copie al manager el release, las dos claves públicas, las credenciales administ
 Indexer, la CA de API Wazuh y una copia `0600` root-only de `wazuh.yml`.
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.165"
+cd "$HOME/soc-installer/release-0.1.166"
 sudo install -o root -g root -m 0755 ./soc-lab-tenant-provisioner \
   /usr/local/sbin/soc-lab-tenant-provisioner
 sudo install -d -o root -g root -m 0755 /etc/soc-deploy-agent
@@ -179,7 +186,7 @@ sudo /usr/local/sbin/soc-operations-install resume
 sudo /usr/local/sbin/soc-operations-install status
 ```
 
-La salida debe incluir `installer_version=0.1.165`, `topology=distributed`, el `deployment_id`
+La salida debe incluir `installer_version=0.1.166`, `topology=distributed`, el `deployment_id`
 esperado, `phase=complete`, `external_api_gateway=200` y las sondas HTTP `200` de la API.
 
 ## API externa en el Dashboard

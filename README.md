@@ -9,9 +9,9 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release e instalador: `0.1.166`
-- API, worker y agente: `0.1.117`
-- Plugin: `socOperations@0.1.97`
+- Release e instalador: `0.1.167`
+- API, worker y agente: `0.1.118`
+- Plugin: `socOperations@0.1.98`
 - Perfiles: Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`
 
 Protege la cuenta inicial como **administración institucional y contingencia**, no como
@@ -22,7 +22,7 @@ No se elige otro ingeniero por antigüedad ni se reactiva automáticamente una c
 o inactiva. Un correo personal requiere una migración de custodia separada.
 
 El helper verifica todos los assets públicos instalados contra el ZIP, incluidos JS.gz.
-El build `0.1.97-primary-admin-version-popup` se muestra en cada pantalla y en About.
+El build `0.1.98-global-engineer-workforce` se muestra en cada pantalla y en About.
 Un popup avisa de cambios de versión instalada y ofrece **Limpiar caché y recargar** o
 **Más tarde**. Comprueba el servidor al abrir y cada 60 s con la pestaña visible, sin instalar
 releases automáticamente. No recarga sin consentimiento; conserva sesión y preferencias.
@@ -31,24 +31,31 @@ Guardar los cambios pendientes antes de pulsar el botón. La primera actualizaci
 Conserva los filtros opcionales y las tarjetas de contraste de 0.1.165; el operador confirmó
 que los colores funcionan en WA01 después de reiniciar desde About. No se modifican CSP ni WAF.
 
-Validación: 541 pruebas generales aprobadas, 10 omitidas por requisitos de integración;
-cinco pruebas PostgreSQL adicionales aprobadas desde la imagen construida y 17 pruebas
-frontend del popup, estado, limpieza y rutas autenticadas con EUI real. Ambos plugins
-compilados con los SDK exactos, 16 tarjetas EUI por tema, JS/JS.gz, correspondencia
-wheel/imagen/fuentes y 48 hashes internos verificados. La protección en WA01 requiere
-aceptación después del upgrade; publicar el release no implica desplegarlo en ese servidor.
+Ingeniería global (L3) aparece en Programación de todos los tenants. SOC Manager e
+ingenieros gestionan su disponibilidad compartida desde su ámbito autorizado, sin recibir
+permisos sobre sus cuentas o credenciales. Los perfiles Analista, Analista Junior, SOC Manager
+e Ingeniería con invitación pendiente pueden programarse; no se activa su cuenta ni se
+permite login antes de aceptar. Los auditores quedan excluidos. Desactivar o bloquear una
+cuenta oculta la agenda futura y conserva el historial concluido.
+
+Validación: 564 pruebas backend aprobadas, cinco omitidas por requisitos de integración y
+dos avisos de deprecación; 21 pruebas frontend aprobadas con EUI real. Incluye cinco pruebas
+PostgreSQL de planificación global y cinco de protección institucional con RLS forzada y
+usuario sin BYPASSRLS. Ambos plugins compilados con SDK exacto, JS/JS.gz, correspondencia
+fuentes/wheel/imagen y 48 hashes internos verificados. Publicar no implica desplegar en
+LAUFEY. Consultar [cambios y huellas de 0.1.167](docs/release-0.1.167.md).
 
 Conserva la corrección TLS y readiness `opensearch_query` de `0.1.164`, y las correcciones
 de adopción/estado, snapshots, API externa y aprovisionamiento anteriores. No desactiva
 TLS, no amplía excepciones WAF ni activa snapshots/API externa automáticamente. Los otros
-39 artefactos de `0.1.165` se conservan byte a byte.
-No reinstala ni actualiza Wazuh. El release `0.1.165` y sus activos no se reemplazan.
+39 artefactos de `0.1.166` se conservan byte a byte.
+No reinstala ni actualiza Wazuh. El release `0.1.166` y sus activos no se reemplazan.
 
-Para una instalación existente, seguir [upgrade a 0.1.166 en WA01](docs/upgrade-0.1.166-wa01.md),
+Para una instalación existente, seguir [upgrade a 0.1.167 en WA01](docs/upgrade-0.1.167-laufey.md),
 no `apply`, inicialización de OpenBao ni borrado de volúmenes. Reservar una ventana:
 Dashboard reinicia y se recrean los servicios SOC. No hay rollback global automático.
 Conservar releases y respaldos anteriores. Esta versión añade una migración PostgreSQL:
-exige un checkpoint recuperable actual; no omitirlo reutilizando el respaldo anterior a 0.1.164.
+exige un checkpoint NUEVO del estado 0.1.166; el respaldo previo a esa versión no sustituye el actual.
 No existe downgrade automático que retire la protección.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
@@ -124,7 +131,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.166.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.167.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

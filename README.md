@@ -9,37 +9,39 @@ asset cifrado de GitHub Releases y requiere una identidad privada `age`. La iden
 
 ## Versión vigente
 
-- Release e instalador: `0.1.169`
-- API, worker y agente: `0.1.119`
-- Plugin: `socOperations@0.1.100`
-- Build de navegador: `0.1.100-case-guidance-selection-contrast`
+- Release e instalador: `0.1.170`
+- API, worker y agente: `0.1.120`
+- Plugin: `socOperations@0.1.101`
+- Build de navegador: `0.1.101-events-host-vulnerabilities-calendar-toolbar`
 - Perfiles: Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`
 
-Corrige cierre de casos bloqueado por tareas de guía, checks de selección múltiple de eventos
-y contraste de texto en tarjetas Kanban. Se aplica también a casos existentes sin borrar ni
-completar artificialmente sus tareas. Mantiene motivo/resultado de cierre, permisos y revisión
-de Analista Junior; la automatización de vulnerabilidades conserva verificaciones de inventario,
-observación sin recurrencia y cierre opcional solo en baja/media.
+Bandeja compacta con menú de acciones, importador Discover con diagnóstico y detalle completo
+con copia, enlace de origen y navegación entre eventos relacionados. Calendarios con contraste
+adaptativo y barra CSV junto al tenant; Ingeniería L3 transversal y permisos de lectura/edición
+conservados. Responsables y correo incluyen Ingeniería autorizada, con CC validado.
+Asignación automática solo a personal elegible de turno; sin cobertura, caso sin responsable
+y notificación sin menciones. Vulnerabilidades por host/severidad, automatización en modal y
+consolidado por paquete; reportes por host o grupo de endpoints y lectura completa por lotes.
+Se mantienen controles de integridad y límites de reconciliación.
 
-La cuenta inicial sigue siendo administración institucional protegida y de contingencia:
-no cambia UUID, correo o contraseña. Se conservan tenants, casos, evidencias, TLS y custodia
-OpenBao. No hay migración nueva desde 0.1.168: esquema `a2c8e4f719b6`.
+La cuenta institucional sigue protegida: no cambia UUID, correo o contraseña. Se conservan
+tenants, casos, evidencias, TLS y custodia OpenBao. Sin migración nueva desde 0.1.169:
+esquema `a2c8e4f719b6`.
 
-Para una instalación existente, seguir [actualizar LAUFEY de 0.1.168 a 0.1.169](docs/upgrade-0.1.169-laufey.md).
-Crear un checkpoint NUEVO; no reutilizar el respaldo previo a 0.1.168 como estado actual.
-No ejecutar instalación limpia, `apply`, inicialización OpenBao ni borrado de volúmenes.
-La guía arranca y comprueba el agente existente por mTLS antes del upgrade.
+Para instalaciones existentes: [actualizar LAUFEY de 0.1.169 a 0.1.170](docs/upgrade-0.1.170-laufey.md).
+Respaldo NUEVO obligatorio del estado actual; conservar los anteriores. No ejecutar instalación
+limpia, `apply`, inicialización OpenBao ni borrado de volúmenes. La guía comprueba el agente
+existente por mTLS antes del upgrade y requiere ventana de mantenimiento.
 
-Validación: 569 pruebas backend aprobadas, 15 omitidas y dos avisos de deprecación;
-38 pruebas frontend aprobadas con EUI real. Ambos plugins compilados con SDK exacto;
-JS/JS.gz, wheel, fuente instalada en imagen y 48 artefactos internos verificados.
-El chequeo global de tipos mantiene nueve diagnósticos preexistentes, sin nuevos en esta corrección.
-Vista sintética revisada en ambos temas; aceptación real en LAUFEY todavía pendiente.
-Ver [cambios, límites y huellas](docs/release-0.1.169.md).
+Validación: 630 pruebas backend aprobadas y 5 omitidas; 77 frontend aprobadas con EUI real.
+Incluye diez pruebas PostgreSQL reales de protección institucional y personal global.
+Ambos plugins compilados con SDK exacto; JS/JS.gz, wheel, imagen y 48 artefactos verificados.
+Persisten nueve diagnósticos de tipos preexistentes. Revisión visual local de pantallas sintéticas;
+aceptación de LAUFEY y renderizado visual Word/PDF pendientes. [Cambios y huellas](docs/release-0.1.170.md).
 
-Publicar no instala en LAUFEY. No reinstala Wazuh, no cambia Coraza, HAProxy/CSP, no activa
-API externa ni configura continuidad automáticamente. `/api/request` 401 y caché persistente
-de CDN requieren diagnóstico independiente. El release 0.1.168 y todos sus activos se conservan.
+Publicar no instala en LAUFEY. No reinstala Wazuh, no cambia Coraza, HAProxy/CSP ni configura
+continuidad automáticamente. `/api/request` 401 y caché persistente de CDN requieren diagnóstico
+independiente. El release 0.1.169 y sus activos permanecen inmutables.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.
@@ -114,7 +116,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.169.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.170.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

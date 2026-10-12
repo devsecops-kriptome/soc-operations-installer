@@ -6,9 +6,9 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.171`; API, API externa, worker y agente: `0.1.121`.
-- Plugin: `socOperations@0.1.102`. El identificador completo de interfaz se muestra solo en About.
-- Esquema: `c17e89ab2304`, con dos migraciones desde `a2c8e4f719b6` (0.1.170).
+- Instalador: `0.1.172`; API, API externa, worker y agente: `0.1.122`.
+- Plugin: `socOperations@0.1.103`. El identificador completo de interfaz se muestra solo en About.
+- Esquema: `c17e89ab2304`, sin nuevas migraciones desde 0.1.171.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
 Incluye lecturas de vulnerabilidades completas mediante spool en disco para consolidado, reportes,
@@ -19,14 +19,20 @@ SLA separa ACK y autoescalamiento (5 minutos por defecto), con canales autorizad
 switches, reset y guardado por grupo/todo. Casos: análisis antes del ACK, confirmación sin texto,
 acciones compactas, actualización cada 30 segundos y periodos de consulta.
 
+0.1.172 evita retener el bloqueo global de auditoría durante consultas externas del worker,
+añade la ruta exacta de continuación/liberación de inventario y el filtro de últimos 7 días.
+Permite responsables múltiples, prioridad Analista → SOC Manager → Ingeniería y excluye Junior
+como responsable. La programación fija antigua permite editar fechas futuras compatibles con
+vista previa; las recargas no descartan borradores SLA del mismo tenant.
+
 La cuenta institucional protegida, TLS, custodia OpenBao y datos se conservan.
-[Cambios, huellas y límites](docs/release-0.1.171.md).
-[Actualizar LAUFEY desde 0.1.170](docs/upgrade-0.1.171-laufey.md): respaldo NUEVO y ventana obligatorios;
+[Cambios, huellas y límites](docs/release-0.1.172.md).
+[Actualizar LAUFEY desde 0.1.171](docs/upgrade-0.1.172-laufey.md): respaldo NUEVO y ventana obligatorios;
 no usar instalación limpia, `apply`, inicialización de OpenBao ni borrado de volúmenes.
 
-Validación local del código: 722 pruebas backend y 128 frontend (850), 97 comprobaciones RBAC,
-17 pruebas de calendario y lectura sintética completa de 1.943.324 hallazgos. TypeScript sin diagnósticos
-en ambos SDK. La validación de volumen no es un ensayo de carga ni de producción.
+Validación de 0.1.172: 734 pruebas backend y 130 frontend, TypeScript sin diagnósticos en ambos SDK,
+PostgreSQL con RLS y cuenta protegida, auditoría diferida bajo el rol restringido y proxy Nginx real
+con mTLS e inventario sintético. No equivale a aceptación del Indexer o de LAUFEY.
 Revisión visual Word/PDF con el renderizador requerido y aceptación en LAUFEY PENDIENTES.
 Publicar no instala en el servidor ni modifica Wazuh, HAProxy, Coraza o CSP.
 La revisión local muestra mejoras de calendario; no garantiza idénticos tiempos en producción.
@@ -105,7 +111,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.170.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.172.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

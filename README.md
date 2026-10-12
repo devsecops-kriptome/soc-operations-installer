@@ -1,47 +1,36 @@
 # SOC Operations Installer
 
-Repositorio público de distribución del instalador SOC Operations para Wazuh 4.14.7 y 4.14.8, en
-perfil AIO o distribuido con un único Dashboard.
-
-El código fuente y el paquete sin cifrar no se publican aquí. Cada versión se distribuye como un
-asset cifrado de GitHub Releases y requiere una identidad privada `age`. La identidad se recupera
-únicamente desde el gestor de secretos autorizado, entrada `SOC Operations Installer Descifrado`.
+Distribución pública cifrada para Wazuh 4.14.7/4.14.8, AIO o distribuido con un único Dashboard.
+No se publica código privado, TAR sin cifrar, configuraciones reales, respaldos ni identidades age.
+La identidad original se obtiene solo en el gestor autorizado: `SOC Operations Installer Descifrado`.
 
 ## Versión vigente
 
-- Release e instalador: `0.1.170`
-- API, worker y agente: `0.1.120`
-- Plugin: `socOperations@0.1.101`
-- Build de navegador: `0.1.101-events-host-vulnerabilities-calendar-toolbar`
-- Perfiles: Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`
+- Instalador: `0.1.171`; API, API externa, worker y agente: `0.1.121`.
+- Plugin: `socOperations@0.1.102`. El identificador completo de interfaz se muestra solo en About.
+- Esquema: `c17e89ab2304`, con dos migraciones desde `a2c8e4f719b6` (0.1.170).
+- Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
-Bandeja compacta con menú de acciones, importador Discover con diagnóstico y detalle completo
-con copia, enlace de origen y navegación entre eventos relacionados. Calendarios con contraste
-adaptativo y barra CSV junto al tenant; Ingeniería L3 transversal y permisos de lectura/edición
-conservados. Responsables y correo incluyen Ingeniería autorizada, con CC validado.
-Asignación automática solo a personal elegible de turno; sin cobertura, caso sin responsable
-y notificación sin menciones. Vulnerabilidades por host/severidad, automatización en modal y
-consolidado por paquete; reportes por host o grupo de endpoints y lectura completa por lotes.
-Se mantienen controles de integridad y límites de reconciliación.
+Incluye lecturas de vulnerabilidades completas mediante spool en disco para consolidado, reportes,
+simulación y agrupación. No eleva las protecciones del worker ni acepta inventarios parciales.
+El reporte muestra progreso de lectura/generación. Calendarios más ágiles, matriz horaria agrupada,
+edición de turnos por día/programación, colores, turnos personalizados y reporte de ausencias.
+SLA separa ACK y autoescalamiento (5 minutos por defecto), con canales autorizados por integración,
+switches, reset y guardado por grupo/todo. Casos: análisis antes del ACK, confirmación sin texto,
+acciones compactas, actualización cada 30 segundos y periodos de consulta.
 
-La cuenta institucional sigue protegida: no cambia UUID, correo o contraseña. Se conservan
-tenants, casos, evidencias, TLS y custodia OpenBao. Sin migración nueva desde 0.1.169:
-esquema `a2c8e4f719b6`.
+La cuenta institucional protegida, TLS, custodia OpenBao y datos se conservan.
+[Cambios, huellas y límites](docs/release-0.1.171.md).
+[Actualizar LAUFEY desde 0.1.170](docs/upgrade-0.1.171-laufey.md): respaldo NUEVO y ventana obligatorios;
+no usar instalación limpia, `apply`, inicialización de OpenBao ni borrado de volúmenes.
 
-Para instalaciones existentes: [actualizar LAUFEY de 0.1.169 a 0.1.170](docs/upgrade-0.1.170-laufey.md).
-Respaldo NUEVO obligatorio del estado actual; conservar los anteriores. No ejecutar instalación
-limpia, `apply`, inicialización OpenBao ni borrado de volúmenes. La guía comprueba el agente
-existente por mTLS antes del upgrade y requiere ventana de mantenimiento.
-
-Validación: 630 pruebas backend aprobadas y 5 omitidas; 77 frontend aprobadas con EUI real.
-Incluye diez pruebas PostgreSQL reales de protección institucional y personal global.
-Ambos plugins compilados con SDK exacto; JS/JS.gz, wheel, imagen y 48 artefactos verificados.
-Persisten nueve diagnósticos de tipos preexistentes. Revisión visual local de pantallas sintéticas;
-aceptación de LAUFEY y renderizado visual Word/PDF pendientes. [Cambios y huellas](docs/release-0.1.170.md).
-
-Publicar no instala en LAUFEY. No reinstala Wazuh, no cambia Coraza, HAProxy/CSP ni configura
-continuidad automáticamente. `/api/request` 401 y caché persistente de CDN requieren diagnóstico
-independiente. El release 0.1.169 y sus activos permanecen inmutables.
+Validación local del código: 722 pruebas backend y 128 frontend (850), 97 comprobaciones RBAC,
+17 pruebas de calendario y lectura sintética completa de 1.943.324 hallazgos. TypeScript sin diagnósticos
+en ambos SDK. La validación de volumen no es un ensayo de carga ni de producción.
+Revisión visual Word/PDF con el renderizador requerido y aceptación en LAUFEY PENDIENTES.
+Publicar no instala en el servidor ni modifica Wazuh, HAProxy, Coraza o CSP.
+La revisión local muestra mejoras de calendario; no garantiza idénticos tiempos en producción.
+Los releases anteriores y sus activos se conservan inmutables.
 
 Conserva los cambios de `0.1.159`, que corrige los helpers GeoIP del distribuidor y los Indexers: usa el builtin
 `command -v` para comprobar dependencias, no el ejecutable inexistente `/usr/bin/command`.

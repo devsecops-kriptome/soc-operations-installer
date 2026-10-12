@@ -6,9 +6,9 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.172`; API, API externa, worker y agente: `0.1.122`.
+- Instalador: `0.1.173`; API, API externa, worker y agente: `0.1.123`.
 - Plugin: `socOperations@0.1.103`. El identificador completo de interfaz se muestra solo en About.
-- Esquema: `c17e89ab2304`, sin nuevas migraciones desde 0.1.171.
+- Esquema: `c17e89ab2304`, sin nuevas migraciones desde 0.1.172.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
 Incluye lecturas de vulnerabilidades completas mediante spool en disco para consolidado, reportes,
@@ -25,14 +25,23 @@ Permite responsables múltiples, prioridad Analista → SOC Manager → Ingenier
 como responsable. La programación fija antigua permite editar fechas futuras compatibles con
 vista previa; las recargas no descartan borradores SLA del mismo tenant.
 
+0.1.173 corrige el consolidado y los reportes cuando el escáner identifica el nodo con un
+nombre distinto del clúster configurado. El agente entrega el hostname por el inventario mTLS;
+el backend exige despliegue, agente, grupo e índice exactos. No fija nombres de servidores ni
+amplía RBAC/DLS. Instalar en otro host no requiere cambiar el código. Renombrar un nodo existente
+exige revisar los índices anteriores: no se autorizan automáticamente aliases históricos.
+
 La cuenta institucional protegida, TLS, custodia OpenBao y datos se conservan.
-[Cambios, huellas y límites](docs/release-0.1.172.md).
-[Actualizar LAUFEY desde 0.1.171](docs/upgrade-0.1.172-laufey.md): respaldo NUEVO y ventana obligatorios;
+[Cambios, huellas y límites](docs/release-0.1.173.md).
+[Actualizar LAUFEY desde 0.1.172](docs/upgrade-0.1.173-laufey.md): respaldo NUEVO y ventana obligatorios;
 no usar instalación limpia, `apply`, inicialización de OpenBao ni borrado de volúmenes.
 
-Validación de 0.1.172: 734 pruebas backend y 130 frontend, TypeScript sin diagnósticos en ambos SDK,
-PostgreSQL con RLS y cuenta protegida, auditoría diferida bajo el rol restringido y proxy Nginx real
-con mTLS e inventario sintético. No equivale a aceptación del Indexer o de LAUFEY.
+Validación de 0.1.173: 759 pruebas backend, incluidas 17 con PostgreSQL real y RLS.
+Consolidado HTTP y agrupación del reporte con 7.652 hallazgos sintéticos y rechazo de índices,
+agentes, tenants y despliegues ajenos. Wheel e imagen verificados contra la fuente, pip check,
+52 archivos de migración/configuración y desempaque completo con hashes internos correctos.
+Ambos plugins se conservan idénticos a 0.1.172; no se recompilaron ni cambió la interfaz.
+La aceptación contra el Indexer y el navegador de producción sigue pendiente.
 Revisión visual Word/PDF con el renderizador requerido y aceptación en LAUFEY PENDIENTES.
 Publicar no instala en el servidor ni modifica Wazuh, HAProxy, Coraza o CSP.
 La revisión local muestra mejoras de calendario; no garantiza idénticos tiempos en producción.
@@ -111,7 +120,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.172.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.173.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

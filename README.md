@@ -6,9 +6,9 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.173`; API, API externa, worker y agente: `0.1.123`.
-- Plugin: `socOperations@0.1.103`. El identificador completo de interfaz se muestra solo en About.
-- Esquema: `c17e89ab2304`, sin nuevas migraciones desde 0.1.172.
+- Instalador: `0.1.174`; API, API externa, worker y agente: `0.1.124`.
+- Plugin: `socOperations@0.1.104`. El identificador completo de interfaz se muestra solo en About.
+- Esquema: `c17e89ab2304`, sin nuevas migraciones desde 0.1.173.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
 Incluye lecturas de vulnerabilidades completas mediante spool en disco para consolidado, reportes,
@@ -32,15 +32,23 @@ amplía RBAC/DLS. Instalar en otro host no requiere cambiar el código. Renombra
 exige revisar los índices anteriores: no se autorizan automáticamente aliases históricos.
 
 La cuenta institucional protegida, TLS, custodia OpenBao y datos se conservan.
-[Cambios, huellas y límites](docs/release-0.1.173.md).
-[Actualizar LAUFEY desde 0.1.172](docs/upgrade-0.1.173-laufey.md): respaldo NUEVO y ventana obligatorios;
+[Cambios, huellas y límites](docs/release-0.1.174.md).
+[Actualizar desde 0.1.173](docs/upgrade-0.1.174.md): respaldo NUEVO y ventana obligatorios;
 no usar instalación limpia, `apply`, inicialización de OpenBao ni borrado de volúmenes.
 
-Validación de 0.1.173: 759 pruebas backend, incluidas 17 con PostgreSQL real y RLS.
-Consolidado HTTP y agrupación del reporte con 7.652 hallazgos sintéticos y rechazo de índices,
-agentes, tenants y despliegues ajenos. Wheel e imagen verificados contra la fuente, pip check,
-52 archivos de migración/configuración y desempaque completo con hashes internos correctos.
-Ambos plugins se conservan idénticos a 0.1.172; no se recompilaron ni cambió la interfaz.
+0.1.174 añade 7 días predeterminados en Casos e incidentes, fechas personalizadas en el
+Dashboard, edición de automatizaciones mediante menú ⋮, filtros Campo/Operador/Valor y
+campos adicionales de eventos. Vulnerabilidades presentes incorpora grupo, SO y nombre.
+La ordenación SQLite del reporte usa un índice y su temporal se dirige al volumen de reportes,
+conservando el contenedor read-only, /tmp de 64 MiB y el rechazo de reportes parciales.
+
+Validación de 0.1.174: 792 pruebas backend/agente y 17 adicionales con PostgreSQL real desechable,
+incluidas RLS; 144 pruebas frontend. Ambos plugins se recompilan para OSD 2.19.5 y 2.19.6.
+Wheel e imagen verificados contra la fuente, pip check, 52 archivos de migración/configuración
+y desempaque completo con hashes internos correctos. TypeScript aprobado; persisten 33
+diagnósticos mypy previos, sin nuevos en el alcance comparado.
+Defecto conocido pendiente: un ID de agente reutilizado puede mostrar SO/IP del reemplazo
+bajo el nombre anterior dentro del mismo tenant. Revisar la identidad antes de basarse en esos metadatos.
 La aceptación contra el Indexer y el navegador de producción sigue pendiente.
 Revisión visual Word/PDF con el renderizador requerido y aceptación en LAUFEY PENDIENTES.
 Publicar no instala en el servidor ni modifica Wazuh, HAProxy, Coraza o CSP.
@@ -120,7 +128,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.173.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.174.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

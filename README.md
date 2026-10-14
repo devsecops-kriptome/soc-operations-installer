@@ -6,9 +6,9 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.174`; API, API externa, worker y agente: `0.1.124`.
-- Plugin: `socOperations@0.1.104`. El identificador completo de interfaz se muestra solo en About.
-- Esquema: `c17e89ab2304`, sin nuevas migraciones desde 0.1.173.
+- Instalador: `0.1.175`; API, API externa, worker y agente: `0.1.125`.
+- Plugin: `socOperations@0.1.105`. El identificador completo de interfaz se muestra solo en About.
+- Esquema: `d29f63a710bc`, con migración nueva de números diarios y relaciones padre/hijo.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
 Incluye lecturas de vulnerabilidades completas mediante spool en disco para consolidado, reportes,
@@ -32,9 +32,16 @@ amplía RBAC/DLS. Instalar en otro host no requiere cambiar el código. Renombra
 exige revisar los índices anteriores: no se autorizan automáticamente aliases históricos.
 
 La cuenta institucional protegida, TLS, custodia OpenBao y datos se conservan.
-[Cambios, huellas y límites](docs/release-0.1.174.md).
-[Actualizar desde 0.1.173](docs/upgrade-0.1.174.md): respaldo NUEVO y ventana obligatorios;
+[Cambios, huellas y límites](docs/release-0.1.175.md).
+[Actualizar desde 0.1.174](docs/upgrade-0.1.175.md): respaldo NUEVO y ventana obligatorios;
 no usar instalación limpia, `apply`, inicialización de OpenBao ni borrado de volúmenes.
+
+0.1.175 incorpora Datos extras del caso, números diarios, vistas compacta/extendida y unión manual
+de casos con ACK del actor, SLA originales y cierre independiente o propagado a hijos abiertos.
+Reportes de vulnerabilidades usa inventario vigente, grupos y tres agrupaciones, consolidación de
+paquetes y transmisión CSV; Envío programado no solicita perfil. Incluye formularios alineados,
+menús de tres puntos y playbook vertical plegado. La aceptación de reportes reales en producción
+sigue pendiente; las notas detallan el alcance de las pruebas y la migración.
 
 0.1.174 añade 7 días predeterminados en Casos e incidentes, fechas personalizadas en el
 Dashboard, edición de automatizaciones mediante menú ⋮, filtros Campo/Operador/Valor y
@@ -128,7 +135,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.174.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.175.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

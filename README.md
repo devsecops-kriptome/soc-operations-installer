@@ -6,9 +6,9 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.175`; API, API externa, worker y agente: `0.1.125`.
-- Plugin: `socOperations@0.1.105`. El identificador completo de interfaz se muestra solo en About.
-- Esquema: `d29f63a710bc`, con migración nueva de números diarios y relaciones padre/hijo.
+- Instalador: `0.1.176`; API, API externa, worker y agente: `0.1.126`.
+- Plugin: `socOperations@0.1.106`. El identificador completo de interfaz se muestra solo en About.
+- Esquema: `e31a7f82c940`, con restauración conservadora de eventos propios de casos hijos.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
 Incluye lecturas de vulnerabilidades completas mediante spool en disco para consolidado, reportes,
@@ -32,9 +32,17 @@ amplía RBAC/DLS. Instalar en otro host no requiere cambiar el código. Renombra
 exige revisar los índices anteriores: no se autorizan automáticamente aliases históricos.
 
 La cuenta institucional protegida, TLS, custodia OpenBao y datos se conservan.
-[Cambios, huellas y límites](docs/release-0.1.175.md).
-[Actualizar desde 0.1.174](docs/upgrade-0.1.175.md): respaldo NUEVO y ventana obligatorios;
+[Cambios, huellas y límites](docs/release-0.1.176.md).
+[Actualizar desde 0.1.175](docs/upgrade-0.1.176.md): respaldo NUEVO y ventana obligatorios;
 no usar instalación limpia, `apply`, inicialización de OpenBao ni borrado de volúmenes.
+
+0.1.176 incorpora Excel con hasta 10 CVE distintos recientes por host y paquete, hojas por
+grupo seleccionado y eliminación autorizada de reportes anteriores. El Word conserva los
+totales completos de hallazgos y avisa cuando la tabla es una muestra. Corrige la variante
+de nombre de ASP.NET Core con y sin separador antes de Shared Framework sin unir versiones
+ni arquitecturas distintas. Los eventos siguen perteneciendo al hijo y el padre los consulta
+con procedencia; cambios del padre se propagan a los hijos con justificación y auditoría.
+Las notas identifican los defectos visuales de Word aún pendientes y los límites de validación.
 
 0.1.175 incorpora Datos extras del caso, números diarios, vistas compacta/extendida y unión manual
 de casos con ACK del actor, SLA originales y cierre independiente o propagado a hijos abiertos.

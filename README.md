@@ -6,19 +6,20 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.177`; API, API externa, worker y agente: `0.1.127`.
-- Plugin: `socOperations@0.1.107`. El identificador completo de interfaz se muestra solo en About.
-- Esquema: `e31a7f82c940`, con restauración conservadora de eventos propios de casos hijos.
+- Instalador: `0.1.178`; API, API externa, worker y agente: `0.1.128`.
+- Plugin: `socOperations@0.1.107`, sin cambios de interfaz respecto de 0.1.177.
+- Esquema: `e31a7f82c940`, sin migraciones nuevas desde 0.1.176/0.1.177.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
-0.1.177 incorpora indicadores de atención por analista y asignaciones ACK vencidas, debajo de
-«Casos creados» en el Dashboard; comparten periodo, tenant y archivados. Corrige el orden de
-notificaciones por responsables y luego resto del turno activo, con un único aviso general final.
-Incluye mejoras de detalle de eventos, datos extra de automatizaciones, comentarios de cambios,
-Kanban por columna y vinculación/desvinculación de casos con procedencia conservada.
-No añade migraciones sobre 0.1.176. Consultar las [notas](docs/release-0.1.177.md) y la
-[actualización desde 0.1.176](docs/upgrade-0.1.177.md). La aceptación productiva y el triage de
-alertas estáticas siguen pendientes; publicar no actualiza ningún servidor.
+0.1.178 corrige la API externa: permite la ruta exacta de vulnerabilidades por el gateway,
+exige `metrics:read` para las estadísticas por cliente y proyecta eventos e historial de hijos
+en el padre sin mover su propiedad. Corrige los contadores de SLA abiertos y conserva el
+encabezado de autenticación del 401. Las rutas, claves y parámetros existentes se mantienen;
+cambian los totales/páginas de familias y la presencia de estadísticas según permisos.
+Consultar las [notas](docs/release-0.1.178.md) y la
+[actualización desde 0.1.176 o 0.1.177](docs/upgrade-0.1.178.md).
+Conserva los indicadores por analista, escalamiento y mejoras de casos de 0.1.177.
+La aceptación productiva sigue pendiente; publicar no actualiza ningún servidor.
 
 Incluye lecturas de vulnerabilidades completas mediante spool en disco para consolidado, reportes,
 simulación y agrupación. No eleva las protecciones del worker ni acepta inventarios parciales.

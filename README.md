@@ -6,10 +6,19 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.176`; API, API externa, worker y agente: `0.1.126`.
-- Plugin: `socOperations@0.1.106`. El identificador completo de interfaz se muestra solo en About.
+- Instalador: `0.1.177`; API, API externa, worker y agente: `0.1.127`.
+- Plugin: `socOperations@0.1.107`. El identificador completo de interfaz se muestra solo en About.
 - Esquema: `e31a7f82c940`, con restauración conservadora de eventos propios de casos hijos.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.177 incorpora indicadores de atención por analista y asignaciones ACK vencidas, debajo de
+«Casos creados» en el Dashboard; comparten periodo, tenant y archivados. Corrige el orden de
+notificaciones por responsables y luego resto del turno activo, con un único aviso general final.
+Incluye mejoras de detalle de eventos, datos extra de automatizaciones, comentarios de cambios,
+Kanban por columna y vinculación/desvinculación de casos con procedencia conservada.
+No añade migraciones sobre 0.1.176. Consultar las [notas](docs/release-0.1.177.md) y la
+[actualización desde 0.1.176](docs/upgrade-0.1.177.md). La aceptación productiva y el triage de
+alertas estáticas siguen pendientes; publicar no actualiza ningún servidor.
 
 Incluye lecturas de vulnerabilidades completas mediante spool en disco para consolidado, reportes,
 simulación y agrupación. No eleva las protecciones del worker ni acepta inventarios parciales.
@@ -143,7 +152,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.175.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.177.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

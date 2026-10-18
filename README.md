@@ -6,12 +6,25 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.178`; API, API externa, worker y agente: `0.1.128`.
-- Plugin: `socOperations@0.1.107`, sin cambios de interfaz respecto de 0.1.177.
-- Esquema: `e31a7f82c940`, sin migraciones nuevas desde 0.1.176/0.1.177.
+- Instalador: `0.1.179`; API, API externa, worker y agente: `0.1.129`.
+- Plugin: `socOperations@0.1.108`, con casos compactos, tecnologías y reportes renovados.
+- Esquema: `a6d924bc7810`, dos migraciones aditivas desde `0.1.178`.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
-0.1.178 corrige la API externa: permite la ruta exacta de vulnerabilidades por el gateway,
+0.1.179 incorpora el [resumen externo de vulnerabilidades por grupo](docs/vulnerability-summary-api.md):
+CVE únicos por CVSS, Top 10 CVE/dispositivos y cortes cada 24 horas con historial y estado de
+actualización. Conserva el último corte válido ante errores; la primera recopilación completa
+es obligatoria y su fecha no se presenta como fecha de escaneo de Wazuh. El listado paginado
+existente sigue en directo y el alcance sigue siendo `vulnerabilities:read`.
+
+Incluye Tecnologías externas (API interna con JWT, no consulta con clave externa), filtro de
+actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
+Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
+muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
+[notas](docs/release-0.1.179.md) y la [guía de actualización](docs/upgrade-0.1.179.md).
+Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
+
+0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,
 exige `metrics:read` para las estadísticas por cliente y proyecta eventos e historial de hijos
 en el padre sin mover su propiedad. Corrige los contadores de SLA abiertos y conserva el
 encabezado de autenticación del 401. Las rutas, claves y parámetros existentes se mantienen;

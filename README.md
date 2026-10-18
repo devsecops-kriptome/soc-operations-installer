@@ -6,10 +6,17 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.179`; API, API externa, worker y agente: `0.1.129`.
+- Instalador: `0.1.180`; API, API externa, worker y agente: `0.1.129`.
 - Plugin: `socOperations@0.1.108`, con casos compactos, tecnologías y reportes renovados.
 - Esquema: `a6d924bc7810`, dos migraciones aditivas desde `0.1.178`.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.180 corrige la validación cruzada del Compose del provisionador y evita marcar
+`complete` antes de terminar la reconciliación posterior a la custodia. Conserva los
+artefactos de API/agente/plugin y el esquema de 0.1.179. Para una actualización 0.1.179
+detenida, usar el paquete 0.1.180 verificado: no cambiar al Compose antiguo ni omitir
+validaciones. Ver [notas del correctivo](docs/release-0.1.180.md) y
+[recuperación y actualización](docs/upgrade-0.1.180.md).
 
 0.1.179 incorpora el [resumen externo de vulnerabilidades por grupo](docs/vulnerability-summary-api.md):
 CVE únicos por CVSS, Top 10 CVE/dispositivos y cortes cada 24 horas con historial y estado de
@@ -21,7 +28,7 @@ Incluye Tecnologías externas (API interna con JWT, no consulta con clave extern
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas](docs/release-0.1.179.md) y la [guía de actualización](docs/upgrade-0.1.179.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.180.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,

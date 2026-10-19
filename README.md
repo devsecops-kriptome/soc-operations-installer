@@ -6,10 +6,18 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.184`; API, API externa, worker y agente: `0.1.130`.
+- Instalador: `0.1.185`; API, API externa, worker y agente: `0.1.130`.
 - Plugin: `socOperations@0.1.110`, compilado para cada plataforma exacta.
 - Esquema: `c8d3e902f751`, sin nuevas migraciones desde `0.1.181`.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.185 corrige la contaminación de la configuración temporal del agente por un mensaje
+de diagnóstico durante la transición de Compose. El mensaje va a stderr: no se modifica
+agent.env a mano ni se relajan validaciones. Aplica a las transiciones aprobadas, tanto
+actualizaciones normales como recuperación revisada de un intento interrumpido. No es
+una excepción para un host ni una autorización de todas las versiones antiguas. Imagen,
+wheel, plugins y Compose permanecen idénticos a 0.1.184. Ver
+[notas 0.1.185](docs/release-0.1.185.md) y [actualización](docs/upgrade-0.1.185.md).
 
 0.1.184 permite la transición controlada desde el Compose histórico verificado utilizado
 por instalaciones como 0.1.166. No es un paquete específico para un host: reconoce una huella
@@ -54,7 +62,7 @@ consultarlas con una clave externa que tenga `technologies:read`. Se conservan e
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.184.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.185.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,

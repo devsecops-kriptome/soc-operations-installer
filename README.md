@@ -6,12 +6,21 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.181`; API, API externa, worker y agente: `0.1.130`.
-- Plugin: `socOperations@0.1.109`, compilado para cada plataforma exacta.
-- Esquema: `c8d3e902f751`, dos migraciones desde `0.1.180`.
+- Instalador: `0.1.183`; API, API externa, worker y agente: `0.1.130`.
+- Plugin: `socOperations@0.1.110`, compilado para cada plataforma exacta.
+- Esquema: `c8d3e902f751`, sin nuevas migraciones desde `0.1.181`.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
 
-0.1.181 añade métricas externas de casos, eventos, SLA y analistas, estado e historial de
+0.1.183 añade menús de acciones en Credenciales de API y Playbooks, bloqueo de solicitudes
+duplicadas de revocación/eliminación y exportación de playbooks según rol y tenant.
+Incluye el correctivo de salida de la API externa por frontend, confianza acotada a gateways
+del host y aceptación desde su propio contenedor. No amplía alcances ni modifica UFW/TLS/mTLS.
+API/worker/agente conservan la imagen 0.1.130 verificada; ambos plugins se recompilan como
+0.1.110. Ver [notas 0.1.183](docs/release-0.1.183.md) y
+[actualización desde 0.1.181](docs/upgrade-0.1.183.md). El correctivo local 0.1.182 está incluido;
+no es necesario instalarlo por separado. Publicar no despliega ni limpia LAUFEY.
+
+0.1.181 añadió métricas externas de casos, eventos, SLA y analistas, estado e historial de
 agentes y consulta de tecnologías con `technologies:read`. El historial de conectividad
 comienza después del upgrade: cada cinco minutos y retención de 30 días, configurables.
 Incluye activación de tecnologías, edición autorizada de alcances, ajustes de reportes y
@@ -38,7 +47,7 @@ consultarlas con una clave externa que tenga `technologies:read`. Se conservan e
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.181.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.183.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,

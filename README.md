@@ -6,10 +6,17 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.183`; API, API externa, worker y agente: `0.1.130`.
+- Instalador: `0.1.184`; API, API externa, worker y agente: `0.1.130`.
 - Plugin: `socOperations@0.1.110`, compilado para cada plataforma exacta.
 - Esquema: `c8d3e902f751`, sin nuevas migraciones desde `0.1.181`.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.184 permite la transición controlada desde el Compose histórico verificado utilizado
+por instalaciones como 0.1.166. No es un paquete específico para un host: reconoce una huella
+exacta únicamente durante el upgrade, con estado y permisos protegidos. Los archivos
+alterados o desconocidos siguen rechazados. Conserva byte a byte runtime, wheel, plugins
+y Compose de 0.1.183; no cambia IP, hostname ni credenciales del destino. Ver
+[notas 0.1.184](docs/release-0.1.184.md) y [actualización](docs/upgrade-0.1.184.md).
 
 0.1.183 añade menús de acciones en Credenciales de API y Playbooks, bloqueo de solicitudes
 duplicadas de revocación/eliminación y exportación de playbooks según rol y tenant.
@@ -47,7 +54,7 @@ consultarlas con una clave externa que tenga `technologies:read`. Se conservan e
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.183.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.184.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,

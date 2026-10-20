@@ -1,7 +1,7 @@
-# Instalación distribuida de SOC Operations 0.1.185
+# Instalación distribuida de SOC Operations 0.1.188
 
 > **Instalación existente:** conservar la topología y los datos; usar el
-> [procedimiento de upgrade 0.1.185](upgrade-0.1.185.md),
+> [procedimiento de upgrade 0.1.188](upgrade-0.1.188.md),
 > no repetir `apply` ni la inicialización de OpenBao. Actualizar primero el agente si el Manager es remoto.
 
 ## Topología admitida
@@ -68,7 +68,7 @@ de datos ni lo cuente para calcular réplicas. El clúster debe estar `green`, s
 
 Descargue, verifique, descifre y extraiga el release siguiendo la sección 3 de la
 [guía AIO](installation.md). El resultado debe ser
-`$HOME/soc-installer/release-0.1.185` con 49 archivos y `SHA256SUMS` válido.
+`$HOME/soc-installer/release-0.1.188` con 49 archivos y `SHA256SUMS` válido.
 
 La identidad privada `age` requerida en ese paso se recupera únicamente desde el gestor de
 secretos autorizado, entrada `SOC Operations Installer Descifrado`. No copie su valor al archivo
@@ -95,7 +95,7 @@ Copie [la plantilla pública de topología](distributed-topology.example.json) a
 - endpoint del agente en el manager master;
 - rutas root-only de certificados.
 
-`0.1.185` persiste el nombre TLS por instalación y lo valida antes de reconfigurar Nginx.
+`0.1.188` persiste el nombre TLS por instalación y lo valida antes de reconfigurar Nginx.
 La IP de conexión no es necesariamente el nombre del certificado. Si se omite el campo,
 se selecciona un candidato del certificado con cadena confiable que supera la validación
 de hostname; un valor explícito incorrecto detiene el proceso, no desactiva TLS.
@@ -107,7 +107,7 @@ Los archivos `deployment_*` todavía no existen: se generarán en la etapa del m
 ## Etapa 1: Dashboard
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.185"
+cd "$HOME/soc-installer/release-0.1.188"
 sudo install -o root -g root -m 0755 ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
@@ -149,7 +149,7 @@ Copie al manager el release, las dos claves públicas, las credenciales administ
 Indexer, la CA de API Wazuh y una copia `0600` root-only de `wazuh.yml`.
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.185"
+cd "$HOME/soc-installer/release-0.1.188"
 sudo install -o root -g root -m 0755 ./soc-lab-tenant-provisioner \
   /usr/local/sbin/soc-lab-tenant-provisioner
 sudo install -d -o root -g root -m 0755 /etc/soc-deploy-agent
@@ -186,7 +186,7 @@ sudo /usr/local/sbin/soc-operations-install resume
 sudo /usr/local/sbin/soc-operations-install status
 ```
 
-La salida debe incluir `installer_version=0.1.185`, `topology=distributed`, el `deployment_id`
+La salida debe incluir `installer_version=0.1.188`, `topology=distributed`, el `deployment_id`
 esperado, `phase=complete`, `external_api_gateway=200` y las sondas HTTP `200` de la API.
 
 ## API externa en el Dashboard
@@ -221,3 +221,19 @@ Antes de producción pruebe pérdida de un nodo, conmutación del manager master
 dos tenants, casos, reportes, vulnerabilidades y restauración separada de SOC Operations, Manager
 e Indexer. El release fue validado estáticamente y mediante pruebas automatizadas; la aceptación
 en una infraestructura distribuida real sigue siendo obligatoria.
+
+## Identidad y renovación mTLS interna (0.1.188)
+
+Las validaciones criptográficas exigen cadena, propósito, IP y DNS. Una identidad
+incorrecta detiene la operación; no se regenera silenciosamente ni se desactiva TLS.
+Los bloqueos privados están en /run/soc-operations-locks (root:root 0700, archivos 0600).
+No ejecutar helpers antiguos en paralelo con los nuevos.
+
+El timer soc-deploy-tls-renew.timer comprueba cada seis horas y renueva a siete días
+o menos de vencer, con vigencia de 30 días. Requiere Manager/agente y runtime colocados,
+Compose aprobado y permisos correctos; recrea los tres consumidores y puede causar
+una interrupción breve. Si Manager y runtime están en hosts separados, NO distribuye
+credenciales automáticamente: coordinar la renovación antes de vencer. No equivale a
+una renovación global de TLS público, Wazuh, Indexer o GeoIP. Configurar monitorización
+del timer/servicio y del vencimiento; el timer no envía notificaciones por sí solo.
+Ver [notas 0.1.188](release-0.1.188.md) y [aceptación](upgrade-0.1.188.md).

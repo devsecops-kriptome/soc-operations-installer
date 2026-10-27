@@ -1,4 +1,4 @@
-# Instalación limpia AIO de SOC Operations 0.1.192
+# Instalación limpia AIO de SOC Operations 0.1.193
 
 Esta guía instala SOC Operations sobre un servidor all-in-one de Wazuh ya operativo. El
 instalador no instala ni actualiza Wazuh, no modifica el firewall y no está soportado sobre una
@@ -6,7 +6,7 @@ instalación parcial o una versión distinta de la indicada.
 
 > **Instalación existente:** no seguir los pasos de instalación limpia ni inicializar OpenBao.
 > Preparar respaldo y release verificado y seguir el
-> [procedimiento de upgrade 0.1.192](upgrade-0.1.192.md),
+> [procedimiento de upgrade 0.1.193](upgrade-0.1.193.md),
 > adaptando las direcciones a la topología persistida.
 
 ## 1. Requisitos
@@ -21,7 +21,7 @@ instalación parcial o una versión distinta de la indicada.
 - acceso autorizado a la identidad privada `age` almacenada en el gestor de secretos bajo
   `SOC Operations Installer Descifrado`.
 
-El release `0.1.192` no es compatible con Wazuh 4.12 ni con parejas cruzadas entre Wazuh y OSD. El
+El release `0.1.193` no es compatible con Wazuh 4.12 ni con parejas cruzadas entre Wazuh y OSD. El
 `preflight` las rechaza antes de instalar componentes. No modifique esa comprobación; consulte
 [Compatibilidad](compatibility.md).
 
@@ -248,17 +248,17 @@ install -d -m 0700 "$HOME/soc-installer"
 cd "$HOME/soc-installer"
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.192/soc-operations-0.1.192.tar.gz.age
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.193/soc-operations-0.1.193.tar.gz.age
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.192/SHA256SUMS
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.193/SHA256SUMS
 
-grep 'soc-operations-0.1.192.tar.gz.age$' SHA256SUMS | sha256sum --check
+grep 'soc-operations-0.1.193.tar.gz.age$' SHA256SUMS | sha256sum --check
 ```
 
 El resultado debe ser:
 
 ```text
-soc-operations-0.1.192.tar.gz.age: OK
+soc-operations-0.1.193.tar.gz.age: OK
 ```
 
 Recupere la identidad privada desde el gestor de secretos autorizado, usando exactamente la
@@ -270,12 +270,12 @@ chats, tickets, documentación o historial de comandos:
 chmod 0600 "$HOME/.soc-operations-installer-key.txt"
 age --decrypt \
   --identity "$HOME/.soc-operations-installer-key.txt" \
-  --output soc-operations-0.1.192.tar.gz \
-  soc-operations-0.1.192.tar.gz.age
+  --output soc-operations-0.1.193.tar.gz \
+  soc-operations-0.1.193.tar.gz.age
 
 sha256sum --check SHA256SUMS
-tar -xzf soc-operations-0.1.192.tar.gz
-cd release-0.1.192
+tar -xzf soc-operations-0.1.193.tar.gz
+cd release-0.1.193
 sha256sum --check SHA256SUMS
 test "$(find . -maxdepth 1 -type f | wc -l)" -eq 49
 ```
@@ -295,7 +295,7 @@ OpenBao, `auto-unseal.key` ni como clave de cifrado de los respaldos de SOC Oper
 
 ## 4. Ejecutar el preflight
 
-Desde `$HOME/soc-installer/release-0.1.192` instale solo el orquestador:
+Desde `$HOME/soc-installer/release-0.1.193` instale solo el orquestador:
 
 ```bash
 sudo install -o root -g root -m 0755 \
@@ -316,10 +316,10 @@ printf 'Esperado:  %s\nInstalado: %s\n' \
 test "$INSTALLED_INSTALLER_SHA256" = "$EXPECTED_INSTALLER_SHA256"
 ```
 
-Para el release `0.1.192` publicado, ambas huellas deben ser:
+Para el release `0.1.193` publicado, ambas huellas deben ser:
 
 ```text
-f3ea0f6a730c8c0eb14f9df845c26f1f28ecf80cf0408bd300f75f48cb362e84
+d3cb0b734a520d3db4d9cda1a8bf489e507377b57e6bbe457c04d7ec983df237
 ```
 
 La comparación contra el `SHA256SUMS` interno es la validación autoritativa.
@@ -328,7 +328,7 @@ Ejecute la validación sin cambios persistentes:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install preflight \
-  --staging-root "$HOME/soc-installer/release-0.1.192"
+  --staging-root "$HOME/soc-installer/release-0.1.193"
 ```
 
 En un host con varias interfaces, añada `--service-address IP_INTERNA`. No continúe si falla una
@@ -340,7 +340,7 @@ Reemplace los valores de ejemplo:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install apply \
-  --staging-root "$HOME/soc-installer/release-0.1.192" \
+  --staging-root "$HOME/soc-installer/release-0.1.193" \
   --service-address IP_INTERNA_AIO \
   --external-proxy-cidr IP_O_CIDR_DEL_PROXY \
   --email ADMINISTRACION-SOC@EMPRESA.COM \
@@ -369,7 +369,7 @@ identidad; no elimine el estado. El resultado esperado es:
 phase=waiting_for_openbao_custody
 ```
 
-El instalador `0.1.192` crea los directorios `/opt/soc-operations-lab` y
+El instalador `0.1.193` crea los directorios `/opt/soc-operations-lab` y
 `/opt/soc-operations/docs` antes de desplegar los archivos auxiliares, incluido
 `continuity.env.example`. En una instalación nueva no es necesario prepararlos manualmente.
 También valida la identidad fija de la imagen de API tanto con el ID de configuración como con el
@@ -441,7 +441,7 @@ release vigente y reconcilie los componentes con:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install upgrade \
-  --staging-root "$HOME/soc-installer/release-0.1.192"
+  --staging-root "$HOME/soc-installer/release-0.1.193"
 ```
 
 Si `first-engineer` sigue pendiente, `upgrade` vuelve a mostrar los dos prompts de contraseña. La
@@ -457,7 +457,7 @@ sudo /usr/local/sbin/soc-operations-install status
 La salida final debe incluir:
 
 ```text
-installer_version=0.1.192
+installer_version=0.1.193
 phase=complete
 dashboard=302
 soc_api_liveness=200
@@ -533,7 +533,7 @@ Antes de activar GeoIP, conserve la línea base y el respaldo indicados en la gu
 `_simulate` y compruebe la salud del Indexer. En AIO puede habilitar la activación automática solo
 después de completar esas pruebas.
 
-## Identidad y renovación mTLS interna (0.1.192)
+## Identidad y renovación mTLS interna (0.1.193)
 
 Las validaciones criptográficas exigen cadena, propósito, IP y DNS. Una identidad
 incorrecta detiene la operación; no se regenera silenciosamente ni se desactiva TLS.
@@ -547,7 +547,7 @@ una interrupción breve. Si Manager y runtime están en hosts separados, NO dist
 credenciales automáticamente: coordinar la renovación antes de vencer. No equivale a
 una renovación global de TLS público, Wazuh, Indexer o GeoIP. Configurar monitorización
 del timer/servicio y del vencimiento; el timer no envía notificaciones por sí solo.
-Ver [notas 0.1.192](release-0.1.192.md) y [aceptación](upgrade-0.1.192.md).
+Ver [notas 0.1.193](release-0.1.193.md) y [aceptación](upgrade-0.1.193.md).
 
 ## Reportes y programaciones de vulnerabilidades
 
@@ -559,7 +559,7 @@ Las modificaciones exigen SOC Manager del tenant o Ingeniería global y se audit
 
 Comprobar un reporte nuevo, sus grupos/agrupación y correo autorizado; editar y
 reabrir una programación, cancelar sin escribir y eliminar con confirmación sin
-perder reportes históricos. Ver [aceptación 0.1.192](upgrade-0.1.192.md).
+perder reportes históricos. Ver [aceptación 0.1.193](upgrade-0.1.193.md).
 
 ## Nombres de producto en tecnologías externas
 
@@ -570,7 +570,7 @@ technology_name conserva la categoría WAF, Firewall, etc. Un nombre ausente que
 Las observaciones anteriores se enriquecen al recibir y recopilar nuevos eventos.
 Se conservan agent.id, manager.name, seriales configurados y claves de fuentes.
 El alcance technologies:read y el aislamiento por tenant no cambian.
-Ver [aceptación de tecnologías](upgrade-0.1.192.md).
+Ver [aceptación de tecnologías](upgrade-0.1.193.md).
 
 ## Correlación con checkpoint persistente
 
@@ -582,9 +582,9 @@ conservan lotes confirmados y no duplican casos ni vínculos.
 technology.id procede de los campos personalizados del evento y no de decoder.name.
 El primer sondeo comienza en ahora menos lookback (600 segundos por defecto);
 no hay replay histórico automático. La recuperación de alertas anteriores requiere
-autorización separada y un rango explícito. Ver [aceptación](upgrade-0.1.192.md).
+autorización separada y un rango explícito. Ver [aceptación](upgrade-0.1.193.md).
 
-## Reportes por hostname y entrega segura (0.1.192)
+## Reportes por hostname y entrega segura (desde 0.1.192)
 
 Primero elegir Agrupación del inventario y después grupos u hosts. El modo hostname
 requiere entre 1 y 10 hosts del tenant y no admite mezclar grupos ni ALL. Excel crea
@@ -600,4 +600,19 @@ UUID. Se corrigen carreras del perfil inicial y bloqueos al eliminar programacio
 Grupos predeterminados: Endpoints-Windows, Servers-Windows, Endpoints-Linux,
 Servers-Linux, Endpoints-MacOS, Servers-MacOS, Prod, Dev y APPs. Los nombres antiguos
 se reconocen, pero no se renombran ni reasignan miembros existentes automáticamente.
-Ver [aceptación 0.1.192](upgrade-0.1.192.md).
+Ver [aceptación 0.1.193](upgrade-0.1.193.md).
+
+## Identidad mutable del inventario de vulnerabilidades (0.1.193)
+
+Los nombres de manager y clúster se obtienen del inventario autenticado, no de
+constantes de laboratorio o producción. La misma política se aplica en AIO y
+distribuido. Un cambio de nombre no sustituye la identidad del despliegue/endpoint.
+Un nombre histórico ausente necesita revisión de procedencia y una lista exacta
+root en SOC_DEPLOY_VULNERABILITY_STATE_ALIASES; no usar comodines ni confiar solo
+en un agent.id repetido. La reconciliación conserva esa opción protegida.
+
+Dos fuentes autorizadas para el mismo endpoint son ambiguas y no se suman ni se
+eligen automáticamente. No se borran índices. El resumen de política anterior
+puede devolver 503 refresh pending hasta una recolección válida con la nueva
+política. Comprobar reporte real y API externa antes de aprobar producción.
+Ver [aceptación y piloto lab02](upgrade-0.1.193.md).

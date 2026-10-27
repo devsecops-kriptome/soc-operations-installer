@@ -1,6 +1,6 @@
 # Compatibilidad
 
-## Perfiles soportados por 0.1.192
+## Perfiles soportados por 0.1.193
 
 | Perfil | Wazuh Manager/Indexer/Dashboard | OpenSearch Dashboards | Plugin |
 | --- | --- | --- | --- |
@@ -11,7 +11,7 @@
 | --- | --- |
 | Ubuntu Server | 24.04 |
 | Plugin SOC Operations | `0.1.115` |
-| API interna/externa, worker y agente | `0.1.135` |
+| API interna/externa, worker y agente | `0.1.136` |
 | Esquema de base de datos | `a42f71c6e309` |
 
 El perfil `aio` instala sobre un solo servidor. El perfil `distributed` exige exactamente un
@@ -25,7 +25,7 @@ rol `ingest`; requiere un piloto canario real antes de producción.
 
 ## Wazuh 4.12
 
-El release `0.1.192` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
+El release `0.1.193` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
 Dashboards `2.19.1`; ninguno de los dos plugins entregados fue compilado para esa plataforma.
 
 No amplíe manualmente la expresión de versión. Para soportar 4.12 se necesita un release separado

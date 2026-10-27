@@ -1,7 +1,7 @@
-# Instalación distribuida de SOC Operations 0.1.191
+# Instalación distribuida de SOC Operations 0.1.192
 
 > **Instalación existente:** conservar la topología y los datos; usar el
-> [procedimiento de upgrade 0.1.191](upgrade-0.1.191.md),
+> [procedimiento de upgrade 0.1.192](upgrade-0.1.192.md),
 > no repetir `apply` ni la inicialización de OpenBao. Actualizar primero el agente si el Manager es remoto.
 
 ## Topología admitida
@@ -68,7 +68,7 @@ de datos ni lo cuente para calcular réplicas. El clúster debe estar `green`, s
 
 Descargue, verifique, descifre y extraiga el release siguiendo la sección 3 de la
 [guía AIO](installation.md). El resultado debe ser
-`$HOME/soc-installer/release-0.1.191` con 49 archivos y `SHA256SUMS` válido.
+`$HOME/soc-installer/release-0.1.192` con 49 archivos y `SHA256SUMS` válido.
 
 La identidad privada `age` requerida en ese paso se recupera únicamente desde el gestor de
 secretos autorizado, entrada `SOC Operations Installer Descifrado`. No copie su valor al archivo
@@ -95,7 +95,7 @@ Copie [la plantilla pública de topología](distributed-topology.example.json) a
 - endpoint del agente en el manager master;
 - rutas root-only de certificados.
 
-`0.1.191` persiste el nombre TLS por instalación y lo valida antes de reconfigurar Nginx.
+`0.1.192` persiste el nombre TLS por instalación y lo valida antes de reconfigurar Nginx.
 La IP de conexión no es necesariamente el nombre del certificado. Si se omite el campo,
 se selecciona un candidato del certificado con cadena confiable que supera la validación
 de hostname; un valor explícito incorrecto detiene el proceso, no desactiva TLS.
@@ -107,7 +107,7 @@ Los archivos `deployment_*` todavía no existen: se generarán en la etapa del m
 ## Etapa 1: Dashboard
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.191"
+cd "$HOME/soc-installer/release-0.1.192"
 sudo install -o root -g root -m 0755 ./soc-operations-install \
   /usr/local/sbin/soc-operations-install
 
@@ -149,7 +149,7 @@ Copie al manager el release, las dos claves públicas, las credenciales administ
 Indexer, la CA de API Wazuh y una copia `0600` root-only de `wazuh.yml`.
 
 ```bash
-cd "$HOME/soc-installer/release-0.1.191"
+cd "$HOME/soc-installer/release-0.1.192"
 sudo install -o root -g root -m 0755 ./soc-lab-tenant-provisioner \
   /usr/local/sbin/soc-lab-tenant-provisioner
 sudo install -d -o root -g root -m 0755 /etc/soc-deploy-agent
@@ -186,7 +186,7 @@ sudo /usr/local/sbin/soc-operations-install resume
 sudo /usr/local/sbin/soc-operations-install status
 ```
 
-La salida debe incluir `installer_version=0.1.191`, `topology=distributed`, el `deployment_id`
+La salida debe incluir `installer_version=0.1.192`, `topology=distributed`, el `deployment_id`
 esperado, `phase=complete`, `external_api_gateway=200` y las sondas HTTP `200` de la API.
 
 ## API externa en el Dashboard
@@ -222,7 +222,7 @@ dos tenants, casos, reportes, vulnerabilidades y restauración separada de SOC O
 e Indexer. El release fue validado estáticamente y mediante pruebas automatizadas; la aceptación
 en una infraestructura distribuida real sigue siendo obligatoria.
 
-## Identidad y renovación mTLS interna (0.1.191)
+## Identidad y renovación mTLS interna (0.1.192)
 
 Las validaciones criptográficas exigen cadena, propósito, IP y DNS. Una identidad
 incorrecta detiene la operación; no se regenera silenciosamente ni se desactiva TLS.
@@ -236,7 +236,7 @@ una interrupción breve. Si Manager y runtime están en hosts separados, NO dist
 credenciales automáticamente: coordinar la renovación antes de vencer. No equivale a
 una renovación global de TLS público, Wazuh, Indexer o GeoIP. Configurar monitorización
 del timer/servicio y del vencimiento; el timer no envía notificaciones por sí solo.
-Ver [notas 0.1.191](release-0.1.191.md) y [aceptación](upgrade-0.1.191.md).
+Ver [notas 0.1.192](release-0.1.192.md) y [aceptación](upgrade-0.1.192.md).
 
 ## Reportes y programaciones de vulnerabilidades
 
@@ -248,7 +248,7 @@ Las modificaciones exigen SOC Manager del tenant o Ingeniería global y se audit
 
 Comprobar un reporte nuevo, sus grupos/agrupación y correo autorizado; editar y
 reabrir una programación, cancelar sin escribir y eliminar con confirmación sin
-perder reportes históricos. Ver [aceptación 0.1.191](upgrade-0.1.191.md).
+perder reportes históricos. Ver [aceptación 0.1.192](upgrade-0.1.192.md).
 
 ## Nombres de producto en tecnologías externas
 
@@ -259,11 +259,11 @@ technology_name conserva la categoría WAF, Firewall, etc. Un nombre ausente que
 Las observaciones anteriores se enriquecen al recibir y recopilar nuevos eventos.
 Se conservan agent.id, manager.name, seriales configurados y claves de fuentes.
 El alcance technologies:read y el aislamiento por tenant no cambian.
-Ver [aceptación de tecnologías](upgrade-0.1.191.md).
+Ver [aceptación de tecnologías](upgrade-0.1.192.md).
 
 ## Correlación con checkpoint persistente
 
-La instalación aplica el esquema d0f6a3b9e214, incluido el checkpoint exclusivo
+La instalación aplica el esquema a42f71c6e309, incluido el checkpoint exclusivo
 del worker con FORCE RLS. El sondeo usa Scroll completo y transacciones de
 100 alertas por defecto, sin un límite total de 2000 resultados. Los reintentos
 conservan lotes confirmados y no duplican casos ni vínculos.
@@ -271,4 +271,22 @@ conservan lotes confirmados y no duplican casos ni vínculos.
 technology.id procede de los campos personalizados del evento y no de decoder.name.
 El primer sondeo comienza en ahora menos lookback (600 segundos por defecto);
 no hay replay histórico automático. La recuperación de alertas anteriores requiere
-autorización separada y un rango explícito. Ver [aceptación](upgrade-0.1.191.md).
+autorización separada y un rango explícito. Ver [aceptación](upgrade-0.1.192.md).
+
+## Reportes por hostname y entrega segura (0.1.192)
+
+Primero elegir Agrupación del inventario y después grupos u hosts. El modo hostname
+requiere entre 1 y 10 hosts del tenant y no admite mezclar grupos ni ALL. Excel crea
+una hoja por host con estructura Host > paquete, incluidos hosts sin hallazgos.
+Word, correo, programación e historial conservan el alcance. Se revalida identidad,
+tenant y actividad al ejecutar el reporte; no se aceptan etiquetas del navegador.
+
+El esquema a42f71c6e309 identifica cada ocurrencia programada por scheduled_for;
+los reportes históricos conservan NULL y no se reproducen automáticamente. Los
+reintentos del mismo envío usan send_request_id; un nuevo envío explícito usa otro
+UUID. Se corrigen carreras del perfil inicial y bloqueos al eliminar programaciones.
+
+Grupos predeterminados: Endpoints-Windows, Servers-Windows, Endpoints-Linux,
+Servers-Linux, Endpoints-MacOS, Servers-MacOS, Prod, Dev y APPs. Los nombres antiguos
+se reconocen, pero no se renombran ni reasignan miembros existentes automáticamente.
+Ver [aceptación 0.1.192](upgrade-0.1.192.md).

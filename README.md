@@ -6,10 +6,20 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.193`; API, API externa, worker y agente: `0.1.136`.
-- Plugin: `socOperations@0.1.115`, compilado para cada plataforma exacta.
-- Esquema: `a42f71c6e309`; 0.1.193 no agrega migraciones.
+- Instalador: `0.1.194`; API, API externa, worker y agente: `0.1.137`.
+- Plugin: `socOperations@0.1.116`, compilado para cada plataforma exacta.
+- Esquema: `c64e93b8a521`; agrega migraciones de contactos y categorías de automatización.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.194 incorpora contactos con el alcance externo `contacts:read`, grupos estándar
+de endpoints y métricas de detección, además de pausa/reactivación de tenants y
+categorías explícitas de automatización. La nueva regla global de vulnerabilidades
+permanece pausada inicialmente, con nivel mínimo 10. Protege la configuración de
+reglas durante cada lote y conserva el aislamiento por índice y tenant.
+Recompila imagen, wheel y ambos plugins; conserva Compose. La eliminación física
+no está habilitada: solo se ofrece su vista previa. Ver [notas](docs/release-0.1.194.md)
+y [actualización](docs/upgrade-0.1.194.md). El piloto será lab02 AIO; publicar no
+actualiza servidores ni elimina respaldos anteriores.
 
 0.1.193 corrige la autorización del origen del inventario de vulnerabilidades con
 nombres variables de manager y clúster, tanto AIO como distribuido. Exige identidad
@@ -121,7 +131,7 @@ consultarlas con una clave externa que tenga `technologies:read`. Se conservan e
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.193.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.194.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,
@@ -266,7 +276,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.193.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.194.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

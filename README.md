@@ -6,10 +6,19 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.196`; API, API externa, worker y agente: `0.1.139`.
-- Plugin: `socOperations@0.1.118`, compilado para cada plataforma exacta.
-- Esquema: `f97dc8e12543`; sin migraciones nuevas respecto a 0.1.195.
+- Instalador: `0.1.197`; API, API externa, worker y agente: `0.1.140`.
+- Plugin: `socOperations@0.1.119`, compilado para cada plataforma exacta.
+- Esquema: `f97dc8e12543`; sin migraciones nuevas respecto a 0.1.196.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.197 reorganiza la gestión de casos con pestañas y acciones compartidas.
+El escalamiento incorpora un modal ampliado, historial de correo de solo lectura,
+navegación entre envíos y adjuntos de hasta 25 MB en conjunto. Conserva destinatarios,
+copias y contenido en reintentos parciales y protege el cambio de tenant/canal.
+Ver [notas](docs/release-0.1.197.md) y [actualización](docs/upgrade-0.1.197.md).
+Validación local: 2728 pruebas de backend/agente y
+439 de interfaz, además de los dos perfiles compilados.
+La entrega real de correo y la aceptación del destino se comprueban después del upgrade.
 
 0.1.196 corrige la creación automática por ámbitos personalizados: AND dentro
 de cada regla y OR entre alternativas, respetando las exclusiones antes de usar
@@ -148,7 +157,7 @@ consultarlas con una clave externa que tenga `technologies:read`. Se conservan e
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.196.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.197.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,
@@ -293,7 +302,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.196.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.197.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

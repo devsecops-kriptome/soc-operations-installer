@@ -1,6 +1,6 @@
 # Compatibilidad
 
-## Perfiles soportados por 0.1.195
+## Perfiles soportados por 0.1.196
 
 | Perfil | Wazuh Manager/Indexer/Dashboard | OpenSearch Dashboards | Plugin |
 | --- | --- | --- | --- |
@@ -10,8 +10,8 @@
 | Componente SOC | Versión |
 | --- | --- |
 | Ubuntu Server | 24.04 |
-| Plugin SOC Operations | `0.1.117` |
-| API interna/externa, worker y agente | `0.1.138` |
+| Plugin SOC Operations | `0.1.118` |
+| API interna/externa, worker y agente | `0.1.139` |
 | Esquema de base de datos | `f97dc8e12543` |
 
 El perfil `aio` instala sobre un solo servidor. El perfil `distributed` exige exactamente un
@@ -25,7 +25,7 @@ rol `ingest`; requiere un piloto canario real antes de producción.
 
 ## Wazuh 4.12
 
-El release `0.1.195` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
+El release `0.1.196` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
 Dashboards `2.19.1`; ninguno de los dos plugins entregados fue compilado para esa plataforma.
 
 No amplíe manualmente la expresión de versión. Para soportar 4.12 se necesita un release separado
@@ -40,7 +40,7 @@ que compile el plugin contra la plataforma exacta, genere hashes propios y valid
 Hasta completar esa validación, el soporte declarado permanece limitado a las dos parejas 4.14
 indicadas en la tabla.
 
-## Contactos y automatización en 0.1.195
+## Contactos y automatización en 0.1.196
 
 La consulta externa de contactos requiere `contacts:read`; no se concede ese
 alcance automáticamente a las claves existentes. El indicador KriptomeAPP no
@@ -56,9 +56,9 @@ local coordina su tenant. Actualizar API y worker juntos con el instalador y una
 ventana de mantenimiento. No mezclar componentes antiguos ni modificar las
 reglas directamente por SQL. Las migraciones agregan contactos y categorías;
 la regla global de vulnerabilidades nace pausada con nivel mínimo 10.
-Ver [actualización y aceptación](upgrade-0.1.195.md).
+Ver [actualización y aceptación](upgrade-0.1.196.md).
 
-## Casos, SLA y entrega en 0.1.195
+## Casos, SLA y entrega en 0.1.196
 
 Los SLA de este flujo se aplican a casos automáticos. MTTD usa la alerta de origen,
 MTTR el primer En progreso explícito y MTTC el cierre; Resuelto no equivale a Cerrado.
@@ -72,4 +72,21 @@ inciertos requieren revisión de su referencia y no se reenvían automáticament
 
 Antes del upgrade debe existir un respaldo nuevo verificado, incluyendo snapshots
 publicados. En AIO se reconcilia el agente local; en distribuido se verifica el agente
-0.1.138 antes del runtime. Ver [actualización 0.1.195](upgrade-0.1.195.md).
+0.1.139 antes del runtime. Ver [actualización 0.1.196](upgrade-0.1.196.md).
+
+## Correlación y primera alerta en 0.1.196
+
+Los selectores positivos de cada regla personalizada se combinan con AND;
+los ámbitos y las reglas alternativas se combinan con OR. La regla global
+genérica no elude exclusiones de un ámbito personalizado aplicable. Las reglas
+del tenant tienen prioridad; fuera de su ámbito se evalúan las globales.
+Una regla con solo exclusiones puede abarcar muchas alertas: acotarla con
+tecnología, rule.id u otro selector positivo cuando corresponda.
+
+El formulario permite categoría fija o derivada de la alerta desencadenante.
+Se conserva la clasificación inicial y las ediciones del analista al añadir
+evidencia. Al agrupar por mitre.id se compara el conjunto de técnicas;
+su orden inicial se mantiene para elegir playbook. Las reglas solapadas
+seleccionan una ganadora por prioridad; no crean un caso por regla para la misma alerta.
+No se reproduce automáticamente el histórico ni se reclasifican casos existentes.
+Ver [aceptación 0.1.196](upgrade-0.1.196.md).

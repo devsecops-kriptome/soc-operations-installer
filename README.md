@@ -6,10 +6,19 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.195`; API, API externa, worker y agente: `0.1.138`.
-- Plugin: `socOperations@0.1.117`, compilado para cada plataforma exacta.
-- Esquema: `f97dc8e12543`; agrega objetivos SLA, cierre independiente y selección de contactos por analistas.
+- Instalador: `0.1.196`; API, API externa, worker y agente: `0.1.139`.
+- Plugin: `socOperations@0.1.118`, compilado para cada plataforma exacta.
+- Esquema: `f97dc8e12543`; sin migraciones nuevas respecto a 0.1.195.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.196 corrige la creación automática por ámbitos personalizados: AND dentro
+de cada regla y OR entre alternativas, respetando las exclusiones antes de usar
+la regla global genérica. Permite categoría heredada de la alerta desencadenante,
+conserva su severidad, MITRE y playbook, y evita duplicados por orden de técnicas MITRE.
+Ver [notas](docs/release-0.1.196.md) y [actualización](docs/upgrade-0.1.196.md).
+Validación local: 2695 pruebas de backend/agente y
+419 de interfaz, además de los dos perfiles compilados.
+La actualización y aceptación del servidor destino siguen pendientes.
 
 0.1.195 incorpora el acceso directo a En progreso, métricas y políticas SLA para
 casos automáticos, conversión auditada a incidente y navegación de casos relacionados.
@@ -139,7 +148,7 @@ consultarlas con una clave externa que tenga `technologies:read`. Se conservan e
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.195.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.196.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,
@@ -284,7 +293,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.195.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.196.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

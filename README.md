@@ -6,10 +6,21 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.198`; API, API externa, worker y agente: `0.1.141`.
-- Plugin: `socOperations@0.1.120`, compilado para cada plataforma exacta.
-- Esquema: `f97dc8e12543`; sin migraciones nuevas respecto a 0.1.197.
+- Instalador: `0.1.199`; API, API externa, worker y agente: `0.1.142`.
+- Plugin: `socOperations@0.1.121`, compilado para cada plataforma exacta.
+- Esquema: `a08ed9f23654`; nueva tabla de métricas con FORCE RLS.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.199 abre Vulnerabilidades en **Dashboard**, con una segunda pestaña **Hosts**.
+Conserva tres meses calendario de métricas compactas por host, evolución diaria
+por criticidad y distribución por grupo con los filtros compartidos. Todos los
+roles del tenant pueden consultar el dashboard. Incluye descarga directa Excel
+y Word del host autorizado y resumen de totales por criticidad en los reportes.
+Ver [notas](docs/release-0.1.199.md) y [actualización](docs/upgrade-0.1.199.md).
+Validación local: 2809 pruebas de backend/agente y
+469 de interfaz, sin fallos ni omisiones; ambos plugins compilados.
+La migración crea el histórico: los días anteriores sin métricas no se reconstruyen.
+Publicar no actualiza servidores ni crea snapshots nuevos por abrir el dashboard.
 
 0.1.198 incorpora la actividad de los hijos a la fecha y al período de trabajo
 del padre. Alinea consola, API externa y métricas trabajadas, y confirma evidencias
@@ -165,7 +176,7 @@ consultarlas con una clave externa que tenga `technologies:read`. Se conservan e
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.198.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.199.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,
@@ -310,7 +321,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.198.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.199.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

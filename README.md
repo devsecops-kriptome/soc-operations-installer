@@ -6,10 +6,18 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.197`; API, API externa, worker y agente: `0.1.140`.
-- Plugin: `socOperations@0.1.119`, compilado para cada plataforma exacta.
-- Esquema: `f97dc8e12543`; sin migraciones nuevas respecto a 0.1.196.
+- Instalador: `0.1.198`; API, API externa, worker y agente: `0.1.141`.
+- Plugin: `socOperations@0.1.120`, compilado para cada plataforma exacta.
+- Esquema: `f97dc8e12543`; sin migraciones nuevas respecto a 0.1.197.
 - Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+
+0.1.198 incorpora la actividad de los hijos a la fecha y al período de trabajo
+del padre. Alinea consola, API externa y métricas trabajadas, y confirma evidencias
+de forma atómica para evitar duplicados en solicitudes simultáneas.
+Ver [notas](docs/release-0.1.198.md) y [actualización](docs/upgrade-0.1.198.md).
+Validación local: 2749 pruebas de backend/agente y
+440 de interfaz, además de ambos perfiles compilados.
+La paginación por familias completas continúa pendiente; publicar no actualiza servidores.
 
 0.1.197 reorganiza la gestión de casos con pestañas y acciones compartidas.
 El escalamiento incorpora un modal ampliado, historial de correo de solo lectura,
@@ -157,7 +165,7 @@ consultarlas con una clave externa que tenga `technologies:read`. Se conservan e
 actividad de casos, hijos agrupados y creación manual con descripción amplia/adjuntos.
 Reportes Word/Excel: ALL o grupos específicos, dos agrupaciones, justificaciones opcionales,
 muestras de hasta tres CVE, totales completos, CTI y tablas alineadas. Ver las
-[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.197.md).
+[notas funcionales](docs/release-0.1.179.md) y la [guía vigente de actualización](docs/upgrade-0.1.198.md).
 Publicar no instala ni modifica producción; se necesita un respaldo nuevo antes del upgrade.
 
 0.1.178 corrigió la API externa: permite la ruta exacta de vulnerabilidades por el gateway,
@@ -302,7 +310,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.197.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.198.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

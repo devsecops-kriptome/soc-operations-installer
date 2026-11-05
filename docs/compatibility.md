@@ -1,6 +1,6 @@
 # Compatibilidad
 
-## Perfiles soportados por 0.1.199
+## Perfiles soportados por 0.1.201
 
 | Perfil | Wazuh Manager/Indexer/Dashboard | OpenSearch Dashboards | Plugin |
 | --- | --- | --- | --- |
@@ -10,9 +10,9 @@
 | Componente SOC | Versión |
 | --- | --- |
 | Ubuntu Server | 24.04 |
-| Plugin SOC Operations | `0.1.121` |
-| API interna/externa, worker y agente | `0.1.142` |
-| Esquema de base de datos | `a08ed9f23654` |
+| Plugin SOC Operations | `0.1.122` |
+| API interna/externa, worker y agente | `0.1.144` |
+| Esquema de base de datos | `f2c6a8d90173` |
 
 El perfil `aio` instala sobre un solo servidor. El perfil `distributed` exige exactamente un
 Dashboard y admite uno o varios Manager de un mismo clúster y uno o varios Indexer de un mismo
@@ -25,7 +25,7 @@ rol `ingest`; requiere un piloto canario real antes de producción.
 
 ## Wazuh 4.12
 
-El release `0.1.199` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
+El release `0.1.201` **no es compatible con Wazuh 4.12**. Wazuh 4.12 utiliza OpenSearch
 Dashboards `2.19.1`; ninguno de los dos plugins entregados fue compilado para esa plataforma.
 
 No amplíe manualmente la expresión de versión. Para soportar 4.12 se necesita un release separado
@@ -40,7 +40,7 @@ que compile el plugin contra la plataforma exacta, genere hashes propios y valid
 Hasta completar esa validación, el soporte declarado permanece limitado a las dos parejas 4.14
 indicadas en la tabla.
 
-## Contactos y automatización en 0.1.199
+## Contactos y automatización en 0.1.201
 
 La consulta externa de contactos requiere `contacts:read`; no se concede ese
 alcance automáticamente a las claves existentes. El indicador KriptomeAPP no
@@ -56,9 +56,9 @@ local coordina su tenant. Actualizar API y worker juntos con el instalador y una
 ventana de mantenimiento. No mezclar componentes antiguos ni modificar las
 reglas directamente por SQL. Las migraciones agregan contactos y categorías;
 la regla global de vulnerabilidades nace pausada con nivel mínimo 10.
-Ver [actualización y aceptación](upgrade-0.1.199.md).
+Ver [actualización y aceptación](upgrade-0.1.201.md).
 
-## Casos, SLA y entrega en 0.1.199
+## Casos, SLA y entrega en 0.1.201
 
 Los SLA de este flujo se aplican a casos automáticos. MTTD usa la alerta de origen,
 MTTR el primer En progreso explícito y MTTC el cierre; Resuelto no equivale a Cerrado.
@@ -72,7 +72,7 @@ inciertos requieren revisión de su referencia y no se reenvían automáticament
 
 Antes del upgrade debe existir un respaldo nuevo verificado, incluyendo snapshots
 publicados. En AIO se reconcilia el agente local; en distribuido se verifica el agente
-0.1.142 antes del runtime. Ver [actualización 0.1.199](upgrade-0.1.199.md).
+0.1.144 antes del runtime. Ver [actualización 0.1.201](upgrade-0.1.201.md).
 
 ## Correlación y primera alerta en 0.1.196
 
@@ -89,7 +89,7 @@ evidencia. Al agrupar por mitre.id se compara el conjunto de técnicas;
 su orden inicial se mantiene para elegir playbook. Las reglas solapadas
 seleccionan una ganadora por prioridad; no crean un caso por regla para la misma alerta.
 No se reproduce automáticamente el histórico ni se reclasifican casos existentes.
-Ver [aceptación 0.1.199](upgrade-0.1.199.md).
+Ver [aceptación 0.1.201](upgrade-0.1.201.md).
 
 ## Gestión de casos y escalamiento en 0.1.197
 
@@ -109,9 +109,9 @@ llegada a bandeja. Revisar Message-ID antes de reenviar una entrega incierta.
 
 El POST JSON de escalamiento admite hasta 36.000.000 bytes por la codificación.
 Comprobar los límites del proxy y del mensaje MIME del proveedor SMTP en el destino.
-Ver [aceptación 0.1.199](upgrade-0.1.199.md).
+Ver [aceptación 0.1.201](upgrade-0.1.201.md).
 
-## Actividad familiar y evidencias en 0.1.199
+## Actividad familiar y evidencias en 0.1.201
 
 La fecha presentada del padre incluye el trabajo más reciente de sus hijos del
 mismo tenant. El período de actividad conserva al padre cuando existe trabajo de
@@ -125,13 +125,22 @@ del trabajo, el analista, los estados, las asignaciones y los relojes SLA propio
 
 Los límites y la paginación siguen contando casos individuales. Kanban compacto
 agrupa hijos del mismo estado cuando ambos registros están cargados. La paginación
-por familias completas sigue pendiente. Ver [aceptación](upgrade-0.1.199.md).
+por familias completas sigue pendiente. Ver [aceptación](upgrade-0.1.201.md).
 
-## Dashboard de vulnerabilidades en 0.1.199
+## Dashboard de vulnerabilidades en 0.1.201
 
-Dashboard abre por defecto y lee métricas guardadas; Hosts consulta el inventario
-actual al abrir esa pestaña. Todos los roles del tenant pueden leer el dashboard,
-sin recibir permisos de escritura ni acceso a otros tenants. El histórico conserva
-tres meses calendario y usa la última captura correcta de cada día en America/Lima.
-Los días sin captura quedan sin datos y el histórico comienza con las nuevas capturas.
-La retención de inventarios completos no cambia. Ver [aceptación](upgrade-0.1.199.md).
+Dashboard abre por defecto con los últimos siete días y lee métricas guardadas.
+Hosts usa por defecto el último corte de métricas confirmado, limitado al
+inventario actualmente autorizado del tenant. Expone fecha y procedencia;
+un host sin métrica queda pendiente, no con un cero inventado. La consulta en
+vivo es explícita. Los detalles y reportes usan datos actuales del Indexer.
+Todos los roles del tenant pueden leer el dashboard sin obtener escrituras ni
+acceso a otros tenants. Los grupos estándar vacíos no se muestran.
+
+Se conservan seis snapshots completos y métricas compactas por 90 días, de forma
+independiente. Las capturas se programan a las 00:00 y 12:00 America/Lima;
+la finalización puede ocurrir después. Mientras se genera otra captura se sirve
+el corte confirmado anterior. Una captura incompleta no se publica.
+La evolución diaria usa la última captura correcta de cada día en America/Lima.
+Los días sin captura quedan sin datos; abrir la vista no genera snapshots.
+Ver [aceptación](upgrade-0.1.201.md).

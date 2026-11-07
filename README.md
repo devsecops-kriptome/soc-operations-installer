@@ -6,25 +6,34 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.201`; API, API externa, worker y agente: `0.1.144`.
-- Plugin: `socOperations@0.1.122`, compilado para cada plataforma exacta.
-- Esquema: `f2c6a8d90173`; recuperación auditable con FORCE RLS.
-- Wazuh `4.14.7-1` / OSD `2.19.5`, o Wazuh `4.14.8-1` / OSD `2.19.6`.
+- Instalador: `0.1.202`; API, API externa, worker y agente: `0.1.145`.
+- Plugin: `socOperations@0.1.123`, compilado para OSD `2.19.5` y `2.19.6`.
+- Esquema: `f4b8cae32175`.
+- Wazuh `4.14.7-1` o `4.14.8-1`, AIO o distribuido con un único Dashboard.
 
-0.1.201 incorpora la recuperación controlada de la fecha de alerta inicial de
-casos históricos, con verificación exacta de hash, tenant y timestamp. Reconoce
-los formatos históricos de cinco y seis campos y excluye por caso los JSON
-malformados. No modifica evidencias originales ni repara casos automáticamente.
-En Vulnerabilidades, Hosts usa por defecto métricas compactas del último corte
-confirmado; detalles y reportes siguen consultando datos actuales del Indexer.
-Conserva seis snapshots completos y métricas durante 90 días, con capturas
-programadas a las 00:00 y 12:00 America/Lima y siete días iniciales en Dashboard.
-Ver [notas](docs/release-0.1.201.md) y [actualización](docs/upgrade-0.1.201.md).
-Validación local: 3015 pruebas backend/agente y 478 de interfaz aprobadas;
-245 comprobaciones adicionales de seguridad con solapamiento, no sumadas al total.
-Publicar no instala ni repara datos productivos. La aceptación del destino sigue pendiente.
+Incluye cálculos SLA con evidencia explícita, desglose por severidad, TOP 10 por
+analista y porcentaje de cumplimiento de 0 a 100. Corrige conflictos de plazos,
+períodos y cierres con la misma hora, preservando aislamiento y permisos.
+También incorpora filtros temporales con segundos, consulta de horarios con
+permiso específico y gestión de activación/presencia de fuentes tecnológicas.
+La UI muestra el nombre del agente sin ampliar la identidad de la API externa.
+Ver [notas](docs/release-0.1.202.md) y [actualización](docs/upgrade-0.1.202.md).
+
+Validación local: 3324 pruebas backend/agente y 497 de interfaz aprobadas.
+258 comprobaciones específicas y 37 de cadena de artefactos tienen solapamiento
+y no se suman como pruebas únicas adicionales.
+**No restaura datos históricos ni completa hitos SLA automáticamente.**
+La adaptación de casos previos será un trabajo posterior separado.
+Publicar no instala en servidores; la aceptación del destino sigue pendiente.
 
 ## Historial de entregas
+
+0.1.201 incorpora la recuperación controlada de la fecha de alerta inicial, con
+verificación de hash y sin reparar casos automáticamente. Hosts usa métricas del
+último corte confirmado, con reportes actuales; conserva seis snapshots completos
+y métricas por 90 días. Validación de esa entrega: 3015 pruebas backend/agente y
+478 de interfaz. Ver [notas](docs/release-0.1.201.md) y
+[actualización](docs/upgrade-0.1.201.md).
 
 0.1.199 abre Vulnerabilidades en **Dashboard**, con una segunda pestaña **Hosts**.
 Conserva tres meses calendario de métricas compactas por host, evolución diaria
@@ -336,7 +345,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.201.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.202.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

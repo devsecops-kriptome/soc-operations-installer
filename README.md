@@ -6,27 +6,33 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.202`; API, API externa, worker y agente: `0.1.145`.
-- Plugin: `socOperations@0.1.123`, compilado para OSD `2.19.5` y `2.19.6`.
-- Esquema: `f4b8cae32175`.
+- Instalador: `0.1.203`; API, API externa, worker y agente: `0.1.146`.
+- Plugin: `socOperations@0.1.123`, conservado sin cambios para OSD `2.19.5` y `2.19.6`.
+- Esquema: `a5d9e2c73086`.
 - Wazuh `4.14.7-1` o `4.14.8-1`, AIO o distribuido con un único Dashboard.
 
-Incluye cálculos SLA con evidencia explícita, desglose por severidad, TOP 10 por
-analista y porcentaje de cumplimiento de 0 a 100. Corrige conflictos de plazos,
-períodos y cierres con la misma hora, preservando aislamiento y permisos.
-También incorpora filtros temporales con segundos, consulta de horarios con
-permiso específico y gestión de activación/presencia de fuentes tecnológicas.
-La UI muestra el nombre del agente sin ampliar la identidad de la API externa.
-Ver [notas](docs/release-0.1.202.md) y [actualización](docs/upgrade-0.1.202.md).
+Añade objetivos SLA suplementarios, separados de los snapshots originales,
+con confirmación explícita del operador, aislamiento por tenant y auditoría.
+Los lectores comparten la misma procedencia del objetivo. La confirmación no
+se presenta como evidencia histórica recuperada de la base de datos.
+Ver [notas](docs/release-0.1.203.md) y [actualización](docs/upgrade-0.1.203.md).
 
-Validación local: 3324 pruebas backend/agente y 497 de interfaz aprobadas.
-258 comprobaciones específicas y 37 de cadena de artefactos tienen solapamiento
-y no se suman como pruebas únicas adicionales.
-**No restaura datos históricos ni completa hitos SLA automáticamente.**
-La adaptación de casos previos será un trabajo posterior separado.
+Validación local: 3354 pruebas backend/agente y 497 de interfaz aprobadas.
+49 comprobaciones de cadena de artefactos tienen solapamiento y no se suman
+como pruebas únicas adicionales.
+**El instalador crea la tabla vacía: no aplica planes ni inventa hitos SLA.**
+MTTQ/MTTI sin evidencia explícita siguen sin dato; el playbook es referencial.
+La aplicación histórica se realiza después, como operación separada y autorizada.
 Publicar no instala en servidores; la aceptación del destino sigue pendiente.
 
 ## Historial de entregas
+
+0.1.202 incorpora cálculos SLA con evidencia explícita, desglose por severidad,
+TOP 10 por analista, cumplimiento de 0 a 100, filtros temporales con segundos,
+consulta autorizada de horarios y gestión de fuentes tecnológicas. La UI muestra
+agent.name sin ampliar la identidad de la API externa. Ver
+[notas](docs/release-0.1.202.md) y [actualización](docs/upgrade-0.1.202.md).
+Validación local de esa entrega: 3324 pruebas backend/agente y 497 de interfaz.
 
 0.1.201 incorpora la recuperación controlada de la fecha de alerta inicial, con
 verificación de hash y sin reparar casos automáticamente. Hosts usa métricas del
@@ -345,7 +351,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.202.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.203.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

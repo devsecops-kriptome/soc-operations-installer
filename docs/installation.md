@@ -1,4 +1,4 @@
-# Instalación limpia AIO de SOC Operations 0.1.202
+# Instalación limpia AIO de SOC Operations 0.1.203
 
 Esta guía instala SOC Operations sobre un servidor all-in-one de Wazuh ya operativo. El
 instalador no instala ni actualiza Wazuh, no modifica el firewall y no está soportado sobre una
@@ -6,7 +6,7 @@ instalación parcial o una versión distinta de la indicada.
 
 > **Instalación existente:** no seguir los pasos de instalación limpia ni inicializar OpenBao.
 > Preparar respaldo y release verificado y seguir el
-> [procedimiento de upgrade 0.1.202](upgrade-0.1.202.md),
+> [procedimiento de upgrade 0.1.203](upgrade-0.1.203.md),
 > adaptando las direcciones a la topología persistida.
 
 ## 1. Requisitos
@@ -21,7 +21,7 @@ instalación parcial o una versión distinta de la indicada.
 - acceso autorizado a la identidad privada `age` almacenada en el gestor de secretos bajo
   `SOC Operations Installer Descifrado`.
 
-El release `0.1.202` no es compatible con Wazuh 4.12 ni con parejas cruzadas entre Wazuh y OSD. El
+El release `0.1.203` no es compatible con Wazuh 4.12 ni con parejas cruzadas entre Wazuh y OSD. El
 `preflight` las rechaza antes de instalar componentes. No modifique esa comprobación; consulte
 [Compatibilidad](compatibility.md).
 
@@ -248,17 +248,17 @@ install -d -m 0700 "$HOME/soc-installer"
 cd "$HOME/soc-installer"
 
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.202/soc-operations-0.1.202.tar.gz.age
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.203/soc-operations-0.1.203.tar.gz.age
 curl --fail --location --remote-name \
-  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.202/SHA256SUMS
+  https://github.com/devsecops-kriptome/soc-operations-installer/releases/download/v0.1.203/SHA256SUMS
 
-grep 'soc-operations-0.1.202.tar.gz.age$' SHA256SUMS | sha256sum --check
+grep 'soc-operations-0.1.203.tar.gz.age$' SHA256SUMS | sha256sum --check
 ```
 
 El resultado debe ser:
 
 ```text
-soc-operations-0.1.202.tar.gz.age: OK
+soc-operations-0.1.203.tar.gz.age: OK
 ```
 
 Recupere la identidad privada desde el gestor de secretos autorizado, usando exactamente la
@@ -270,18 +270,18 @@ chats, tickets, documentación o historial de comandos:
 chmod 0600 "$HOME/.soc-operations-installer-key.txt"
 age --decrypt \
   --identity "$HOME/.soc-operations-installer-key.txt" \
-  --output soc-operations-0.1.202.tar.gz \
-  soc-operations-0.1.202.tar.gz.age
+  --output soc-operations-0.1.203.tar.gz \
+  soc-operations-0.1.203.tar.gz.age
 
 sha256sum --check SHA256SUMS
-tar -xzf soc-operations-0.1.202.tar.gz
-cd release-0.1.202
+tar -xzf soc-operations-0.1.203.tar.gz
+cd release-0.1.203
 sha256sum --check SHA256SUMS
-test "$(find . -maxdepth 1 -type f | wc -l)" -eq 51
+test "$(find . -maxdepth 1 -type f | wc -l)" -eq 52
 ```
 
-La primera verificación valida el asset cifrado y el TAR; la segunda valida los 50 artefactos del
-release. El directorio contiene 51 archivos en total porque incluye su propio `SHA256SUMS`.
+La primera verificación valida el asset cifrado y el TAR; la segunda valida los 51 artefactos del
+release. El directorio contiene 52 archivos en total porque incluye su propio `SHA256SUMS`.
 
 Si la política no permite conservar la identidad en el servidor, elimine únicamente su copia
 temporal después del descifrado:
@@ -295,7 +295,7 @@ OpenBao, `auto-unseal.key` ni como clave de cifrado de los respaldos de SOC Oper
 
 ## 4. Ejecutar el preflight
 
-Desde `$HOME/soc-installer/release-0.1.202` instale solo el orquestador:
+Desde `$HOME/soc-installer/release-0.1.203` instale solo el orquestador:
 
 ```bash
 sudo install -o root -g root -m 0755 \
@@ -316,10 +316,10 @@ printf 'Esperado:  %s\nInstalado: %s\n' \
 test "$INSTALLED_INSTALLER_SHA256" = "$EXPECTED_INSTALLER_SHA256"
 ```
 
-Para el release `0.1.202` publicado, ambas huellas deben ser:
+Para el release `0.1.203` publicado, ambas huellas deben ser:
 
 ```text
-d43403b3c89b1adefc918d975859bb63db5d36cf0a9b8c95a3e75a1a87aabb3f
+0399c19a15213b480606ad9abae3f308792fc6c263a377d5b067dff8d2208e61
 ```
 
 La comparación contra el `SHA256SUMS` interno es la validación autoritativa.
@@ -328,7 +328,7 @@ Ejecute la validación sin cambios persistentes:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install preflight \
-  --staging-root "$HOME/soc-installer/release-0.1.202"
+  --staging-root "$HOME/soc-installer/release-0.1.203"
 ```
 
 En un host con varias interfaces, añada `--service-address IP_INTERNA`. No continúe si falla una
@@ -340,7 +340,7 @@ Reemplace los valores de ejemplo:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install apply \
-  --staging-root "$HOME/soc-installer/release-0.1.202" \
+  --staging-root "$HOME/soc-installer/release-0.1.203" \
   --service-address IP_INTERNA_AIO \
   --external-proxy-cidr IP_O_CIDR_DEL_PROXY \
   --email ADMINISTRACION-SOC@EMPRESA.COM \
@@ -369,7 +369,7 @@ identidad; no elimine el estado. El resultado esperado es:
 phase=waiting_for_openbao_custody
 ```
 
-El instalador `0.1.202` crea los directorios `/opt/soc-operations-lab` y
+El instalador `0.1.203` crea los directorios `/opt/soc-operations-lab` y
 `/opt/soc-operations/docs` antes de desplegar los archivos auxiliares, incluido
 `continuity.env.example`. En una instalación nueva no es necesario prepararlos manualmente.
 También valida la identidad fija de la imagen de API tanto con el ID de configuración como con el
@@ -441,7 +441,7 @@ release vigente y reconcilie los componentes con:
 
 ```bash
 sudo /usr/local/sbin/soc-operations-install upgrade \
-  --staging-root "$HOME/soc-installer/release-0.1.202"
+  --staging-root "$HOME/soc-installer/release-0.1.203"
 ```
 
 Si `first-engineer` sigue pendiente, `upgrade` vuelve a mostrar los dos prompts de contraseña. La
@@ -457,7 +457,7 @@ sudo /usr/local/sbin/soc-operations-install status
 La salida final debe incluir:
 
 ```text
-installer_version=0.1.202
+installer_version=0.1.203
 phase=complete
 dashboard=302
 soc_api_liveness=200
@@ -533,7 +533,7 @@ Antes de activar GeoIP, conserve la línea base y el respaldo indicados en la gu
 `_simulate` y compruebe la salud del Indexer. En AIO puede habilitar la activación automática solo
 después de completar esas pruebas.
 
-## Identidad y renovación mTLS interna (0.1.202)
+## Identidad y renovación mTLS interna (0.1.203)
 
 Las validaciones criptográficas exigen cadena, propósito, IP y DNS. Una identidad
 incorrecta detiene la operación; no se regenera silenciosamente ni se desactiva TLS.
@@ -547,7 +547,7 @@ una interrupción breve. Si Manager y runtime están en hosts separados, NO dist
 credenciales automáticamente: coordinar la renovación antes de vencer. No equivale a
 una renovación global de TLS público, Wazuh, Indexer o GeoIP. Configurar monitorización
 del timer/servicio y del vencimiento; el timer no envía notificaciones por sí solo.
-Ver [notas 0.1.202](release-0.1.202.md) y [aceptación](upgrade-0.1.202.md).
+Ver [notas 0.1.203](release-0.1.203.md) y [aceptación](upgrade-0.1.203.md).
 
 ## Reportes y programaciones de vulnerabilidades
 
@@ -559,7 +559,7 @@ Las modificaciones exigen SOC Manager del tenant o Ingeniería global y se audit
 
 Comprobar un reporte nuevo, sus grupos/agrupación y correo autorizado; editar y
 reabrir una programación, cancelar sin escribir y eliminar con confirmación sin
-perder reportes históricos. Ver [aceptación 0.1.202](upgrade-0.1.202.md).
+perder reportes históricos. Ver [aceptación 0.1.203](upgrade-0.1.203.md).
 
 ## Nombres de producto en tecnologías externas
 
@@ -570,11 +570,11 @@ technology_name conserva la categoría WAF, Firewall, etc. Un nombre ausente que
 Las observaciones anteriores se enriquecen al recibir y recopilar nuevos eventos.
 Se conservan agent.id, manager.name, seriales configurados y claves de fuentes.
 El alcance technologies:read y el aislamiento por tenant no cambian.
-Ver [aceptación de tecnologías](upgrade-0.1.202.md).
+Ver [aceptación de tecnologías](upgrade-0.1.203.md).
 
 ## Correlación con checkpoint persistente
 
-La instalación aplica el esquema f4b8cae32175, incluido el checkpoint exclusivo
+La instalación aplica el esquema a5d9e2c73086, incluido el checkpoint exclusivo
 del worker con FORCE RLS. El sondeo usa Scroll completo y transacciones de
 100 alertas por defecto, sin un límite total de 2000 resultados. Los reintentos
 conservan lotes confirmados y no duplican casos ni vínculos.
@@ -582,7 +582,7 @@ conservan lotes confirmados y no duplican casos ni vínculos.
 technology.id procede de los campos personalizados del evento y no de decoder.name.
 El primer sondeo comienza en ahora menos lookback (600 segundos por defecto);
 no hay replay histórico automático. La recuperación de alertas anteriores requiere
-autorización separada y un rango explícito. Ver [aceptación](upgrade-0.1.202.md).
+autorización separada y un rango explícito. Ver [aceptación](upgrade-0.1.203.md).
 
 ## Reportes por hostname y entrega segura (desde 0.1.192)
 
@@ -592,7 +592,7 @@ una hoja por host con estructura Host > paquete, incluidos hosts sin hallazgos.
 Word, correo, programación e historial conservan el alcance. Se revalida identidad,
 tenant y actividad al ejecutar el reporte; no se aceptan etiquetas del navegador.
 
-El esquema f4b8cae32175 identifica cada ocurrencia programada por scheduled_for;
+El esquema a5d9e2c73086 identifica cada ocurrencia programada por scheduled_for;
 los reportes históricos conservan NULL y no se reproducen automáticamente. Los
 reintentos del mismo envío usan send_request_id; un nuevo envío explícito usa otro
 UUID. Se corrigen carreras del perfil inicial y bloqueos al eliminar programaciones.
@@ -600,7 +600,7 @@ UUID. Se corrigen carreras del perfil inicial y bloqueos al eliminar programacio
 Grupos predeterminados: Endpoints-Windows, Servers-Windows, Endpoints-Linux,
 Servers-Linux, Endpoints-MacOS, Servers-MacOS, Prod, Dev y APPs. Los nombres antiguos
 se reconocen, pero no se renombran ni reasignan miembros existentes automáticamente.
-Ver [aceptación 0.1.202](upgrade-0.1.202.md).
+Ver [aceptación 0.1.203](upgrade-0.1.203.md).
 
 ## Identidad mutable del inventario de vulnerabilidades desde 0.1.193
 
@@ -615,9 +615,9 @@ Dos fuentes autorizadas para el mismo endpoint son ambiguas y no se suman ni se
 eligen automáticamente. No se borran índices. El resumen de política anterior
 puede devolver 503 refresh pending hasta una recolección válida con la nueva
 política. Comprobar reporte real y API externa antes de aprobar producción.
-Ver [aceptación y piloto lab02](upgrade-0.1.202.md).
+Ver [aceptación y piloto lab02](upgrade-0.1.203.md).
 
-## Contactos y automatización en 0.1.202
+## Contactos y automatización en 0.1.203
 
 La consulta externa de contactos requiere `contacts:read`; no se concede ese
 alcance automáticamente a las claves existentes. El indicador KriptomeAPP no
@@ -633,9 +633,9 @@ local coordina su tenant. Actualizar API y worker juntos con el instalador y una
 ventana de mantenimiento. No mezclar componentes antiguos ni modificar las
 reglas directamente por SQL. Las migraciones agregan contactos y categorías;
 la regla global de vulnerabilidades nace pausada con nivel mínimo 10.
-Ver [actualización y aceptación](upgrade-0.1.202.md).
+Ver [actualización y aceptación](upgrade-0.1.203.md).
 
-## Casos, SLA y entrega en 0.1.202
+## Casos, SLA y entrega en 0.1.203
 
 Los SLA de este flujo se aplican a casos automáticos. MTTD usa la alerta de origen,
 MTTR el primer En progreso explícito y MTTC el cierre; Resuelto no equivale a Cerrado.
@@ -649,7 +649,7 @@ inciertos requieren revisión de su referencia y no se reenvían automáticament
 
 Antes del upgrade debe existir un respaldo nuevo verificado, incluyendo snapshots
 publicados. En AIO se reconcilia el agente local; en distribuido se verifica el agente
-0.1.145 antes del runtime. Ver [actualización 0.1.202](upgrade-0.1.202.md).
+0.1.146 antes del runtime. Ver [actualización 0.1.203](upgrade-0.1.203.md).
 
 ## Correlación y primera alerta en 0.1.196
 
@@ -666,7 +666,7 @@ evidencia. Al agrupar por mitre.id se compara el conjunto de técnicas;
 su orden inicial se mantiene para elegir playbook. Las reglas solapadas
 seleccionan una ganadora por prioridad; no crean un caso por regla para la misma alerta.
 No se reproduce automáticamente el histórico ni se reclasifican casos existentes.
-Ver [aceptación 0.1.202](upgrade-0.1.202.md).
+Ver [aceptación 0.1.203](upgrade-0.1.203.md).
 
 ## Gestión de casos y escalamiento en 0.1.197
 
@@ -686,9 +686,9 @@ llegada a bandeja. Revisar Message-ID antes de reenviar una entrega incierta.
 
 El POST JSON de escalamiento admite hasta 36.000.000 bytes por la codificación.
 Comprobar los límites del proxy y del mensaje MIME del proveedor SMTP en el destino.
-Ver [aceptación 0.1.202](upgrade-0.1.202.md).
+Ver [aceptación 0.1.203](upgrade-0.1.203.md).
 
-## Actividad familiar y evidencias en 0.1.202
+## Actividad familiar y evidencias en 0.1.203
 
 La fecha presentada del padre incluye el trabajo más reciente de sus hijos del
 mismo tenant. El período de actividad conserva al padre cuando existe trabajo de
@@ -702,9 +702,9 @@ del trabajo, el analista, los estados, las asignaciones y los relojes SLA propio
 
 Los límites y la paginación siguen contando casos individuales. Kanban compacto
 agrupa hijos del mismo estado cuando ambos registros están cargados. La paginación
-por familias completas sigue pendiente. Ver [aceptación](upgrade-0.1.202.md).
+por familias completas sigue pendiente. Ver [aceptación](upgrade-0.1.203.md).
 
-## Dashboard de vulnerabilidades en 0.1.202
+## Dashboard de vulnerabilidades en 0.1.203
 
 Dashboard abre por defecto con los últimos siete días y lee métricas guardadas.
 Hosts usa por defecto el último corte de métricas confirmado, limitado al
@@ -720,4 +720,13 @@ la finalización puede ocurrir después. Mientras se genera otra captura se sirv
 el corte confirmado anterior. Una captura incompleta no se publica.
 La evolución diaria usa la última captura correcta de cada día en America/Lima.
 Los días sin captura quedan sin datos; abrir la vista no genera snapshots.
-Ver [aceptación](upgrade-0.1.202.md).
+Ver [aceptación](upgrade-0.1.203.md).
+
+## Objetivos SLA suplementarios en 0.1.203
+
+La migración crea `case_sla_target_supplements` vacía. No ejecuta planes ni modifica
+snapshots originales. Una aplicación posterior, explícita y auditada puede agregar
+objetivos confirmados por el operador; no certifica su vigencia mediante evidencia
+histórica de la base. MTTQ/MTTI siguen requiriendo hitos explícitos independientes
+del playbook. El plugin 0.1.123 se conserva sin cambios. Consulte las
+[notas](release-0.1.203.md) y la [aceptación del upgrade](upgrade-0.1.203.md).

@@ -6,26 +6,31 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.203`; API, API externa, worker y agente: `0.1.146`.
-- Plugin: `socOperations@0.1.123`, conservado sin cambios para OSD `2.19.5` y `2.19.6`.
-- Esquema: `a5d9e2c73086`.
+- Instalador: `0.1.204`; API, API externa, worker y agente: `0.1.147`.
+- Plugin: `socOperations@0.1.124`, para OSD `2.19.5` y `2.19.6`.
+- Esquema: `c7f104b952a8`.
 - Wazuh `4.14.7-1` o `4.14.8-1`, AIO o distribuido con un único Dashboard.
 
-Añade objetivos SLA suplementarios, separados de los snapshots originales,
-con confirmación explícita del operador, aislamiento por tenant y auditoría.
-Los lectores comparten la misma procedencia del objetivo. La confirmación no
-se presenta como evidencia histórica recuperada de la base de datos.
-Ver [notas](docs/release-0.1.203.md) y [actualización](docs/upgrade-0.1.203.md).
+Incorpora Threat Radar, opcional y deshabilitado por defecto, con dashboard
+compartido, publicaciones JSONB hasta 12 meses calendario, cartera independiente,
+administración restringida y notificaciones por el SMTP existente.
+Ver [notas](docs/release-0.1.204.md) y [actualización](docs/upgrade-0.1.204.md).
 
-Validación local: 3354 pruebas backend/agente y 497 de interfaz aprobadas.
-49 comprobaciones de cadena de artefactos tienen solapamiento y no se suman
-como pruebas únicas adicionales.
-**El instalador crea la tabla vacía: no aplica planes ni inventa hitos SLA.**
-MTTQ/MTTI sin evidencia explícita siguen sin dato; el playbook es referencial.
-La aplicación histórica se realiza después, como operación separada y autorizada.
-Publicar no instala en servidores; la aceptación del destino sigue pendiente.
+Validación local: 3473 pruebas backend/agente, 23 de cadena de artefactos y
+517 de interfaz aprobadas; ambos plugins compilados. La aceptación del destino,
+el descifrado autorizado y la entrega real de correo siguen pendientes.
+No aplica planes SLA ni reconstruye hitos. Conserva los suplementos ya existentes.
+
+**Esta entrega no incorpora las correcciones de vulnerabilidades posteriores ni
+Slack. No se presenta como una versión libre de vulnerabilidades.**
+Publicar no instala en servidores. Las guías antiguas corresponden a sus versiones;
+para una instalación existente debe usarse la guía de actualización 0.1.204.
 
 ## Historial de entregas
+
+0.1.203 incorpora objetivos SLA suplementarios con procedencia y auditoría, sin
+alterar snapshots originales ni inventar hitos. Ver
+[notas](docs/release-0.1.203.md) y [actualización](docs/upgrade-0.1.203.md).
 
 0.1.202 incorpora cálculos SLA con evidencia explícita, desglose por severidad,
 TOP 10 por analista, cumplimiento de 0 a 100, filtros temporales con segundos,

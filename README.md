@@ -6,25 +6,30 @@ La identidad original se obtiene solo en el gestor autorizado: `SOC Operations I
 
 ## Versión vigente
 
-- Instalador: `0.1.204`; API, API externa, worker y agente: `0.1.147`.
-- Plugin: `socOperations@0.1.124`, para OSD `2.19.5` y `2.19.6`.
-- Esquema: `c7f104b952a8`.
+- Instalador: `0.1.206`; API, API externa, worker y agente: `0.1.149`.
+- Plugin: `socOperations@0.1.126`, para OSD `2.19.5` y `2.19.6`.
+- Esquema: `d8a215c963b7`.
 - Wazuh `4.14.7-1` o `4.14.8-1`, AIO o distribuido con un único Dashboard.
 
-Incorpora Threat Radar, opcional y deshabilitado por defecto, con dashboard
-compartido, publicaciones JSONB hasta 12 meses calendario, cartera independiente,
-administración restringida y notificaciones por el SMTP existente.
-Ver [notas](docs/release-0.1.204.md) y [actualización](docs/upgrade-0.1.204.md).
+Threat Radar añade correos HTML con alternativa de texto, cruces de clientes
+destacados sin contactar automáticamente a sus contactos, diagnósticos de fuentes
+legibles, enlace de actualización y selección de período con modal personalizado.
+Conserva el módulo opcional deshabilitado por defecto, las publicaciones JSONB
+hasta 12 meses calendario y los controles de acceso de su cartera independiente.
+Slack es opcional y no expone la cartera privada ni etiqueta guardias.
+Ver [notas](docs/release-0.1.206.md) y [actualización](docs/upgrade-0.1.206.md).
 
-Validación local: 3473 pruebas backend/agente, 23 de cadena de artefactos y
-517 de interfaz aprobadas; ambos plugins compilados. La aceptación del destino,
-el descifrado autorizado y la entrega real de correo siguen pendientes.
-No aplica planes SLA ni reconstruye hitos. Conserva los suplementos ya existentes.
+Incluye la base del candidato local de seguridad 0.1.205. Esa numeración no se
+publicó; los artefactos locales anteriores se conservan. MinIO no se sustituye.
+Persisten riesgos de dependencias e infraestructura: esta entrega no certifica
+una pila libre de vulnerabilidades ni elimina el bloqueo remoto HTTP 403 de CISA.
 
-**Esta entrega no incorpora las correcciones de vulnerabilidades posteriores ni
-Slack. No se presenta como una versión libre de vulnerabilidades.**
-Publicar no instala en servidores. Las guías antiguas corresponden a sus versiones;
-para una instalación existente debe usarse la guía de actualización 0.1.204.
+Ambos plugins se compilan para su plataforma exacta. Publicar no instala en
+servidores; el descifrado autorizado, Outlook/SMTP real y la aceptación del destino
+siguen pendientes. No aplica planes SLA, no reconstruye hitos ni exige repetir
+la aceptación histórica SLA de entregas anteriores. Conserva los datos existentes.
+Las guías antiguas corresponden a sus versiones; para una instalación existente
+debe usarse la guía de actualización 0.1.206.
 
 ## Historial de entregas
 
@@ -356,7 +361,7 @@ y digest; no se utilizará una etiqueta flotante `latest` en producción.
 
 ## Uso
 
-1. Descargar `soc-operations-0.1.203.tar.gz.age` y `SHA256SUMS` desde Releases.
+1. Descargar `soc-operations-0.1.206.tar.gz.age` y `SHA256SUMS` desde Releases.
 2. Recuperar la clave privada `age` desde el gestor de secretos autorizado, entrada
    `SOC Operations Installer Descifrado`. Nunca se publica en este repositorio.
 3. Seguir [Instalación AIO](docs/installation.md) o

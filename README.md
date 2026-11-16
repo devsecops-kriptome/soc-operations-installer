@@ -4,7 +4,18 @@ Distribución pública cifrada para Wazuh 4.14.7/4.14.8, AIO o distribuido con u
 No se publica código privado, TAR sin cifrar, configuraciones reales, respaldos ni identidades age.
 La identidad original se obtiene solo en el gestor autorizado: `SOC Operations Installer Descifrado`.
 
-## Versión vigente
+## Candidato para pruebas AIO
+
+La pre-release [0.1.207](https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.207)
+incorpora Activos del cliente: inventario por tenant, CSV, Snipe-IT, GLPI v1,
+asociación de agentes y enriquecimiento de casos creados, no de alertas.
+Runtime/agente `0.1.150`, plugin `0.1.127`. Activos y las programaciones se mantienen
+deshabilitados por defecto; su activación requiere permisos y TLS dedicados.
+No sustituye esta versión estable ni certifica el E2E con Indexer y conectores reales.
+Consultar [notas del candidato](docs/release-0.1.207.md) y
+[pruebas/actualización AIO](docs/upgrade-0.1.207.md).
+
+## Versión vigente estable
 
 - Instalador: `0.1.206`; API, API externa, worker y agente: `0.1.149`.
 - Plugin: `socOperations@0.1.126`, para OSD `2.19.5` y `2.19.6`.

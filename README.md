@@ -4,6 +4,16 @@ Distribución pública cifrada para Wazuh 4.14.7/4.14.8, AIO o distribuido con u
 No se publica código privado, TAR sin cifrar, configuraciones reales, respaldos ni identidades age.
 La identidad original se obtiene solo en el gestor autorizado: `SOC Operations Installer Descifrado`.
 
+## Candidato de corrección 0.1.208
+
+La pre-release [0.1.208](https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.208)
+parte de la estable 0.1.206: expone evidencia individual de MTTD, MTTQ y MTTI y
+refuerza los permisos del menú Calendario. No incluye el prototipo Activos de
+0.1.207 ni reescribe históricos. Runtime/agente 0.1.151; plugin 0.1.128.
+Consultar [notas](docs/release-0.1.208.md) y
+[actualización controlada](docs/upgrade-0.1.208.md).
+Publicar no instala en servidores; la aceptación del destino sigue pendiente.
+
 ## Candidato para pruebas AIO
 
 La pre-release [0.1.207](https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.207)

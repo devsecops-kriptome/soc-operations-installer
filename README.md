@@ -4,6 +4,19 @@ Distribución pública cifrada para Wazuh 4.14.7/4.14.8, AIO o distribuido con u
 No se publica código privado, TAR sin cifrar, configuraciones reales, respaldos ni identidades age.
 La identidad original se obtiene solo en el gestor autorizado: `SOC Operations Installer Descifrado`.
 
+## Candidato de corrección de navegación 0.1.209
+
+La pre-release [0.1.209](https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.209)
+corrige los refrescos que ocultaban enlaces autorizados del menú y unifica los
+controles de rol/tenant del menú y las vistas. Incluye la aplicación en el bundle
+principal del plugin para reducir fallos de montaje tardío, sin relajar CSP.
+Plugin 0.1.129; runtime/agente 0.1.151 y esquema sin cambios respecto de 0.1.208.
+No incluye Activos del cliente ni sustituye la estable 0.1.206.
+Consultar [notas](docs/release-0.1.209.md) y
+[actualización controlada](docs/upgrade-0.1.209.md).
+Publicar no despliega; la aceptación autenticada en el navegador del destino
+sigue pendiente. No es una nueva actualización de seguridad.
+
 ## Candidato de corrección 0.1.208
 
 La pre-release [0.1.208](https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.208)

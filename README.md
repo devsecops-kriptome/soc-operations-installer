@@ -4,6 +4,18 @@ Distribución pública cifrada para Wazuh 4.14.7/4.14.8, AIO o distribuido con u
 No se publica código privado, TAR sin cifrar, configuraciones reales, respaldos ni identidades age.
 La identidad original se obtiene solo en el gestor autorizado: `SOC Operations Installer Descifrado`.
 
+## Candidato funcional 0.1.210
+
+La pre-release [0.1.210](https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.210)
+integra Activos por tenant, evidencia SLA individual por API externa, refrescos
+incrementales y notificaciones opcionales de tecnologías externas. Añade caché
+común de reputación de IP públicas con AbuseIPDB, sin compartir evidencia de clientes.
+Runtime/agente 0.1.152; plugin 0.1.130; esquema f0c437e185d9.
+Activos y reputación permanecen desactivados por defecto. No sustituye la estable
+0.1.206. Consultar [notas](docs/release-0.1.210.md) y
+[actualización controlada](docs/upgrade-0.1.210.md).
+Publicar no instala: la aceptación autenticada en el destino y sus rutas WAF sigue pendiente.
+
 ## Candidato de corrección de navegación 0.1.209
 
 La pre-release [0.1.209](https://github.com/devsecops-kriptome/soc-operations-installer/releases/tag/v0.1.209)
